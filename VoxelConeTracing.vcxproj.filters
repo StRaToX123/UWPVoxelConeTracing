@@ -1,0 +1,182 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Assets">
+      <UniqueIdentifier>d033d3ad-961f-4f0a-9e08-3f0194ab7aac</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Filter Include="ImGUI">
+      <UniqueIdentifier>{2306489d-8876-4906-80ec-9340122af37f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGUI\Headers">
+      <UniqueIdentifier>{738626ff-ef63-4b91-b41b-adb35fb2c06b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGUI\Source">
+      <UniqueIdentifier>{0f9bbfac-5bf4-4b1a-ab60-d9b1d089b7d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{e14dfc4b-4bb0-4c8c-84a1-b8ec43d53ae4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\DirectX">
+      <UniqueIdentifier>{ee9ae49c-6de6-4318-802a-6bc54083bf9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{54fa12a5-fa54-47f8-ab7f-525980405a2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Time">
+      <UniqueIdentifier>{fa190ac5-e3d8-4aef-8b3d-767b9cdcf880}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Debug">
+      <UniqueIdentifier>{10c1ff94-4f62-4156-ae2d-e3cc37a452a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\DeviceResources">
+      <UniqueIdentifier>{45b3b99f-4615-4044-9e39-d7ca31a052f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders">
+      <UniqueIdentifier>{dc881213-7cc1-4d83-8a42-1a0aa06e76d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\DirectX\Headers">
+      <UniqueIdentifier>{f5df9f81-9a87-4ea7-93bc-3e0e3a3736f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\DeviceResources\Headers">
+      <UniqueIdentifier>{91883d04-718b-48e4-8cfa-93e01fd8b03e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\DeviceResources\Source">
+      <UniqueIdentifier>{d9396368-64e2-400d-9b25-81534be78db9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\SceneRenderers">
+      <UniqueIdentifier>{3eea0af9-6569-48bb-98d8-46594516d9da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\SceneRenderers\Headers">
+      <UniqueIdentifier>{3867a702-d1ee-4595-9721-6f3e7fc9972a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\SceneRenderers\Source">
+      <UniqueIdentifier>{fd9e492b-d264-4fb6-89d2-1392f7f82917}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShaders">
+      <UniqueIdentifier>{5efdde17-ca5b-4cc2-96f0-733441c3136b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShaders\VS">
+      <UniqueIdentifier>{80d76ace-c319-4625-b2fa-a99a3841b7d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShaders\PS">
+      <UniqueIdentifier>{2f86de55-a3aa-482e-83d5-a4ad9ee282d1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="VoxelConeTracingMain.cpp" />
+    <ClCompile Include="Graphics\DeviceResources\DeviceResources.cpp">
+      <Filter>Graphics\DeviceResources\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\SceneRenderers\3DSceneRenderer.cpp">
+      <Filter>Graphics\SceneRenderers\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_draw.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_impl_dx12.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_tables.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_widgets.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_impl_win32.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGUI\imgui_demo.cpp">
+      <Filter>ImGUI\Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="VoxelConeTracingMain.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="ImGUI\imconfig.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imgui.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imgui_impl_dx12.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imgui_internal.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imstb_rectpack.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imstb_textedit.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imstb_truetype.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX\d3dx12.h">
+      <Filter>Graphics\DirectX\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DirectX\DirectXHelper.h">
+      <Filter>Graphics\DirectX\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DeviceResources\DeviceResources.h">
+      <Filter>Graphics\DeviceResources\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\SceneRenderers\3DSceneRenderer.h">
+      <Filter>Graphics\SceneRenderers\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Shaders\SampleShaders\ShaderStructures.h">
+      <Filter>Graphics\Shaders\SampleShaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\DebugMessage.h">
+      <Filter>Utility\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Time\StepTimer.h">
+      <Filter>Utility\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGUI\imgui_impl_win32.h">
+      <Filter>ImGUI\Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Graphics\Shaders\SampleShaders\SampleVertexShader.hlsl">
+      <Filter>Graphics\Shaders\SampleShaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\SampleShaders\SamplePixelShader.hlsl">
+      <Filter>Graphics\Shaders\SampleShaders\PS</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
