@@ -108,10 +108,10 @@
     <ClCompile Include="ImGUI\imgui_widgets.cpp">
       <Filter>ImGUI\Source</Filter>
     </ClCompile>
-    <ClCompile Include="ImGUI\imgui_impl_win32.cpp">
+    <ClCompile Include="ImGUI\imgui_demo.cpp">
       <Filter>ImGUI\Source</Filter>
     </ClCompile>
-    <ClCompile Include="ImGUI\imgui_demo.cpp">
+    <ClCompile Include="ImGUI\imgui_impl_UWP.cpp">
       <Filter>ImGUI\Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -161,7 +161,7 @@
     <ClInclude Include="Utility\Time\StepTimer.h">
       <Filter>Utility\Time</Filter>
     </ClInclude>
-    <ClInclude Include="ImGUI\imgui_impl_win32.h">
+    <ClInclude Include="ImGUI\imgui_impl_UWP.h">
       <Filter>ImGUI\Headers</Filter>
     </ClInclude>
   </ItemGroup>

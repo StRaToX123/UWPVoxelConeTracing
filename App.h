@@ -7,7 +7,8 @@
 #if defined(_DEBUG)
 	#include <dxgidebug.h>
 #endif
-#include "ImGUI/imgui_impl_win32.h"
+#include "ImGUI/imgui_impl_UWP.h"
+#include "Utility/Debug/DebugMessage.h"
 
 using namespace VoxelConeTracing;
 using namespace concurrency;
@@ -53,9 +54,9 @@ namespace VoxelConeTracing
 		void OnPointerPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
 		void OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
 		void OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
-		void OnNonSysKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
-		void OnNonSysKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
-		void OnSysKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args);
+		void OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args);
+		void OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args);
+		void OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args);
 
 
 
@@ -65,6 +66,8 @@ namespace VoxelConeTracing
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
+		//void GetMouseProperties();
+		//void GetPointerDevices();
 		// Private accessor for m_deviceResources, protects against device removed errors.
 		std::shared_ptr<DX::DeviceResources> GetDeviceResources();
 

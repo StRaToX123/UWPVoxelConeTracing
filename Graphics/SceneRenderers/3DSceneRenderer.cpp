@@ -463,7 +463,7 @@ bool Sample3DSceneRenderer::Render()
     ////////////////////// ImGui /////////////////////////
     //////////////////////////////////////////////////////
 	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplWin32_NewFrame();
+	ImGui_ImplUWP_NewFrame();
 	ImGui::NewFrame();
 
 
@@ -505,6 +505,18 @@ bool Sample3DSceneRenderer::Render()
 		////////////////////// ImGui /////////////////////////
 		//////////////////////////////////////////////////////
 		ImGui::ShowDemoWindow(&show_imgui_demo_window);
+
+		ImGuiIO& io = ImGui::GetIO();
+		/*
+		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+		ImGui::Checkbox("Demo Window", &io.WantCaptureMouse);      // Edit bools storing our window open/close state
+		ImGui::InputFloat("MouseX", &io.MousePos.x);
+		ImGui::InputFloat("MouseY", &io.MousePos.y);
+		ImGui::End();
+		*/
+
+
 		ImGui::Render();
 		ID3D12DescriptorHeap* imGuiHeaps[] = { imGui_cbv_heap.Get() };
 		m_commandList->SetDescriptorHeaps(1, imGuiHeaps);

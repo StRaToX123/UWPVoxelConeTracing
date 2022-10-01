@@ -2,7 +2,7 @@
 // This needs to be used along with a Renderer (e.g. DirectX11, OpenGL3, Vulkan..)
 
 // Implemented features:
-//  [X] Platform: Clipboard support (for Win32 this is actually part of core dear imgui)
+//  [X] Platform: Clipboard support (for UWP this is actually part of core dear imgui)
 //  [X] Platform: Keyboard support. Since 1.87 we are using the io.AddKeyEvent() function. Pass ImGuiKey values to all key functions e.g. ImGui::IsKeyPressed(ImGuiKey_Space). [Legacy VK_* values will also be supported unless IMGUI_DISABLE_OBSOLETE_KEYIO is set]
 //  [X] Platform: Gamepad support. Enabled with 'io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad'.
 //  [X] Platform: Mouse cursor shape and visibility. Disable with 'io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange'.
@@ -15,26 +15,27 @@
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
 
-IMGUI_IMPL_API bool     ImGui_ImplWin32_Init(/*void* hwnd*/);
-IMGUI_IMPL_API void     ImGui_ImplWin32_Shutdown();
-IMGUI_IMPL_API void     ImGui_ImplWin32_NewFrame();
+IMGUI_IMPL_API bool     ImGui_ImplUWP_Init(/*void* hwnd*/);
+IMGUI_IMPL_API void     ImGui_ImplUWP_Shutdown();
+IMGUI_IMPL_API void     ImGui_ImplUWP_NewFrame();
 // These callbacks need to be called in a platform sepecifici way.
 // For a UWP app these are called via CoreWindow events that are setup in the App.cpp file
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerMoved_Callback(float x, float y);
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerEntered_Callback();
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerExited_Callback();
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerPressed_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties);
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerReleased_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties);
-IMGUI_IMPL_API void     ImGui_ImplWin32_PointerWheelChanged_Callback(int wheelDelta);
-IMGUI_IMPL_API void     ImGui_ImplWin32_KeyEvent_Callback(int vk, bool down);
-IMGUI_IMPL_API void     ImGui_ImplWin32_VisibilityChanged_Callback(bool isVisible);
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerMoved_Callback(float x, float y);
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerEntered_Callback();
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerExited_Callback();
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerPressed_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties);
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerReleased_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties);
+IMGUI_IMPL_API void     ImGui_ImplUWP_PointerWheelChanged_Callback(int wheelDelta);
+IMGUI_IMPL_API void     ImGui_ImplUWP_KeyEvent_Callback(int vk, bool down);
+IMGUI_IMPL_API void     ImGui_ImplUWP_VisibilityChanged_Callback(bool isVisible);
+IMGUI_IMPL_API void     ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
 
 
-// Win32 message handler your application need to call.
+// UWP message handler your application need to call.
 // - Intentionally commented out in a '#if 0' block to avoid dragging dependencies on <windows.h> from this helper.
 // - You should COPY the line below into your .cpp code to forward declare the function and then you can call it.
 // - Call from your application's message handler. Keep calling your message handler unless this function returns TRUE.
 
 #if 0
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplUWP_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif

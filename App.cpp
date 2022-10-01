@@ -81,20 +81,21 @@ void App::SetWindow(CoreWindow^ window)
 
 	window->PointerWheelChanged +=
 		ref new TypedEventHandler<CoreWindow^, PointerEventArgs^>(this, &App::OnPointerWheelChanged);
-
-	window->KeyDown +=
-		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnNonSysKeyDown);
-
-	window->KeyUp +=
-		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnNonSysKeyUp);
-
+	
+	
 	window->Dispatcher->AcceleratorKeyActivated +=
-		ref new TypedEventHandler<CoreDispatcher^, AcceleratorKeyEventArgs^>(this, &App::OnSysKeyEvent);
+		ref new TypedEventHandler<CoreDispatcher^, AcceleratorKeyEventArgs^>(this, &App::OnKeyEvent);
 
+	Windows::Gaming::Input::Gamepad::GamepadAdded += 
+		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &App::OnGamepadAdded);
 
+	Windows::Gaming::Input::Gamepad::GamepadRemoved += 
+		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &VoxelConeTracing::App::OnGamepadRemoved);
 
+	
+	
 	ImGui::CreateContext(window);
-	ImGui_ImplWin32_Init();
+	ImGui_ImplUWP_Init();
 
 }
 
@@ -144,7 +145,7 @@ void App::Run()
 // class is torn down while the app is in the foreground.
 void App::Uninitialize()
 {
-	ImGui_ImplWin32_Shutdown();
+	ImGui_ImplUWP_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -190,7 +191,7 @@ void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ ar
 void App::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
 {
 	m_windowVisible = args->Visible;
-	ImGui_ImplWin32_VisibilityChanged_Callback(args->Visible);
+	ImGui_ImplUWP_VisibilityChanged_Callback(args->Visible);
 }
 
 void App::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
@@ -200,65 +201,57 @@ void App::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
 
 void App::OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
+	ImGui_ImplUWP_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
 }
 
 void App::OnPointerEntered(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerEntered_Callback();
+	ImGui_ImplUWP_PointerEntered_Callback();
 }
 
 void App::OnPointerExited(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerExited_Callback();
+	ImGui_ImplUWP_PointerExited_Callback();
 }
 
 
 void App::OnPointerPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerPressed_Callback(args->CurrentPoint->Properties);
+	ImGui_ImplUWP_PointerPressed_Callback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerReleased_Callback(args->CurrentPoint->Properties);
+	ImGui_ImplUWP_PointerReleased_Callback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplWin32_PointerWheelChanged_Callback(args->CurrentPoint->Properties->MouseWheelDelta);
-}
-
-void App::OnNonSysKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
-{
-	ImGui_ImplWin32_KeyEvent_Callback(static_cast<int>(args->VirtualKey), true);
+	ImGui_ImplUWP_PointerWheelChanged_Callback(args->CurrentPoint->Properties->MouseWheelDelta);
 }
 
 
-void App::OnNonSysKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args)
 {
-	ImGui_ImplWin32_KeyEvent_Callback(static_cast<int>(args->VirtualKey), false);
-}
-
-// Possible improvement to be made.
-// Check to see if non sys key events are also fired off through the coreWindow->Dispatcher->AcceleratorKeyActivated event.
-// If so there is no need to have separate OnNonSysKeyDown and OnNonSysKeyUp events for non sys keys, both non sys and sys keys
-// can be handled through this AcceleratorKeyActivated event
-void App::OnSysKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args)
-{
-	// If this isn't a system character
-	if (!((args->EventType & Windows::UI::Core::CoreAcceleratorKeyEventType::SystemCharacter) == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemCharacter))
+	bool keyDown = false;
+	if ((args->EventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
+		|| (args->EventType == Windows::UI::Core::CoreAcceleratorKeyEventType::KeyDown))
 	{
-		return;
+		keyDown = true;
+		
 	}
+	
+	ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
+}
 
-	bool sysKeyDown = false;
-	if ((args->EventType & Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown) == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
-	{
-		sysKeyDown = true;
-	}
+void App::OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
+{
+	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
+}
 
-	ImGui_ImplWin32_KeyEvent_Callback(static_cast<int>(args->VirtualKey), sysKeyDown);
+void App::OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
+{
+	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
 }
 
 

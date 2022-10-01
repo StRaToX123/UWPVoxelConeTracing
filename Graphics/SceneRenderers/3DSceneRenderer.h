@@ -8,7 +8,7 @@
 #include "Graphics/Shaders/SampleShaders/ShaderStructures.h"
 #include <pix.h>
 #include "Utility/Time/StepTimer.h"
-#include "ImGUI/imgui_impl_win32.h"
+#include "ImGUI/imgui_impl_UWP.h"
 #include "ImGUI/imgui_impl_dx12.h"
 
 
