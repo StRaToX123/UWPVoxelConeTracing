@@ -66,8 +66,6 @@ namespace VoxelConeTracing
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
-		//void GetMouseProperties();
-		//void GetPointerDevices();
 		// Private accessor for m_deviceResources, protects against device removed errors.
 		std::shared_ptr<DX::DeviceResources> GetDeviceResources();
 

@@ -3,10 +3,11 @@
 
 #include <ppltasks.h>
 #include <synchapi.h>
-#include "Graphics/DeviceResources/DeviceResources.h"
-#include <DirectXColors.h>
-#include "Graphics/Shaders/SampleShaders/ShaderStructures.h"
 #include <pix.h>
+#include <DirectXColors.h>
+#include "Graphics/DeviceResources/DeviceResources.h"
+#include "Graphics/Shaders/SampleShaders/ShaderStructures.h"
+#include "Graphics/DirectX/Mesh.h"
 #include "Utility/Time/StepTimer.h"
 #include "ImGUI/imgui_impl_UWP.h"
 #include "ImGUI/imgui_impl_dx12.h"

@@ -12,7 +12,7 @@ using namespace Concurrency;
 
 
 
-// Renders Direct3D content on the screen.
+
 namespace VoxelConeTracing
 {
 	class VoxelConeTracingMain
@@ -29,10 +29,9 @@ namespace VoxelConeTracing
 			void OnDeviceRemoved();
 
 		private:
-			// TODO: Replace with your own content renderers.
-			std::unique_ptr<Sample3DSceneRenderer> m_sceneRenderer;
-
+			std::unique_ptr<Sample3DSceneRenderer> scene_renderer;
 			// Rendering loop timer.
-			DX::StepTimer m_timer;
+			DX::StepTimer step_timer;
+			std::vector<Mesh> scene;
 	};
 }

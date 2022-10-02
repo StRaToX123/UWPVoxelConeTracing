@@ -7,13 +7,19 @@
 // Loads and initializes application assets when the application is loaded.
 VoxelConeTracingMain::VoxelConeTracingMain()
 {
-	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
-	// e.g. for 60 FPS fixed timestep update logic, call:
+	// Change the timer settings if you want something other than the default variable timestep mode.
+	// example for 60 FPS fixed timestep update logic, call:
 	/*
-	m_timer.SetFixedTimeStep(true);
-	m_timer.SetTargetElapsedSeconds(1.0 / 60);
+	step_timer.SetFixedTimeStep(true);
+	step_timer.SetTargetElapsedSeconds(1.0 / 60);
 	*/
 
+	// Create the scene geometry
+	scene.reserve(10);
+	for (int i = 0; i < scene.capacity(); i++)
+	{
+		scene.emplace_back(Mesh());
+	}
 
 	
 
@@ -32,7 +38,7 @@ VoxelConeTracingMain::VoxelConeTracingMain()
 void VoxelConeTracingMain::CreateRenderers(const std::shared_ptr<DX::DeviceResources>& deviceResources)
 {
 	// TODO: Replace this with your app's content initialization.
-	m_sceneRenderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(deviceResources));
+	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(deviceResources));
 
 	OnWindowSizeChanged();
 }
@@ -41,9 +47,9 @@ void VoxelConeTracingMain::CreateRenderers(const std::shared_ptr<DX::DeviceResou
 void VoxelConeTracingMain::Update()
 {
 	// Update scene objects.
-	m_timer.Tick([&]()
+	step_timer.Tick([&]()
 	{
-		m_sceneRenderer->Update(m_timer);
+		scene_renderer->Update(step_timer);
 	});
 }
 
@@ -52,21 +58,21 @@ void VoxelConeTracingMain::Update()
 bool VoxelConeTracingMain::Render()
 {
 	// Don't try to render anything before the first Update.
-	if (m_timer.GetFrameCount() == 0)
+	if (step_timer.GetFrameCount() == 0)
 	{
 		return false;
 	}
 
 	// Render the scene objects.
 	// TODO: Replace this with your app's content rendering functions.
-	return m_sceneRenderer->Render();
+	return scene_renderer->Render();
 }
 
 // Updates application state when the window's size changes (e.g. device orientation change)
 void VoxelConeTracingMain::OnWindowSizeChanged()
 {
 	// TODO: Replace this with the size-dependent initialization of your app's content.
-	m_sceneRenderer->CreateWindowSizeDependentResources();
+	scene_renderer->CreateWindowSizeDependentResources();
 }
 
 // Notifies the app that it is being suspended.
@@ -77,7 +83,7 @@ void VoxelConeTracingMain::OnSuspending()
 	// Process lifetime management may terminate suspended apps at any time, so it is
 	// good practice to save any state that will allow the app to restart where it left off.
 
-	m_sceneRenderer->SaveState();
+	scene_renderer->SaveState();
 
 	// If your application uses video memory allocations that are easy to re-create,
 	// consider releasing that memory to make it available to other applications.
@@ -94,6 +100,6 @@ void VoxelConeTracingMain::OnDeviceRemoved()
 {
 	// TODO: Save any necessary application or renderer state and release the renderer
 	// and its resources which are no longer valid.
-	m_sceneRenderer->SaveState();
-	m_sceneRenderer = nullptr;
+	scene_renderer->SaveState();
+	scene_renderer = nullptr;
 }
