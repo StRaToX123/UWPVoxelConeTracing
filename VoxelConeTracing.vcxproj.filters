@@ -204,6 +204,9 @@
     <ClCompile Include="Scene\Mesh.cpp">
       <Filter>Scene\Source</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\Camera.cpp">
+      <Filter>Scene\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -330,6 +333,9 @@
       <Filter>Graphics\DirectX\Headers</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Mesh.h">
+      <Filter>Scene\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Camera.h">
       <Filter>Scene\Headers</Filter>
     </ClInclude>
   </ItemGroup>

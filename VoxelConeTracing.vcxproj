@@ -297,6 +297,7 @@
     <ClInclude Include="ImGUI\imstb_rectpack.h" />
     <ClInclude Include="ImGUI\imstb_textedit.h" />
     <ClInclude Include="ImGUI\imstb_truetype.h" />
+    <ClInclude Include="Scene\Camera.h" />
     <ClInclude Include="Scene\Mesh.h" />
     <ClInclude Include="Utility\Debug\DebugMessage.h" />
     <ClInclude Include="Utility\Time\HighResolutionClock.h" />
@@ -335,6 +336,7 @@
     <ClCompile Include="ImGUI\imgui_impl_UWP.cpp" />
     <ClCompile Include="ImGUI\imgui_tables.cpp" />
     <ClCompile Include="ImGUI\imgui_widgets.cpp" />
+    <ClCompile Include="Scene\Camera.cpp" />
     <ClCompile Include="Scene\Mesh.cpp" />
     <ClCompile Include="Utility\Time\HighResolutionClock.cpp" />
     <ClCompile Include="VoxelConeTracingMain.cpp" />

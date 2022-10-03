@@ -58,6 +58,8 @@ class Mesh
         // Computes a point on a unit circle, aligned to the x/z plane and centered on the origin.
         inline XMVECTOR GetCircleVector(size_t i, size_t tessellation);
         XMVECTOR GetCircleTangent(size_t i, size_t tessellation);
+        // Helper creates a triangle fan to close the end of a cylinder / cone
+        void CreateCylinderCap(vector<VertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop);
 
         vector<VertexPositionNormalTexture> vertices;
         vector<uint16_t> indices;
