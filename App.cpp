@@ -22,6 +22,8 @@ App::App() :
 	m_windowClosed(false),
 	m_windowVisible(true)
 {
+
+
 }
 
 
@@ -96,7 +98,6 @@ void App::SetWindow(CoreWindow^ window)
 	
 	ImGui::CreateContext(window);
 	ImGui_ImplUWP_Init();
-
 }
 
 // Initializes scene resources, or loads a previously saved app state.
@@ -111,27 +112,15 @@ void App::Load(Platform::String^ entryPoint)
 // This method is called after the window becomes active.
 void App::Run()
 {
+	GetDeviceResources();
 	while (!m_windowClosed)
 	{
 		if (m_windowVisible)
 		{
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
-
-			auto commandQueue = GetDeviceResources()->GetCommandQueue();
-			PIXBeginEvent(commandQueue, 0, L"Update");
-			{
-				m_main->Update();
-			}
-			PIXEndEvent(commandQueue);
-
-			PIXBeginEvent(commandQueue, 0, L"Render");
-			{
-				if (m_main->Render())
-				{
-					GetDeviceResources()->Present();
-				}
-			}
-			PIXEndEvent(commandQueue);
+			m_main->Update();
+			m_main->Render();
+			GetDeviceResources()->Present();
 		}
 		else
 		{
@@ -145,6 +134,7 @@ void App::Run()
 // class is torn down while the app is in the foreground.
 void App::Uninitialize()
 {
+	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplUWP_Shutdown();
 	ImGui::DestroyContext();
 }
@@ -240,8 +230,12 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 		keyDown = true;
 		
 	}
-	
-	ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
+
+	m_main->HandleKeyboardInput(args->VirtualKey, keyDown);
+	if(m_main->show_imGui == true)
+	{
+		ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
+	}
 }
 
 void App::OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)

@@ -47,9 +47,6 @@
     <Filter Include="Utility\Time">
       <UniqueIdentifier>{fa190ac5-e3d8-4aef-8b3d-767b9cdcf880}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utility\Debug">
-      <UniqueIdentifier>{10c1ff94-4f62-4156-ae2d-e3cc37a452a4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\DeviceResources">
       <UniqueIdentifier>{45b3b99f-4615-4044-9e39-d7ca31a052f9}</UniqueIdentifier>
     </Filter>
@@ -107,6 +104,15 @@
     <Filter Include="Scene\Source">
       <UniqueIdentifier>{d7a0f49c-2242-4e75-8c9d-d6a3c0192f44}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utility\Debugging">
+      <UniqueIdentifier>{10c1ff94-4f62-4156-ae2d-e3cc37a452a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Memory">
+      <UniqueIdentifier>{aaa64622-0bda-4eb2-8be2-367a640d01f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Memory\Allocators">
+      <UniqueIdentifier>{77c033a8-b995-4233-8051-1d3d7cdd9fe6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -140,66 +146,6 @@
     </ClCompile>
     <ClCompile Include="Utility\Time\HighResolutionClock.cpp">
       <Filter>Utility\Time\HighResolutionClock\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\Buffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\ByteAddressBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\CommandList.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\CommandQueue.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\ConstantBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\DescriptorAllocation.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\DescriptorAllocator.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\DescriptorAllocatorPage.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\DynamicDescriptorHeap.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\GenerateMipsPSO.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\IndexBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\PanoToCubemapPSO.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\RenderTarget.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\Resource.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\ResourceStateTracker.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\RootSignature.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\StructuredBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\Texture.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\UploadBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DirectX\VertexBuffer.cpp">
-      <Filter>Graphics\DirectX\Source</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Mesh.cpp">
       <Filter>Scene\Source</Filter>
@@ -249,7 +195,7 @@
       <Filter>Graphics\Shaders\SampleShaders</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Debug\DebugMessage.h">
-      <Filter>Utility\Debug</Filter>
+      <Filter>Utility\Debugging</Filter>
     </ClInclude>
     <ClInclude Include="ImGUI\imgui_impl_UWP.h">
       <Filter>ImGUI\Headers</Filter>
@@ -338,12 +284,75 @@
     <ClInclude Include="Scene\Camera.h">
       <Filter>Scene\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\Memory\Allocators\PreAllocator.h">
+      <Filter>Utility\Memory\Allocators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
     <None Include="pch.cpp" />
+    <None Include="Graphics\DirectX\Buffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\ByteAddressBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\CommandList.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\CommandQueue.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\ConstantBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\DescriptorAllocation.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\DescriptorAllocator.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\DescriptorAllocatorPage.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\DynamicDescriptorHeap.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\GenerateMipsPSO.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\IndexBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\PanoToCubemapPSO.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\RenderTarget.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\Resource.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\ResourceStateTracker.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\RootSignature.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\StructuredBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\Texture.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\UploadBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
+    <None Include="Graphics\DirectX\VertexBuffer.cpp">
+      <Filter>Graphics\DirectX\Source</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Graphics\Shaders\SampleShaders\SampleVertexShader.hlsl">

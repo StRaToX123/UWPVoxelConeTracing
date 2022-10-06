@@ -52,15 +52,18 @@ class Mesh
         void InitializeAsCone(float diameter = 1, float height = 1, size_t tessellation = 32);
         void InitializeAsTorus(float diameter = 1, float thickness = 0.333f, size_t tessellation = 32);
         void InitializeAsPlane(float width = 1, float height = 1);
+        static void ReverseWinding(vector<uint16_t>& indices, vector<VertexPositionNormalTexture>& vertices);
+
+        vector<VertexPositionNormalTexture> vertices;
+        vector<uint16_t> indices;
 
     private:
-        void ReverseWinding(vector<uint16_t>& indices, vector<VertexPositionNormalTexture>& vertices);
+        
         // Computes a point on a unit circle, aligned to the x/z plane and centered on the origin.
         inline XMVECTOR GetCircleVector(size_t i, size_t tessellation);
         XMVECTOR GetCircleTangent(size_t i, size_t tessellation);
         // Helper creates a triangle fan to close the end of a cylinder / cone
         void CreateCylinderCap(vector<VertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop);
 
-        vector<VertexPositionNormalTexture> vertices;
-        vector<uint16_t> indices;
+        
 };

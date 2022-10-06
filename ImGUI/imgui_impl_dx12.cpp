@@ -48,7 +48,9 @@
 #pragma comment(lib, "d3dcompiler") // Automatically link with d3dcompiler.lib as we are using D3DCompile() below.
 #endif
 #include <string>
-#include "Utility/Debug/DebugMessage.h"
+#include "Utility/Debugging/DebugMessage.h"
+
+static Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		g_imGui_cbv_heap;
 
 // DirectX data
 struct ImGui_ImplDX12_RenderBuffers
@@ -739,9 +741,22 @@ void    ImGui_ImplDX12_InvalidateDeviceObjects()
     }
 }
 
-bool ImGui_ImplDX12_Init(ID3D12Device* device, int num_frames_in_flight, DXGI_FORMAT rtv_format, ID3D12DescriptorHeap* cbv_srv_heap,
-                         D3D12_CPU_DESCRIPTOR_HANDLE font_srv_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE font_srv_gpu_desc_handle)
+bool ImGui_ImplDX12_Init(ID3D12Device* device, int num_frames_in_flight, DXGI_FORMAT rtv_format)
 {
+    ///////////////////////////////////////////////////////////////
+    ////////////////////// ImGui CBV HEAP /////////////////////////
+    ///////////////////////////////////////////////////////////////
+    D3D12_DESCRIPTOR_HEAP_DESC imGuiDescriptorHeapDesc = {};
+    imGuiDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    imGuiDescriptorHeapDesc.NumDescriptors = 1;
+    imGuiDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    HRESULT hr = device->CreateDescriptorHeap(&imGuiDescriptorHeapDesc, IID_PPV_ARGS(&g_imGui_cbv_heap));
+    if (FAILED(hr))
+    {
+        // Set a breakpoint on this line to catch Win32 API errors.
+        throw Platform::Exception::CreateException(hr);
+    }
+
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.BackendRendererUserData == NULL && "Already initialized a renderer backend!");
 
@@ -753,12 +768,11 @@ bool ImGui_ImplDX12_Init(ID3D12Device* device, int num_frames_in_flight, DXGI_FO
 
     bd->pd3dDevice = device;
     bd->RTVFormat = rtv_format;
-    bd->hFontSrvCpuDescHandle = font_srv_cpu_desc_handle;
-    bd->hFontSrvGpuDescHandle = font_srv_gpu_desc_handle;
+    bd->hFontSrvCpuDescHandle = g_imGui_cbv_heap->GetCPUDescriptorHandleForHeapStart();
+    bd->hFontSrvGpuDescHandle = g_imGui_cbv_heap->GetGPUDescriptorHandleForHeapStart();
     bd->pFrameResources = new ImGui_ImplDX12_RenderBuffers[num_frames_in_flight];
     bd->numFramesInFlight = num_frames_in_flight;
     bd->frameIndex = UINT_MAX;
-    IM_UNUSED(cbv_srv_heap); // Unused in master branch (will be used by multi-viewports)
 
     // Create buffers with a default size (they will later be grown as needed)
     for (int i = 0; i < num_frames_in_flight; i++)
@@ -771,6 +785,11 @@ bool ImGui_ImplDX12_Init(ID3D12Device* device, int num_frames_in_flight, DXGI_FO
     }
 
     return true;
+}
+
+ID3D12DescriptorHeap* ImGui_ImplDX12_GetDescriptorHeap()
+{
+    return g_imGui_cbv_heap.Get();
 }
 
 void ImGui_ImplDX12_Shutdown()

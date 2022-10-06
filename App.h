@@ -7,8 +7,7 @@
 #if defined(_DEBUG)
 	#include <dxgidebug.h>
 #endif
-#include "ImGUI/imgui_impl_UWP.h"
-#include "Utility/Debug/DebugMessage.h"
+#include "Utility/Debugging/DebugMessage.h"
 
 using namespace VoxelConeTracing;
 using namespace concurrency;
@@ -68,7 +67,6 @@ namespace VoxelConeTracing
 	private:
 		// Private accessor for m_deviceResources, protects against device removed errors.
 		std::shared_ptr<DX::DeviceResources> GetDeviceResources();
-
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 		std::unique_ptr<VoxelConeTracingMain> m_main;
 		bool m_windowClosed;
