@@ -31,7 +31,7 @@ namespace VoxelConeTracing
 			void OnSuspending();
 			void OnResuming();
 			void OnDeviceRemoved();
-			void HandleKeyboardInput();
+			void HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
 			void HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
 
 
@@ -43,6 +43,8 @@ namespace VoxelConeTracing
 			DX::StepTimer step_timer;
 			std::vector<Mesh> scene;
 			bool show_imGui;
+			bool space_key_pressed_workaround;
+			bool control_key_pressed_workaround;
 			// Camera
 			Camera camera;
 			float camera_default_fov_degrees;

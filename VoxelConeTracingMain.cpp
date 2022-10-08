@@ -9,7 +9,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	show_imGui(true),
 	camera_default_fov_degrees(70.0f),
 	camera_controller_translation_multiplier(4.0f),
-	camera_controller_rotation_multiplier(0.003f),
+	camera_controller_rotation_multiplier(0.03f),
 	camera_controller_backward(0.0f),
 	camera_controller_forward(0.0f),
 	camera_controller_right(0.0f),
@@ -18,7 +18,8 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_down(0.0f),
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
-	camera_controller_yaw(0.0f)
+	camera_controller_yaw(0.0f),
+	space_key_pressed_workaround(false)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -67,96 +68,97 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 	OnWindowSizeChanged();
 }
 
-void VoxelConeTracingMain::HandleKeyboardInput()
+void VoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)
 {
-	// Q
-	if((core_window->GetKeyState(Windows::System::VirtualKey::Q) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	switch (vk)
 	{
-		show_imGui = !show_imGui;
-		if (show_imGui == false)
+		case Windows::System::VirtualKey::Q:
 		{
-			CoreWindow::GetForCurrentThread()->SetPointerCapture();
+			if (down == true)
+			{
+				show_imGui = !show_imGui;
+				if (show_imGui == false)
+				{
+					CoreWindow::GetForCurrentThread()->SetPointerCapture();
+				}
+				else
+				{
+					CoreWindow::GetForCurrentThread()->ReleasePointerCapture();
+				}
+			}
+
+			break;
 		}
-		else
+
+		case Windows::System::VirtualKey::D:
 		{
-			CoreWindow::GetForCurrentThread()->ReleasePointerCapture();
+			if (down == true)
+			{
+				camera_controller_right = 1.0f;
+			}
+			else
+			{
+				camera_controller_right = 0.0f;
+			}
+
+			break;
 		}
 
-		return;
-	}
+		case Windows::System::VirtualKey::A:
+		{
+			if (down == true)
+			{
+				camera_controller_left = 1.0f;
+			}
+			else
+			{
+				camera_controller_left = 0.0f;
+			}
 
-	// D
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::D) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
-		camera_controller_right = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_right = 0.0f;
-		return;
-	}
-			
-	// A
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::A) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
-		camera_controller_left = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_left = 0.0f;
-		return;
-	}
+			break;
+		}
 
-	// W
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::W) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
+		case Windows::System::VirtualKey::W:
+		{
+			if (down == true)
+			{
+				camera_controller_forward = 1.0f;
+			}
+			else
+			{
+				camera_controller_forward = 0.0f;
+			}
 
-		camera_controller_forward = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_forward = 0.0f;
-		return;
-	}
+			break;
+		}
 
+		case Windows::System::VirtualKey::S:
+		{
+			if (down == true)
+			{
+				camera_controller_backward = 1.0f;
+			}
+			else
+			{
+				camera_controller_backward = 0.0f;
+			}
 
-	// S
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::S) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
-		camera_controller_backward = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_backward = 0.0f;
-		return;
-	}
+			break;
+		}
 
-	// Space
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
-		camera_controller_up = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_up = 0.0f;
-		return;
-	}
+		case Windows::System::VirtualKey::Control:
+		{
+			if (down == true)
+			{
+				camera_controller_down = 1.0f;
+			}
+			else
+			{
+				camera_controller_down = 0.0f;
+			}
 
-	// Ctrl
-	if ((core_window->GetKeyState(Windows::System::VirtualKey::Control) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-	{
-		camera_controller_down = 1.0f;
-		return;
-	}
-	else
-	{
-		camera_controller_down = 0.0f;
-		return;
+			break;
+		}
 	}
 }
 
@@ -190,16 +192,37 @@ void VoxelConeTracingMain::HandleMouseMovementCallback(float mouseDeltaX, float 
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
-	HandleKeyboardInput();
-	// Update the camera 
 	if (show_imGui == false)
 	{
+		// Sheck space key status
+		// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
+		// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
+		if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+		{
+			if (space_key_pressed_workaround == false)
+			{
+				space_key_pressed_workaround = true;
+				camera_controller_up = 1.0f;
+			}
+		}
+		else
+		{
+			if (space_key_pressed_workaround == true)
+			{
+				space_key_pressed_workaround = false;
+				camera_controller_up = 0.0f;
+			}
+		}
+
+	
+
+		// Update the camera 
 		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
 		camera.SetRotation(cameraRotation);
 		XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
-			camera_controller_up - camera_controller_down,
-			camera_controller_forward - camera_controller_backward,
-			1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
+			                                    camera_controller_up - camera_controller_down,
+			                                     camera_controller_forward - camera_controller_backward,
+			                                      1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
 		camera.Translate(cameraTranslate, Space::Local);
 	}
 	
