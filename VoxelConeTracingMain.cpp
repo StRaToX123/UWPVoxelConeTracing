@@ -7,8 +7,9 @@
 // Loads and initializes application assets when the application is loaded.
 VoxelConeTracingMain::VoxelConeTracingMain() :
 	show_imGui(true),
-	camera_fov_angle_y(70.0f * XM_PI / 180.0f),
-	camera_movement_multiplier(4.0f),
+	camera_default_fov_degrees(70.0f),
+	camera_controller_translation_multiplier(4.0f),
+	camera_controller_rotation_multiplier(0.003f),
 	camera_controller_backward(0.0f),
 	camera_controller_forward(0.0f),
 	camera_controller_right(0.0f),
@@ -16,14 +17,17 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_up(0.0f),
 	camera_controller_down(0.0f),
 	camera_controller_pitch(0.0f),
+	camera_controller_pitch_limit(89.99f),
 	camera_controller_yaw(0.0f)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
 	step_timer.SetFixedTimeStep(true);
 	step_timer.SetTargetElapsedSeconds(1.0 / 60);
-	
-	
+
+	// Setup the camera
+	camera.SetFoV(camera_default_fov_degrees);
+	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
 	/*
@@ -43,8 +47,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[7].InitializeAsCone();
 	*/
 
-
-
+	
 	
 
 
@@ -55,104 +58,131 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 
 
 // Creates and initializes the renderers.
-void VoxelConeTracingMain::CreateRenderers(const std::shared_ptr<DX::DeviceResources>& deviceResources)
+void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DX::DeviceResources>& deviceResources)
 {
+	core_window = coreWindow;
 	device_resources = deviceResources;
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::c_frameCount, device_resources->GetBackBufferFormat());
 	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources));
 	OnWindowSizeChanged();
 }
 
-void VoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)
+void VoxelConeTracingMain::HandleKeyboardInput()
 {
-	switch (vk)
+	// Q
+	if((core_window->GetKeyState(Windows::System::VirtualKey::Q) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
 	{
-		case Windows::System::VirtualKey::Q:
+		show_imGui = !show_imGui;
+		if (show_imGui == false)
 		{
-			if (down == true)
-			{
-				show_imGui = !show_imGui;
-			}
-
-			break;
+			CoreWindow::GetForCurrentThread()->SetPointerCapture();
 		}
-		case Windows::System::VirtualKey::D:
+		else
 		{
-			if (down == true)
-			{
-				camera_controller_right = 1.0f;
-			}
-			else
-			{
-				camera_controller_right = 0.0f;
-			}
+			CoreWindow::GetForCurrentThread()->ReleasePointerCapture();
+		}
+
+		return;
+	}
+
+	// D
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::D) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
+		camera_controller_right = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_right = 0.0f;
+		return;
+	}
 			
-			break;
-		}
-		case Windows::System::VirtualKey::A:
-		{
-			if (down == true)
-			{
-				camera_controller_left = 1.0f;
-			}
-			else
-			{
-				camera_controller_left = 0.0f;
-			}
+	// A
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::A) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
+		camera_controller_left = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_left = 0.0f;
+		return;
+	}
 
-			break;
-		}
-		case Windows::System::VirtualKey::W:
-		{
-			if (down == true)
-			{
-				camera_controller_forward = 1.0f;
-			}
-			else
-			{
-				camera_controller_forward = 0.0f;
-			}
+	// W
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::W) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
 
-			break;
-		}
-		case Windows::System::VirtualKey::S:
-		{
-			if (down == true)
-			{
-				camera_controller_backward = 1.0f;
-			}
-			else
-			{
-				camera_controller_backward = 0.0f;
-			}
+		camera_controller_forward = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_forward = 0.0f;
+		return;
+	}
 
-			break;
-		}
-		case Windows::System::VirtualKey::Space:
-		{
-			if (down == true)
-			{
-				camera_controller_up = 1.0f;
-			}
-			else
-			{
-				camera_controller_up = 0.0f;
-			}
 
-			break;
-		}
-		case Windows::System::VirtualKey::Control:
-		{
-			if (down == true)
-			{
-				camera_controller_down = 1.0f;
-			}
-			else
-			{
-				camera_controller_down = 0.0f;
-			}
+	// S
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::S) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
+		camera_controller_backward = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_backward = 0.0f;
+		return;
+	}
 
-			break;
+	// Space
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
+		camera_controller_up = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_up = 0.0f;
+		return;
+	}
+
+	// Ctrl
+	if ((core_window->GetKeyState(Windows::System::VirtualKey::Control) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+	{
+		camera_controller_down = 1.0f;
+		return;
+	}
+	else
+	{
+		camera_controller_down = 0.0f;
+		return;
+	}
+}
+
+void VoxelConeTracingMain::HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY)
+{
+	if (show_imGui == true)
+	{
+		return;
+	}
+
+	camera_controller_pitch += mouseDeltaY * camera_controller_rotation_multiplier;
+	camera_controller_yaw += mouseDeltaX * camera_controller_rotation_multiplier;
+
+	camera_controller_pitch = (float)__max(-camera_controller_pitch_limit, camera_controller_pitch);
+	camera_controller_pitch = (float)__min(+camera_controller_pitch_limit, camera_controller_pitch);
+
+	// keep longitude in useful range by wrapping
+	if (camera_controller_yaw > 360.0f)
+	{
+		camera_controller_yaw -= 360.0f;
+	}
+	else
+	{
+		if (camera_controller_yaw < -360.0f)
+		{
+			camera_controller_yaw += 360.0f;
 		}
 	}
 }
@@ -160,47 +190,64 @@ void VoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, b
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
+	HandleKeyboardInput();
+	// Update the camera 
+	if (show_imGui == false)
+	{
+		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+		camera.SetRotation(cameraRotation);
+		XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
+			camera_controller_up - camera_controller_down,
+			camera_controller_forward - camera_controller_backward,
+			1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
+		camera.Translate(cameraTranslate, Space::Local);
+	}
+	
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{
-		XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left, 
-												camera_controller_up - camera_controller_down, 
-			                                     camera_controller_forward - camera_controller_backward, 
-			                                      1.0f) * camera_movement_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
-		//XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * static_cast<float>(e.ElapsedTime);
-		camera.Translate(cameraTranslate, Space::Local);
-		//m_Camera.Translate(cameraPan, Space::Local);
-
-		//XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(m_Pitch), XMConvertToRadians(m_Yaw), 0.0f);
-		//m_Camera.set_Rotation(cameraRotation);
-
-
-
-
-
-
-
-
-
-
-
 		
-		scene_renderer->Update(step_timer);
 	});
 }
 
 
 void VoxelConeTracingMain::Render()
 {
-	// Don't try to render anything before the first Update.
-	/*
-	if (step_timer.GetFrameCount() == 0)
+	if (show_imGui == true)
 	{
-		return;
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplUWP_NewFrame();
+		ImGui::NewFrame();
 	}
-	*/
 
-	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(camera, show_imGui);
+	
+
+	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(camera, step_timer, show_imGui);
+	if (show_imGui == true)
+	{
+		ImGui::ShowDemoWindow();
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::Begin("Hello, world!");                          
+		ImGui::Text("ImGui Mouse Pos:");               
+		ImGui::InputFloat("MouseX", &io.MousePos.x);
+		ImGui::InputFloat("MouseY", &io.MousePos.y);
+		ImGui::End();
+
+		/*
+		ImGui::Begin("Hello, world!");                         
+		ImGui::Text("Screen mouse pos:");               
+		ImGui::InputFloat("MouseX", &camera_controller_mouse_position_x);
+		ImGui::InputFloat("MouseY", &camera_controller_mouse_position_y);
+		ImGui::End();
+		*/
+
+
+		ImGui::Render();
+		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
+		pCommandList->SetDescriptorHeaps(1, imGuiHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
+	}
 	// Finish up the rendering 
 	// Indicate that the render target will now be used to present when the command list is done executing.
 	CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
@@ -223,13 +270,14 @@ void VoxelConeTracingMain::OnWindowSizeChanged()
 	// portrait or snapped view.
 	if (aspectRatio < 1.0f)
 	{
-		camera_fov_angle_y *= 2.0f;
+		camera.SetFoV(camera_default_fov_degrees * 2.0f);
 	}
 	else
 	{
-
+		camera.SetFoV(camera_default_fov_degrees);
 	}
 
+	camera.SetProjection(camera.GetFoV(), aspectRatio, 0.01f, 100.0f);
 	scene_renderer->CreateWindowSizeDependentResources();
 }
 

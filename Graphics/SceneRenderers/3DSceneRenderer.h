@@ -34,8 +34,7 @@ namespace VoxelConeTracing
 			~Sample3DSceneRenderer();
 			void CreateDeviceDependentResources();
 			void CreateWindowSizeDependentResources();
-			void Update(DX::StepTimer const& timer);
-			ID3D12GraphicsCommandList* Render(Camera& camera, bool showImGui);
+			ID3D12GraphicsCommandList* Render(Camera& camera, DX::StepTimer const& timer, bool showImGui);
 			void SaveState();
 
 
@@ -50,7 +49,6 @@ namespace VoxelConeTracing
 			Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_cbvHeap;
 			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		imGui_cbv_heap;
-		
 			Microsoft::WRL::ComPtr<ID3D12Resource>				m_vertexBuffer;
 			Microsoft::WRL::ComPtr<ID3D12Resource>				m_indexBuffer;
 			Microsoft::WRL::ComPtr<ID3D12Resource>				m_constantBuffer;

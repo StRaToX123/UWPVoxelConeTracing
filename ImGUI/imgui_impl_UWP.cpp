@@ -353,13 +353,13 @@ static void ImGui_ImplUWP_UpdateMouseData()
         }
 
         // (Optional) Fallback to provide mouse position when focused (WM_MOUSEMOVE already provides this when hovered or captured)
-        if (!io.WantSetMousePos && !bd->MouseTracked)
-        {
-            io.AddMousePosEvent(coreWindow->PointerPosition.X, coreWindow->PointerPosition.Y);
+        //if (!io.WantSetMousePos && !bd->MouseTracked)
+        //{
+        //    io.AddMousePosEvent(coreWindow->PointerPosition.X, coreWindow->PointerPosition.Y);
             //POINT pos;
             //if (::GetCursorPos(&pos) && ::ScreenToClient(bd->hWnd, &pos))
                 //io.AddMousePosEvent((float)pos.x, (float)pos.y);
-        }
+        //}
     }
 }
 
@@ -668,16 +668,18 @@ void ImGui_ImplUWP_PointerMoved_Callback(float x, float y)
 void ImGui_ImplUWP_PointerEntered_Callback()
 {
     //ImGui::GetCoreWindow()->SetPointerCapture();
-    ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
-    bd->MouseTracked = true;
+    //ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
+    //bd->MouseTracked = true;
 }
 
 void ImGui_ImplUWP_PointerExited_Callback()
 {
     //ImGui::GetCoreWindow()->ReleasePointerCapture();
-    ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
+    //ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
+    //ImGuiIO& io = ImGui::GetIO();
+    //bd->MouseTracked = false;
+    //io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
     ImGuiIO& io = ImGui::GetIO();
-    bd->MouseTracked = false;
     io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
 }
 

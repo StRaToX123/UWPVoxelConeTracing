@@ -24,15 +24,18 @@ namespace VoxelConeTracing
 		private:
 			friend ref class App;
 			VoxelConeTracingMain();
-			void CreateRenderers(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+			void CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DX::DeviceResources>& deviceResources);
 			void Update();
 			void Render();
 			void OnWindowSizeChanged();
 			void OnSuspending();
 			void OnResuming();
 			void OnDeviceRemoved();
-			void HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
+			void HandleKeyboardInput();
+			void HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
 
+
+			CoreWindow^ core_window;
 			// Cached pointer to device resources.
 			std::shared_ptr<DX::DeviceResources> device_resources;
 			std::unique_ptr<Sample3DSceneRenderer> scene_renderer;
@@ -42,8 +45,9 @@ namespace VoxelConeTracing
 			bool show_imGui;
 			// Camera
 			Camera camera;
-			float camera_fov_angle_y;
-			float camera_movement_multiplier;
+			float camera_default_fov_degrees;
+			float camera_controller_translation_multiplier;
+			float camera_controller_rotation_multiplier;
 			float camera_controller_forward;
 			float camera_controller_backward;
 			float camera_controller_left;
@@ -51,6 +55,7 @@ namespace VoxelConeTracing
 			float camera_controller_up;
 			float camera_controller_down;
 			float camera_controller_pitch;
+			float camera_controller_pitch_limit;
 			float camera_controller_yaw;
 	};
 }

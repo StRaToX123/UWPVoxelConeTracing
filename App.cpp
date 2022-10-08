@@ -40,6 +40,7 @@ void App::Initialize(CoreApplicationView^ applicationView)
 
 	CoreApplication::Resuming +=
 		ref new EventHandler<Platform::Object^>(this, &App::OnResuming);
+
 }
 
 // Called when the CoreWindow object is created (or re-created).
@@ -65,7 +66,6 @@ void App::SetWindow(CoreWindow^ window)
 	DisplayInformation::DisplayContentsInvalidated +=
 		ref new TypedEventHandler<DisplayInformation^, Object^>(this, &App::OnDisplayContentsInvalidated);
 
-	// Setup ImGui callbacks
 	window->PointerMoved +=
 		ref new TypedEventHandler<CoreWindow^, PointerEventArgs^>(this, &App::OnPointerMoved);
 
@@ -88,6 +88,9 @@ void App::SetWindow(CoreWindow^ window)
 	window->Dispatcher->AcceleratorKeyActivated +=
 		ref new TypedEventHandler<CoreDispatcher^, AcceleratorKeyEventArgs^>(this, &App::OnKeyEvent);
 
+
+	window->Dispatcher->CurrentPriority = Windows::UI::Core::CoreDispatcherPriority::Normal;
+
 	Windows::Gaming::Input::Gamepad::GamepadAdded += 
 		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &App::OnGamepadAdded);
 
@@ -95,6 +98,8 @@ void App::SetWindow(CoreWindow^ window)
 		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &VoxelConeTracing::App::OnGamepadRemoved);
 
 	
+	mouse = Windows::Devices::Input::MouseDevice::GetForCurrentView();
+	mouse->MouseMoved += ref new Windows::Foundation::TypedEventHandler<Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^>(this, &VoxelConeTracing::App::OnMouseMoved);
 	
 	ImGui::CreateContext(window);
 	ImGui_ImplUWP_Init();
@@ -189,9 +194,15 @@ void App::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
 	m_windowClosed = true;
 }
 
+
 void App::OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
 	ImGui_ImplUWP_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
+}
+
+void App::OnMouseMoved(Windows::Devices::Input::MouseDevice^ mouseDevice, Windows::Devices::Input::MouseEventArgs^ args)
+{
+	m_main->HandleMouseMovementCallback(args->MouseDelta.X, args->MouseDelta.Y);
 }
 
 void App::OnPointerEntered(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
@@ -221,6 +232,11 @@ void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::
 }
 
 
+// This event callback is used only to drive the ImGui.
+// The reason it isn't used to drive the main game logic is because the UWP app isn't capable of proccessing 
+// allot of key inputs fast enough due to key spam (each key hold is actually spamming the event queue with keydown events).
+// If multiple key holds are alternated in rapid succession, the event queue gets filled up and key presses aren't 
+// proccessed fast enough. So instead the game will check for keys it's self.
 void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args)
 {
 	bool keyDown = false;
@@ -228,10 +244,9 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 		|| (args->EventType == Windows::UI::Core::CoreAcceleratorKeyEventType::KeyDown))
 	{
 		keyDown = true;
-		
 	}
 
-	m_main->HandleKeyboardInput(args->VirtualKey, keyDown);
+	//m_main->HandleKeyboardInput(args->VirtualKey, keyDown);
 	if(m_main->show_imGui == true)
 	{
 		ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
@@ -294,7 +309,7 @@ std::shared_ptr<DX::DeviceResources> App::GetDeviceResources()
 	{
 		m_deviceResources = std::make_shared<DX::DeviceResources>();
 		m_deviceResources->SetWindow(CoreWindow::GetForCurrentThread());
-		m_main->CreateRenderers(m_deviceResources);
+		m_main->CreateRenderers(CoreWindow::GetForCurrentThread(), m_deviceResources);
 	}
 	return m_deviceResources;
 }

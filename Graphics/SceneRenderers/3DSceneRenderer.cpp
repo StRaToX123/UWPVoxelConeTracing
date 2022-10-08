@@ -348,16 +348,6 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 	*/
 }
 
-// Called once per frame, rotates the cube and calculates the model and view matrices.
-void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
-{
-	m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
-	XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(m_angle)));
-		
-	// Update the constant buffer resource.
-	UINT8* destination = m_mappedConstantBuffer + (device_resources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
-	memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
-}
 
 // Saves the current state of the renderer.
 void Sample3DSceneRenderer::SaveState()
@@ -386,22 +376,23 @@ void Sample3DSceneRenderer::LoadState()
 
 
 // Renders one frame using the vertex and pixel shaders.
-ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(Camera& camera, bool showImGui)
+ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(Camera& camera, DX::StepTimer const& timer, bool showImGui)
 {
 	DX::ThrowIfFailed(device_resources->GetCommandAllocator()->Reset());
 	// The command list can be reset anytime after ExecuteCommandList() is called.
 	DX::ThrowIfFailed(m_commandList->Reset(device_resources->GetCommandAllocator(), m_pipelineState.Get()));
-	if (showImGui == true)
-	{
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplUWP_NewFrame();
-		ImGui::NewFrame();
-	}
-
-	// Update the view and projection matrixes
-	XMStoreFloat4x4(&m_constantBufferData.view, camera.GetViewMatrix());
-
 	
+
+	// Update the model, view and projection matrixes
+	m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
+	XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(m_angle)));
+	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(camera.GetViewMatrix()));
+	XMFLOAT4X4 orientation = device_resources->GetOrientationTransform3D();
+	XMMATRIX orientationMatrix = XMLoadFloat4x4(&orientation);
+	XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
+	// Update the constant buffer resource.
+	UINT8* destination = m_mappedConstantBuffer + (device_resources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
+	memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 	// Set the graphics root signature and descriptor heaps to be used by this frame.
 	m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 	ID3D12DescriptorHeap* ppHeaps[] = { m_cbvHeap.Get() };
@@ -434,24 +425,6 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(Camera& camera, bool sh
 	m_commandList->IASetIndexBuffer(&m_indexBufferView);
 	m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
-	if (showImGui == true)
-	{
-		ImGui::ShowDemoWindow();
-		ImGuiIO& io = ImGui::GetIO();
-
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &io.WantCaptureMouse);      // Edit bools storing our window open/close state
-		ImGui::InputFloat("MouseX", &io.MousePos.x);
-		ImGui::InputFloat("MouseY", &io.MousePos.y);
-		ImGui::End();
-
-
-		ImGui::Render();
-		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
-		m_commandList->SetDescriptorHeaps(1, imGuiHeaps);
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
-	}
 
 	return m_commandList.Get();
 }

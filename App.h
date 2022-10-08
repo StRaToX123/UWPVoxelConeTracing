@@ -54,9 +54,11 @@ namespace VoxelConeTracing
 		void OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
 		void OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
 		void OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Core::AcceleratorKeyEventArgs^ args);
+		void OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
+		void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
 		void OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args);
 		void OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args);
-
+		void OnMouseMoved(Windows::Devices::Input::MouseDevice^ mouseDevice, Windows::Devices::Input::MouseEventArgs^ args);
 
 
 		// DisplayInformation event handlers.
@@ -65,6 +67,7 @@ namespace VoxelConeTracing
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
+		Windows::Devices::Input::MouseDevice^ mouse;
 		// Private accessor for m_deviceResources, protects against device removed errors.
 		std::shared_ptr<DX::DeviceResources> GetDeviceResources();
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;

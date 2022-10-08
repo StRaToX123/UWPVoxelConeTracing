@@ -37,7 +37,7 @@ class Camera
         void SetProjection(float fovy, float aspect, float zNear, float zFar);
         XMMATRIX GetProjectionMatrix();
         // Set the field of view in degrees.
-        void SetFoV(float fovy);
+        void SetFoV(float fovyInDegrees);
         //Get the field of view in degrees.
         float GetFoV() const;
         //Set the camera's position in world-space.
@@ -47,7 +47,7 @@ class Camera
         Set the camera's rotation in world-space.
         @param rotation The rotation quaternion.
         */
-        void XM_CALLCONV SetRotationQuaternion(FXMVECTOR quaternionRotation);
+        void XM_CALLCONV SetRotation(FXMVECTOR quaternion);
         /*
         Query the camera's rotation.
         @returns The camera's rotation quaternion.
@@ -71,12 +71,10 @@ class Camera
         AlignedData* p_data;
 
         void UpdateViewMatrix();
-        void UpdateInverseViewMatrix();
         void UpdateProjectionMatrix();
-        void UpdateInverseProjectionMatrix();
 
         // projection parameters
-        float vertical_fov;   // Vertical field of view.
+        float vertical_fov_degrees;   // Vertical field of view.
         float aspect_ratio; // Aspect ratio
         float z_near;      // Near clip distance
         float z_far;       // Far clip distance.

@@ -420,7 +420,6 @@ void DX::DeviceResources::ValidateDevice()
 	}
 
 	// Next, get the information for the current default adapter.
-
 	DXGI_ADAPTER_DESC currentDesc;
 	{
 		ComPtr<IDXGIFactory4> currentDxgiFactory;
