@@ -1,6 +1,6 @@
 
 Texture2D<float4> testTexture : register(t0);
-sampler samp : register(s0);
+SamplerState samp : register(s0);
 
 
 struct PixelShaderInput

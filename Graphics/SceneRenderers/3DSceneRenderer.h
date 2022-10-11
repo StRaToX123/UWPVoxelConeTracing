@@ -50,17 +50,18 @@ namespace VoxelConeTracing
 			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	command_list_copy;
 			Microsoft::WRL::ComPtr<ID3D12Fence>				    fence_copy_command_list_progress;
 			UINT64                                              fence_copy_command_list_progress_highest_value;
+			bool                                                copy_command_allocator_already_reset;
+			bool                                                copy_command_list_requires_reset;
 			Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 			Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		descriptor_heap_cbv;
+			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		descriptor_heap_cbv_srv;
 			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		descriptor_heap_sampler;
 			Microsoft::WRL::ComPtr<ID3D12Resource>				m_constantBuffer;
 			ModelViewProjectionConstantBuffer					m_constantBufferData;
 			UINT8*												m_mappedConstantBuffer;
-			UINT												m_cbvDescriptorSize;
+			UINT												cbv_srv_descriptor_size;
 			Microsoft::WRL::ComPtr<ID3D12Resource>				test_texture;
 			Microsoft::WRL::ComPtr<ID3D12Resource>				test_texture_upload;
-			D3D12_CPU_DESCRIPTOR_HANDLE                         test_texture_srv;
 			D3D12_RECT											m_scissorRect;
 
 

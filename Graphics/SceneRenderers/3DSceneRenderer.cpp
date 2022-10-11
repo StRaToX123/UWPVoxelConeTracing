@@ -13,7 +13,9 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 	m_radiansPerSecond(XM_PIDIV4),	// rotate 45 degrees per second
 	m_angle(0),
 	m_mappedConstantBuffer(nullptr),
-	fence_copy_command_list_progress_highest_value(0)
+	fence_copy_command_list_progress_highest_value(0),
+	copy_command_allocator_already_reset(true),
+	copy_command_list_requires_reset(false)
 {
 	LoadState();
 	ZeroMemory(&m_constantBufferData, sizeof(m_constantBufferData));
@@ -33,27 +35,45 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	auto d3dDevice = device_resources->GetD3DDevice();
 	// Create a root signature with a single constant buffer slot.
 	CD3DX12_DESCRIPTOR_RANGE rangeCBV;
+	CD3DX12_DESCRIPTOR_RANGE rangeSRV;
 	CD3DX12_DESCRIPTOR_RANGE rangeSamplers;
 	CD3DX12_ROOT_PARAMETER parameterVertexVisibleDescriptorTable;
 	CD3DX12_ROOT_PARAMETER parameterPixelVisibleDescriptorTable;
-	CD3DX12_ROOT_PARAMETER parameterTestTexture;
+	//CD3DX12_ROOT_PARAMETER parameterPixelVisibleDescriptorTableSamplers;
 
 	rangeCBV.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-	rangeSamplers.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	rangeSRV.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	//rangeSamplers.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	
 	parameterVertexVisibleDescriptorTable.InitAsDescriptorTable(1, &rangeCBV, D3D12_SHADER_VISIBILITY_VERTEX);
-	parameterPixelVisibleDescriptorTable.InitAsDescriptorTable(1, &rangeSamplers, D3D12_SHADER_VISIBILITY_PIXEL);
-	parameterTestTexture.InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	parameterPixelVisibleDescriptorTable.InitAsDescriptorTable(1, &rangeSRV, D3D12_SHADER_VISIBILITY_PIXEL);
+	//parameterPixelVisibleDescriptorTableSamplers.InitAsDescriptorTable(1, &rangeSamplers, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // Only the input assembler stage needs access to the constant buffer.
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS; //|
-		//D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
 
 	CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
-	CD3DX12_ROOT_PARAMETER parameterArray[3] = { parameterVertexVisibleDescriptorTable, parameterPixelVisibleDescriptorTable, parameterTestTexture };
-	descRootSignature.Init(3, parameterArray, 0, nullptr, rootSignatureFlags);
+	CD3DX12_ROOT_PARAMETER parameterArray[2] = { parameterVertexVisibleDescriptorTable, parameterPixelVisibleDescriptorTable/*, parameterPixelVisibleDescriptorTableSamplers*/ };
+	// Create a texture sampler
+	D3D12_STATIC_SAMPLER_DESC staticSamplerDesc = {};
+	staticSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+	staticSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticSamplerDesc.MipLODBias = 0;
+	staticSamplerDesc.MaxAnisotropy = 0;
+	staticSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	staticSamplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	staticSamplerDesc.MinLOD = 0.0f;
+	staticSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	staticSamplerDesc.ShaderRegister = 0;
+	staticSamplerDesc.RegisterSpace = 0;
+	staticSamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	descRootSignature.Init(2, parameterArray, 1, &staticSamplerDesc, rootSignatureFlags);
 
 	ComPtr<ID3DBlob> pSignature;
 	ComPtr<ID3DBlob> pError;
@@ -124,41 +144,18 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	// Create a fence to go along with the copy command list.
 	// This fence will be used to signal when a resource has been successfully uploaded to the gpu
 	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_copy_command_list_progress)));
-	NAME_D3D12_OBJECT(fence_copy_command_list_progress);
+	NAME_D3D12_OBJECT(fence_copy_command_list_progress);	
 
-	// Create a descriptor heap for the samplers.
+	// Create a descriptor heap for the constant buffers and the test texture.
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.NumDescriptors = 1;
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-	// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_sampler)));
-	NAME_D3D12_OBJECT(descriptor_heap_sampler);
-
-	// Create a texture sampler
-	D3D12_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc.MinLOD = 0;
-	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	device_resources->GetD3DDevice()->CreateSampler(&samplerDesc, descriptor_heap_sampler->GetCPUDescriptorHandleForHeapStart());
-
-
-	// Create a descriptor heap for the constant buffers.
-	heapDesc.NumDescriptors = DX::c_frameCount;
+	heapDesc.NumDescriptors = DX::c_frameCount + 1;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv)));
-	NAME_D3D12_OBJECT(descriptor_heap_cbv);
+	DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv)));
+	NAME_D3D12_OBJECT(descriptor_heap_cbv_srv);
 
-	
-
+	// Create the constant buffer
 	CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 	CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
 	DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
@@ -169,22 +166,23 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		nullptr,
 		IID_PPV_ARGS(&m_constantBuffer)));
 
+
 	NAME_D3D12_OBJECT(m_constantBuffer);
 
 	// Create constant buffer views to access the upload buffer.
 	D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = m_constantBuffer->GetGPUVirtualAddress();
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle(descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart());
-	m_cbvDescriptorSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle(descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart());
+	cbv_srv_descriptor_size = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	for (int n = 0; n < DX::c_frameCount; n++)
 	{
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 		desc.BufferLocation = cbvGpuAddress;
 		desc.SizeInBytes = c_alignedConstantBufferSize;
-		d3dDevice->CreateConstantBufferView(&desc, cbvCpuHandle);
+		d3dDevice->CreateConstantBufferView(&desc, cbvSrvCpuHandle);
 
 		cbvGpuAddress += desc.SizeInBytes;
-		cbvCpuHandle.Offset(m_cbvDescriptorSize);
+		cbvSrvCpuHandle.Offset(cbv_srv_descriptor_size);
 	}
 
 	// Map the constant buffers.
@@ -221,6 +219,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		subresource.SlicePitch = pImages[i].slicePitch;
 		subresource.pData = pImages[i].pixels;
 	}
+
 	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
@@ -234,14 +233,13 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	command_list_direct->ResourceBarrier(1, &testTextureBarrier);
 
 	// Create an SRV for the test_texture
-	/*
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = metadata.format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = -1;
-	device_resources->GetD3DDevice()->CreateShaderResourceView(test_texture.Get(), &srvDesc, test_texture_srv);
-	*/
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	device_resources->GetD3DDevice()->CreateShaderResourceView(test_texture.Get(), &srvDesc, cbvSrvCpuHandle);
 
 	// Close the command list and execute it to begin the vertex/index buffer copy into the GPU's default heap.
 	DX::ThrowIfFailed(command_list_direct->Close());
@@ -293,23 +291,21 @@ void Sample3DSceneRenderer::LoadState()
 ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Camera& camera, bool showImGui)
 {
 	DX::ThrowIfFailed(device_resources->GetDirectCommandAllocator()->Reset());
-	DX::ThrowIfFailed(device_resources->GetCopyCommandAllocator()->Reset());
 	// The command list can be reset anytime after ExecuteCommandList() is called.
 	DX::ThrowIfFailed(command_list_direct->Reset(device_resources->GetDirectCommandAllocator(), m_pipelineState.Get()));
-	DX::ThrowIfFailed(command_list_copy->Reset(device_resources->GetCopyCommandAllocator(), m_pipelineState.Get()));
 	// Update the view matrix
 	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(camera.GetViewMatrix()));
 	// Set the graphics root signature and descriptor heaps to be used by this frame.
 	command_list_direct->SetGraphicsRootSignature(m_rootSignature.Get());
-	ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv.Get(), descriptor_heap_sampler.Get() };
+	ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv_srv.Get()/*, descriptor_heap_sampler.Get()*/};
 	command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
-	// Bind the current frame's constant buffer to the pipeline.
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(descriptor_heap_cbv->GetGPUDescriptorHandleForHeapStart(), device_resources->GetCurrentFrameIndex(), m_cbvDescriptorSize);
+	// Bind the descriptor tables to their respective heap starts
+	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart(), device_resources->GetCurrentFrameIndex(), cbv_srv_descriptor_size);
 	command_list_direct->SetGraphicsRootDescriptorTable(0, gpuHandle);
-
-	// Bind the test texture srv to the pipeline
-	command_list_direct->SetGraphicsRootShaderResourceView(2, test_texture->GetGPUVirtualAddress());
+	gpuHandle.Offset((DX::c_frameCount - device_resources->GetCurrentFrameIndex()) * cbv_srv_descriptor_size);
+	command_list_direct->SetGraphicsRootDescriptorTable(1, gpuHandle);
+	//command_list_direct->SetGraphicsRootDescriptorTable(2, descriptor_heap_sampler->GetGPUDescriptorHandleForHeapStart());
 
 	// Set the viewport and scissor rectangle.
 	D3D12_VIEWPORT viewport = device_resources->GetScreenViewport();
@@ -329,8 +325,18 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 	command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Proccess each mesh
-	UINT64 fenceCopyCommandListProgressValue = fence_copy_command_list_progress->GetCompletedValue();
 	bool copyCommandListRequiresExecution = false;
+	UINT64 fenceCopyCommandListProgressValue = fence_copy_command_list_progress->GetCompletedValue();
+	// Reset the copy command allocator if there are no command lists executing on it
+	if ((fence_copy_command_list_progress_highest_value + 1) == fenceCopyCommandListProgressValue)
+	{
+		if (copy_command_allocator_already_reset == false)
+		{
+			copy_command_allocator_already_reset = true;
+			DX::ThrowIfFailed(device_resources->GetCopyCommandAllocator()->Reset());
+		}
+	}
+	
 	for (int i = 0; i < 1; i++)
 	{
 		if (scene[i].fence_value_signaling_buffers_are_present_on_the_gpu < fenceCopyCommandListProgressValue)
@@ -344,14 +350,13 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				scene[i].index_buffer_upload.Reset();
 				scene[i].buffer_upload_started = false;
 
-				// Create buffer views
-				// Create vertex/index buffer views.
+				// Create vertex/index views
 				scene[i].vertex_buffer_view.BufferLocation = scene[i].vertex_buffer->GetGPUVirtualAddress();
 				scene[i].vertex_buffer_view.StrideInBytes = sizeof(VertexPositionNormalTexture);
 				scene[i].vertex_buffer_view.SizeInBytes = scene[i].vertices.size() * sizeof(VertexPositionNormalTexture);
 
 				scene[i].index_buffer_view.BufferLocation = scene[i].index_buffer->GetGPUVirtualAddress();
-				scene[i].index_buffer_view.SizeInBytes = sizeof(uint16_t);
+				scene[i].index_buffer_view.SizeInBytes = scene[i].indices.size() * sizeof(uint16_t);
 				scene[i].index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
 			}
 
@@ -383,6 +388,13 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 			{
 				scene[i].buffer_upload_started = true;
 				copyCommandListRequiresExecution = true;
+				if (copy_command_list_requires_reset == true)
+				{
+					copy_command_list_requires_reset = false;
+					DX::ThrowIfFailed(command_list_copy->Reset(device_resources->GetCopyCommandAllocator(), m_pipelineState.Get()));
+					fence_copy_command_list_progress_highest_value++;
+				}
+
 				// Upload the vertex buffer to the GPU.
 				const UINT vertexBufferSize = scene[i].vertices.size() * sizeof(VertexPositionNormalTexture);
 				CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -412,8 +424,8 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 
 				UpdateSubresources(command_list_copy.Get(), scene[i].vertex_buffer.Get(), scene[i].vertex_buffer_upload.Get(), 0, 0, 1, &vertexData);
 
-				CD3DX12_RESOURCE_BARRIER vertexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(scene[i].vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-				command_list_copy->ResourceBarrier(1, &vertexBufferResourceBarrier);
+				//CD3DX12_RESOURCE_BARRIER vertexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(scene[i].vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+				//command_list_copy->ResourceBarrier(1, &vertexBufferResourceBarrier);
 				
 
 				// Upload the index buffer to the GPU.
@@ -442,14 +454,9 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 
 				UpdateSubresources(command_list_copy.Get(), scene[i].index_buffer.Get(), scene[i].index_buffer_upload.Get(), 0, 0, 1, &indexData);
 
-				CD3DX12_RESOURCE_BARRIER indexBufferResourceBarrier =
-					CD3DX12_RESOURCE_BARRIER::Transition(scene[i].index_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-				command_list_copy->ResourceBarrier(1, &indexBufferResourceBarrier);
-
-				// Notify with a fence
-				// Schedule a Signal command in the queue.
-				fence_copy_command_list_progress_highest_value++;
-				DX::ThrowIfFailed(device_resources->GetCopyCommandQueue()->Signal(fence_copy_command_list_progress.Get(), fence_copy_command_list_progress_highest_value + 1));
+				//CD3DX12_RESOURCE_BARRIER indexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(scene[i].index_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+				//command_list_copy->ResourceBarrier(1, &indexBufferResourceBarrier);
+				
 				scene[i].fence_value_signaling_buffers_are_present_on_the_gpu = fence_copy_command_list_progress_highest_value;
 			}
 		}
@@ -459,9 +466,12 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 	// Check if we need to execute the copy command queue
 	if (copyCommandListRequiresExecution == true)
 	{
+		copy_command_allocator_already_reset = false;
+		copy_command_list_requires_reset = true;
 		DX::ThrowIfFailed(command_list_copy->Close());
 		ID3D12CommandList* ppCommandLists[] = { command_list_copy.Get() };
 		device_resources->GetCopyCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		DX::ThrowIfFailed(device_resources->GetCopyCommandQueue()->Signal(fence_copy_command_list_progress.Get(), fence_copy_command_list_progress_highest_value + 1));
 	}
 
 	return command_list_direct.Get();
