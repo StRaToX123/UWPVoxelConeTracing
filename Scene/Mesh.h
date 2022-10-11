@@ -5,6 +5,7 @@
 #include <d3d12.h>
 #include <vector>
 #include <stdexcept>
+#include <wrl.h>
 
 using namespace DirectX;
 using namespace std;
@@ -56,6 +57,20 @@ class Mesh
 
         vector<VertexPositionNormalTexture> vertices;
         vector<uint16_t> indices;
+
+        XMFLOAT3 world_position;
+        XMFLOAT3 local_rotation;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
+        Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer_upload;
+        D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
+           
+        Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
+        Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer_upload;
+        D3D12_INDEX_BUFFER_VIEW index_buffer_view;
+
+        UINT64 fence_value_signaling_buffers_are_present_on_the_gpu;
+        bool buffer_upload_started;
 
     private:
         

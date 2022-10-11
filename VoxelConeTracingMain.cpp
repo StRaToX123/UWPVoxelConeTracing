@@ -19,7 +19,8 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
 	camera_controller_yaw(0.0f),
-	space_key_pressed_workaround(false)
+	space_key_pressed_workaround(false),
+	cube_spin_angle(0.0f)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -31,13 +32,15 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	/*
 	scene.reserve(10);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
 		scene.emplace_back(Mesh());
 	}
 
+	scene[0].InitializeAsCube();
+	
+	/*
 	scene[0].InitializeAsPlane(5, 5);
 	scene[1].InitializeAsPlane(5, 5);
 	scene[2].InitializeAsPlane(5, 5);
@@ -64,7 +67,7 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 	core_window = coreWindow;
 	device_resources = deviceResources;
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::c_frameCount, device_resources->GetBackBufferFormat());
-	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources));
+	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources, camera));
 	OnWindowSizeChanged();
 }
 
@@ -229,7 +232,7 @@ void VoxelConeTracingMain::Update()
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{
-		
+		scene[0].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
 	});
 }
 
@@ -245,7 +248,7 @@ void VoxelConeTracingMain::Render()
 
 	
 
-	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(camera, step_timer, show_imGui);
+	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera, show_imGui);
 	if (show_imGui == true)
 	{
 		ImGui::ShowDemoWindow();
@@ -271,6 +274,7 @@ void VoxelConeTracingMain::Render()
 		pCommandList->SetDescriptorHeaps(1, imGuiHeaps);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
 	}
+
 	// Finish up the rendering 
 	// Indicate that the render target will now be used to present when the command list is done executing.
 	CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
@@ -281,7 +285,7 @@ void VoxelConeTracingMain::Render()
 
 	// Execute the command list.
 	ID3D12CommandList* ppCommandLists[] = { pCommandList };
-	device_resources->GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	device_resources->GetDirectCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
 // Updates application state when the window's size changes (e.g. device orientation change)
@@ -301,14 +305,12 @@ void VoxelConeTracingMain::OnWindowSizeChanged()
 	}
 
 	camera.SetProjection(camera.GetFoV(), aspectRatio, 0.01f, 100.0f);
-	scene_renderer->CreateWindowSizeDependentResources();
+	scene_renderer->CreateWindowSizeDependentResources(camera);
 }
 
 // Notifies the app that it is being suspended.
 void VoxelConeTracingMain::OnSuspending()
 {
-	// TODO: Replace this with your app's suspending logic.
-
 	// Process lifetime management may terminate suspended apps at any time, so it is
 	// good practice to save any state that will allow the app to restart where it left off.
 

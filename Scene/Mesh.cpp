@@ -11,7 +11,10 @@ const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTexture::input_elements[] =
 
 Mesh::Mesh()
 {
-
+    world_position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+    local_rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+    fence_value_signaling_buffers_are_present_on_the_gpu = 0;
+    buffer_upload_started = false;
 }
 
 

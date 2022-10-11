@@ -281,12 +281,13 @@
     <ClInclude Include="Scene\Mesh.h">
       <Filter>Scene\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Camera.h">
-      <Filter>Scene\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Utility\Memory\Allocators\PreAllocator.h">
       <Filter>Utility\Memory\Allocators</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Camera.h">
+      <Filter>Scene\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -353,6 +354,7 @@
     <None Include="Graphics\DirectX\VertexBuffer.cpp">
       <Filter>Graphics\DirectX\Source</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Graphics\Shaders\SampleShaders\SampleVertexShader.hlsl">
@@ -361,5 +363,13 @@
     <FxCompile Include="Graphics\Shaders\SampleShaders\SamplePixelShader.hlsl">
       <Filter>Graphics\Shaders\SampleShaders\PS</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VoxelConeTracing.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\woah.jpg">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>

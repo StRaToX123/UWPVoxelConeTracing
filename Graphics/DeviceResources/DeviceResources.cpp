@@ -123,13 +123,18 @@ void DX::DeviceResources::CreateDeviceResources()
 
 	DX::ThrowIfFailed(hr);
 
-	// Create the command queue.
+	// Create the direct command queue.
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
-	NAME_D3D12_OBJECT(m_commandQueue);
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_direct)));
+	NAME_D3D12_OBJECT(command_queue_direct);
+
+	// Create the copy command queue.
+	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_copy)));
+	NAME_D3D12_OBJECT(command_queue_copy);
 
 	// Create descriptor heaps for render target views and depth stencil views.
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
@@ -150,9 +155,8 @@ void DX::DeviceResources::CreateDeviceResources()
 
 	for (UINT n = 0; n < c_frameCount; n++)
 	{
-		DX::ThrowIfFailed(
-			m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[n]))
-			);
+		DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators_direct[n])));
+		DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocators_copy[n])));
 	}
 
 	// Create synchronization objects.
@@ -233,7 +237,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		ComPtr<IDXGISwapChain1> swapChain;
 		DX::ThrowIfFailed(
 			m_dxgiFactory->CreateSwapChainForCoreWindow(
-				m_commandQueue.Get(),								// Swap chains need a reference to the command queue in DirectX 12.
+				command_queue_direct.Get(),								// Swap chains need a reference to the command queue in DirectX 12.
 				reinterpret_cast<IUnknown*>(m_window.Get()),
 				&swapChainDesc,
 				nullptr,
@@ -468,7 +472,7 @@ void DX::DeviceResources::Present()
 void DX::DeviceResources::WaitForGpu()
 {
 	// Schedule a Signal command in the queue.
-	DX::ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_currentFrame]));
+	DX::ThrowIfFailed(command_queue_direct->Signal(m_fence.Get(), m_fenceValues[m_currentFrame]));
 
 	// Wait until the fence has been crossed.
 	DX::ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_currentFrame], m_fenceEvent));
@@ -483,7 +487,7 @@ void DX::DeviceResources::MoveToNextFrame()
 {
 	// Schedule a Signal command in the queue.
 	const UINT64 currentFenceValue = m_fenceValues[m_currentFrame];
-	DX::ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
+	DX::ThrowIfFailed(command_queue_direct->Signal(m_fence.Get(), currentFenceValue));
 
 	// Advance the frame index.
 	m_currentFrame = m_swapChain->GetCurrentBackBufferIndex();

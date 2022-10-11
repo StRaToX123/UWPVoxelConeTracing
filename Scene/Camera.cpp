@@ -113,7 +113,6 @@ void XM_CALLCONV Camera::Translate(FXMVECTOR translation, Space space)
     }
 
     p_data->translation = XMVectorSetW( p_data->translation, 1.0f );
-
     is_dirty_view_matrix = true;
 }
 

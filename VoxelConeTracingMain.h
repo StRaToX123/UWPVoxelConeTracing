@@ -42,6 +42,7 @@ namespace VoxelConeTracing
 			// Rendering loop timer.
 			DX::StepTimer step_timer;
 			std::vector<Mesh> scene;
+			float cube_spin_angle;
 			bool show_imGui;
 			bool space_key_pressed_workaround;
 			bool control_key_pressed_workaround;
