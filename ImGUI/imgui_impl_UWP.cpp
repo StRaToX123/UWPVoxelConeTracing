@@ -90,7 +90,7 @@ struct ImGui_ImplUWP_Data
     INT64                               Time;
     INT64                               TicksPerSecond;
     ImGuiMouseCursor                    LastMouseCursor;
-    Windows::Gaming::Input::Gamepad^    gamepad;
+    
     //bool                              HasGamepad;
     //bool                              WantUpdateHasGamepad;
 
@@ -363,33 +363,23 @@ static void ImGui_ImplUWP_UpdateMouseData()
     }
 }
 
-void ImGui_ImplUWP_GamepadConnectedDisconnected_Callback()
+void ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(bool padAvailable)
 {
     ImGuiIO& io = ImGui::GetIO();
-    ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
-    auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
-    if (gamepads->Size == 0)
+    if (padAvailable == false)
     {
-        bd->gamepad = nullptr;
         io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
     }
     else
     {
-        bd->gamepad = gamepads->First()->Current;
         io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
     }
 }
 
 // Gamepad navigation mapping
-static void ImGui_ImplUWP_UpdateGamepads()
+void ImGui_ImplUWP_UpdateGamepads_Callback(const Windows::Gaming::Input::GamepadReading& gamepadReading)
 {
 #ifndef IMGUI_IMPL_UWP_DISABLE_GAMEPAD
-    ImGui_ImplUWP_Data* bd = ImGui_ImplUWP_GetBackendData();
-    if (bd->gamepad == nullptr)
-    {
-        return;
-    }
-
     ImGuiIO& io = ImGui::GetIO();
     
     //if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0) // FIXME: Technically feeding gamepad shouldn't depend on this now that they are regular inputs.
@@ -414,9 +404,6 @@ static void ImGui_ImplUWP_UpdateGamepads()
     */
 
 
-    
-
-    Windows::Gaming::Input::GamepadReading gamepadReading = bd->gamepad->GetCurrentReading();
     io.AddKeyEvent(ImGuiKey_GamepadStart, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu));
     io.AddKeyEvent(ImGuiKey_GamepadBack, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::View));
     io.AddKeyEvent(ImGuiKey_GamepadFaceLeft, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::X));
@@ -429,20 +416,40 @@ static void ImGui_ImplUWP_UpdateGamepads()
     io.AddKeyEvent(ImGuiKey_GamepadDpadDown, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::DPadDown));
     io.AddKeyEvent(ImGuiKey_GamepadL1, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::LeftShoulder));
     io.AddKeyEvent(ImGuiKey_GamepadR1, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::RightShoulder));
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadL2, gamepadReading.LeftTrigger >= UWP_GAMEPAD_TRIGGER_THRESHOLD, gamepadReading.LeftTrigger);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadR2, gamepadReading.RightTrigger >= UWP_GAMEPAD_TRIGGER_THRESHOLD, gamepadReading.RightTrigger);
     io.AddKeyEvent(ImGuiKey_GamepadL3, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::LeftThumbstick));
     io.AddKeyEvent(ImGuiKey_GamepadR3, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::RightThumbstick));
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickLeft, gamepadReading.LeftThumbstickX <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.LeftThumbstickX);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickRight, gamepadReading.LeftThumbstickX >= UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.LeftThumbstickX);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickUp, gamepadReading.LeftThumbstickY >= UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.LeftThumbstickY);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickDown, gamepadReading.LeftThumbstickY <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.LeftThumbstickY);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickLeft, gamepadReading.RightThumbstickX <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.RightThumbstickX);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickRight, gamepadReading.RightThumbstickX >= UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.RightThumbstickX);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickUp, gamepadReading.RightThumbstickY >= UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.RightThumbstickY);
-    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickDown, gamepadReading.RightThumbstickY <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE, gamepadReading.RightThumbstickY);
-    
 
+    bool down = false;
+    down = gamepadReading.LeftTrigger >= UWP_GAMEPAD_TRIGGER_THRESHOLD;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadL2, down, down ? gamepadReading.LeftTrigger : 0.0);
+
+    down = gamepadReading.RightTrigger >= UWP_GAMEPAD_TRIGGER_THRESHOLD;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadR2, down, down ? gamepadReading.RightTrigger : 0.0);
+
+    down = gamepadReading.LeftThumbstickX <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickLeft, down, down ? -gamepadReading.LeftThumbstickX : 0.0);
+
+    down = gamepadReading.LeftThumbstickX >= UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickRight, down, down ? gamepadReading.LeftThumbstickX : 0.0);
+
+    down = gamepadReading.LeftThumbstickY >= UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickUp, down, down ? gamepadReading.LeftThumbstickY : 0.0);
+    
+    down = gamepadReading.LeftThumbstickY <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickDown, down, down ? -gamepadReading.LeftThumbstickY : 0.0);
+
+    down = gamepadReading.RightThumbstickX <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickLeft, down, down ? -gamepadReading.RightThumbstickX : 0.0);
+
+    down = gamepadReading.RightThumbstickX >= UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickRight, down, down ? gamepadReading.RightThumbstickX : 0.0);
+
+    down = gamepadReading.RightThumbstickY >= UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickUp, down, down ? gamepadReading.RightThumbstickY : 0.0);
+
+    down = gamepadReading.RightThumbstickY <= -UWP_GAMEPAD_THUMBSTICK_DEADZONE;
+    io.AddKeyAnalogEvent(ImGuiKey_GamepadRStickDown, down, down ? -gamepadReading.RightThumbstickY : 0.0);
+    
     /*
     #define IM_SATURATE(V)                      (V < 0.0f ? 0.0f : V > 1.0f ? 1.0f : V)
     #define MAP_BUTTON(KEY_NO, BUTTON_ENUM)     { io.AddKeyEvent(KEY_NO, (gamepad.wButtons & BUTTON_ENUM) != 0); }
@@ -511,7 +518,9 @@ void    ImGui_ImplUWP_NewFrame()
     }
 
     // Update game controllers (if enabled and available)
-    ImGui_ImplUWP_UpdateGamepads();
+    //ImGui_ImplUWP_UpdateGamepads();
+    // We update the gamepads ourselfs through ImGui_ImplUWP_UpdateGamepads_Callback 
+    // which gets called via the main program, once it updates its gamepad readings in the main update loop
 }
 
 // There is no distinct VK_xxx for keypad enter, instead it is VK_RETURN + KF_EXTENDED, we assign it an arbitrary value to make code more readable (VK_ codes go up to 255)

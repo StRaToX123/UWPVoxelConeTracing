@@ -260,12 +260,12 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 
 void App::OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
 {
-	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
+	m_main->OnGamepadConnectedDisconnectedCallback();
 }
 
 void App::OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
 {
-	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
+	m_main->OnGamepadConnectedDisconnectedCallback();
 }
 
 

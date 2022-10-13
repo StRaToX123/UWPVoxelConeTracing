@@ -337,7 +337,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 		}
 	}
 	
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < scene.size(); i++)
 	{
 		if (scene[i].fence_value_signaling_buffers_are_present_on_the_gpu < fenceCopyCommandListProgressValue)
 		{

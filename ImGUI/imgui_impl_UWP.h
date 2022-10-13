@@ -14,6 +14,7 @@
 
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
+#include "Utility/Debugging/DebugMessage.h"
 
 IMGUI_IMPL_API bool     ImGui_ImplUWP_Init(/*void* hwnd*/);
 IMGUI_IMPL_API void     ImGui_ImplUWP_Shutdown();
@@ -28,7 +29,8 @@ IMGUI_IMPL_API void     ImGui_ImplUWP_PointerReleased_Callback(Windows::UI::Inpu
 IMGUI_IMPL_API void     ImGui_ImplUWP_PointerWheelChanged_Callback(int wheelDelta);
 IMGUI_IMPL_API void     ImGui_ImplUWP_KeyEvent_Callback(int vk, bool down);
 IMGUI_IMPL_API void     ImGui_ImplUWP_VisibilityChanged_Callback(bool isVisible);
-IMGUI_IMPL_API void     ImGui_ImplUWP_GamepadConnectedDisconnected_Callback();
+IMGUI_IMPL_API void     ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(bool padAvailable);
+IMGUI_IMPL_API void     ImGui_ImplUWP_UpdateGamepads_Callback(const Windows::Gaming::Input::GamepadReading& gamepadReading);
 
 
 // UWP message handler your application need to call.

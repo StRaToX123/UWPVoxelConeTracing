@@ -11,5 +11,6 @@ struct PixelShaderInput
 
 float4 main(PixelShaderInput input) : SV_TARGET
 {
-	return testTexture.Sample(samp, input.tex);
+	//return testTexture.Sample(samp, input.tex);
+	return pow(abs(testTexture.Sample(samp, input.tex)), 1.0f / 2.2f);
 }

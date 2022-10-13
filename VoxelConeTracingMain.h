@@ -33,6 +33,7 @@ namespace VoxelConeTracing
 			void OnDeviceRemoved();
 			void HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
 			void HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
+			void OnGamepadConnectedDisconnectedCallback();
 
 
 			CoreWindow^ core_window;
@@ -46,6 +47,7 @@ namespace VoxelConeTracing
 			bool show_imGui;
 			bool space_key_pressed_workaround;
 			bool control_key_pressed_workaround;
+			Windows::Gaming::Input::Gamepad^ gamepad;
 			// Camera
 			Camera camera;
 			float camera_default_fov_degrees;

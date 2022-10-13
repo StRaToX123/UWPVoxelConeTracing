@@ -32,16 +32,11 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(10);
-	for (int i = 0; i < scene.capacity(); i++)
-	{
-		scene.emplace_back(Mesh());
-	}
-
-	scene[0].InitializeAsCube();
-	
+	Mesh mesh;
+	mesh.InitializeAsCube();
+	scene.push_back(mesh);
+	//scene[0].InitializeAsPlane(5, 5);
 	/*
-	scene[0].InitializeAsPlane(5, 5);
 	scene[1].InitializeAsPlane(5, 5);
 	scene[2].InitializeAsPlane(5, 5);
 	scene[3].InitializeAsPlane(5, 5);
@@ -195,6 +190,39 @@ void VoxelConeTracingMain::HandleMouseMovementCallback(float mouseDeltaX, float 
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
+	// Update gamepad input
+	if (gamepad != nullptr)
+	{
+		Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
+		// Toggle ImGui on the gamepad menu key press
+		// We need to guard this against key spam which occurs when the key is held down,
+		// otherwise the show_ImGui boolean will toggle rapidly and flash the UI on and off
+		static bool gamepadMenuKeySpamGuard = false;
+		if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu))
+		{
+			if (gamepadMenuKeySpamGuard == false)
+			{
+				gamepadMenuKeySpamGuard = true;
+				show_imGui = !show_imGui;
+			}
+		}
+		else
+		{
+			gamepadMenuKeySpamGuard = false;
+		}
+
+		
+
+
+
+
+		if (show_imGui == true)
+		{
+			ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
+		}
+	}
+
+	// Move the camera only when ImGui is turned off
 	if (show_imGui == false)
 	{
 		// Sheck space key status
@@ -333,4 +361,19 @@ void VoxelConeTracingMain::OnDeviceRemoved()
 	// and its resources which are no longer valid.
 	scene_renderer->SaveState();
 	scene_renderer = nullptr;
+}
+
+void VoxelConeTracingMain::OnGamepadConnectedDisconnectedCallback()
+{
+	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
+	if (gamepads->Size == 0)
+	{
+		gamepad = nullptr;
+		ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(false);
+	}
+	else
+	{
+		gamepad = gamepads->First()->Current;
+		ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(true);
+	}
 }
