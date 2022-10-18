@@ -113,6 +113,15 @@
     <Filter Include="Utility\Memory\Allocators">
       <UniqueIdentifier>{77c033a8-b995-4233-8051-1d3d7cdd9fe6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\PresentThread">
+      <UniqueIdentifier>{5ffea048-14d5-46f0-8b86-772c96fa062c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\PresentThread\Headers">
+      <UniqueIdentifier>{46ebd724-e111-4ec9-9091-65b4bbe7979a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\PresentThread\Sources">
+      <UniqueIdentifier>{deb2ac45-3270-4721-9caa-8bdfb7fcd7c8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -152,6 +161,9 @@
     </ClCompile>
     <ClCompile Include="Scene\Camera.cpp">
       <Filter>Scene\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\PresentThread\PresentThread.cpp">
+      <Filter>Graphics\PresentThread\Sources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -193,9 +205,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Shaders\SampleShaders\ShaderStructures.h">
       <Filter>Graphics\Shaders\SampleShaders</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\Debug\DebugMessage.h">
-      <Filter>Utility\Debugging</Filter>
     </ClInclude>
     <ClInclude Include="ImGUI\imgui_impl_UWP.h">
       <Filter>ImGUI\Headers</Filter>
@@ -288,6 +297,15 @@
       <Filter>Scene\Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Graphics\PresentThread\PresentThread.h">
+      <Filter>Graphics\PresentThread\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debugging\DebugMessage.h">
+      <Filter>Utility\Debugging</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DeviceResources\DeviceResourcesCommons.h">
+      <Filter>Graphics\DeviceResources\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />

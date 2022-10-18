@@ -252,7 +252,6 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 	if(m_main->show_imGui == true)
 	{
 		ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
-		
 	}
 
 	args->Handled = true;

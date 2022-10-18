@@ -6,6 +6,7 @@
 #include <vector>
 #include <stdexcept>
 #include <wrl.h>
+#include "Utility/Debugging/DebugMessage.h"
 
 using namespace DirectX;
 using namespace std;

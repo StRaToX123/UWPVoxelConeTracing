@@ -18,9 +18,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_down(0.0f),
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
-	camera_controller_yaw(0.0f),
-	space_key_pressed_workaround(false),
-	cube_spin_angle(0.0f)
+	camera_controller_yaw(0.0f)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -32,26 +30,14 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	Mesh mesh;
-	mesh.InitializeAsCube();
-	scene.push_back(mesh);
-	//scene[0].InitializeAsPlane(5, 5);
-	/*
-	scene[1].InitializeAsPlane(5, 5);
-	scene[2].InitializeAsPlane(5, 5);
-	scene[3].InitializeAsPlane(5, 5);
-	scene[4].InitializeAsPlane(5, 5);
-	scene[5].InitializeAsCube(1);
-	scene[6].InitializeAsSphere();
-	scene[7].InitializeAsCone();
-	*/
+	scene.reserve(2);
+	for (int i = 0; i < scene.capacity(); i++)
+	{
+		scene.emplace_back(Mesh());
+	}
 
-	
-	
-
-
-
-	
+	scene[0].InitializeAsCube();
+	scene[1].InitializeAsPlane(2.0f, 2.0f);
 }
 
 
@@ -61,13 +47,18 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 {
 	core_window = coreWindow;
 	device_resources = deviceResources;
-	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::c_frameCount, device_resources->GetBackBufferFormat());
+	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::gsc_frame_count, device_resources->GetBackBufferFormat());
 	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources, camera));
 	OnWindowSizeChanged();
 }
 
 void VoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)
 {
+	if (gamepad != nullptr)
+	{
+		return;
+	}
+
 	switch (vk)
 	{
 		case Windows::System::VirtualKey::Q:
@@ -162,11 +153,22 @@ void VoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, b
 
 void VoxelConeTracingMain::HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY)
 {
+	// Camera rotation controll via mouse
+	if (gamepad != nullptr)
+	{
+		return;
+	}
+
 	if (show_imGui == true)
 	{
 		return;
 	}
 
+	UpdateCameraControllerPitchAndYaw(mouseDeltaX, mouseDeltaY);
+}
+
+void VoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDeltaX, float mouseDeltaY)
+{
 	camera_controller_pitch += mouseDeltaY * camera_controller_rotation_multiplier;
 	camera_controller_yaw += mouseDeltaX * camera_controller_rotation_multiplier;
 
@@ -190,9 +192,12 @@ void VoxelConeTracingMain::HandleMouseMovementCallback(float mouseDeltaX, float 
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
-	// Update gamepad input
+	// Update the camera
+	// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
 	if (gamepad != nullptr)
 	{
+
+		// Update the camera using the gamepad
 		Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
 		// Toggle ImGui on the gamepad menu key press
 		// We need to guard this against key spam which occurs when the key is held down,
@@ -211,50 +216,106 @@ void VoxelConeTracingMain::Update()
 			gamepadMenuKeySpamGuard = false;
 		}
 
-		
-
-
-
-
 		if (show_imGui == true)
 		{
 			ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
 		}
-	}
-
-	// Move the camera only when ImGui is turned off
-	if (show_imGui == false)
-	{
-		// Sheck space key status
-		// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
-		// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
-		if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-		{
-			if (space_key_pressed_workaround == false)
-			{
-				space_key_pressed_workaround = true;
-				camera_controller_up = 1.0f;
-			}
-		}
 		else
 		{
-			if (space_key_pressed_workaround == true)
+			camera_controller_rotation_multiplier = 1.0f;
+			// Update the camera controller variables		
+			// We use camera_controller_left to store the leftThumbStickX value
+			// and the camera_controller_forward to store the leftThumbStickY value
+			// this makes camera_controller_right and camera_controller_down obsolete
+			camera_controller_right = 0.0f;
+			camera_controller_down = 0.0f;
+			if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
+				||(gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
 			{
-				space_key_pressed_workaround = false;
+				camera_controller_left = gamepadReading.LeftThumbstickX;
+			}
+			else
+			{
+				camera_controller_left = 0.0f;
+			}
+
+			if ((gamepadReading.LeftThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD)
+				|| (gamepadReading.LeftThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD))
+			{
+				camera_controller_forward = gamepadReading.LeftThumbstickY;
+			}
+			else
+			{
+				camera_controller_forward = 0.0f;
+			}
+
+			UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
+											      ((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
+
+			if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
+			{
+				camera_controller_up = 1.0f;
+			}
+			else
+			{
 				camera_controller_up = 0.0f;
 			}
+
+			if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::B))
+			{
+				camera_controller_down = 1.0f;
+			}
+			else
+			{
+				camera_controller_down = 0.0f;
+			}
+
+			// Update the camera 
+			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+			camera.SetRotation(cameraRotation);
+			XMVECTOR cameraTranslate = XMVectorSet(camera_controller_left,
+				camera_controller_up - camera_controller_down,
+				camera_controller_forward,
+				1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
+			camera.Translate(cameraTranslate, Space::Local);
 		}
+	}
+	else
+	{
+		// Keyboard and mouse controlls
+		if (show_imGui == false)
+		{
+			camera_controller_rotation_multiplier = 0.03f;
+			static bool spaceKeySpamGuard = false;
+			// Sheck space key status
+			// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
+			// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
+			if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+			{
+				if (spaceKeySpamGuard == false)
+				{
+					spaceKeySpamGuard = true;
+					camera_controller_up = 1.0f;
+				}
+			}
+			else
+			{
+				if (spaceKeySpamGuard == true)
+				{
+					spaceKeySpamGuard = false;
+					camera_controller_up = 0.0f;
+				}
+			}
 
-	
-
-		// Update the camera 
-		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
-		camera.SetRotation(cameraRotation);
-		XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
-			                                    camera_controller_up - camera_controller_down,
-			                                     camera_controller_forward - camera_controller_backward,
-			                                      1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
-		camera.Translate(cameraTranslate, Space::Local);
+			// Update the camera 
+			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+			camera.SetRotation(cameraRotation);
+			XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
+				camera_controller_up - camera_controller_down,
+				camera_controller_forward - camera_controller_backward,
+				1.0f) * camera_controller_translation_multiplier * static_cast<float>(step_timer.GetElapsedSeconds());
+			camera.Translate(cameraTranslate, Space::Local);
+		}
 	}
 	
 	// Update scene objects.
@@ -366,12 +427,9 @@ void VoxelConeTracingMain::OnDeviceRemoved()
 void VoxelConeTracingMain::OnGamepadConnectedDisconnectedCallback()
 {
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
-	if (gamepads->Size == 0)
-	{
-		gamepad = nullptr;
-		ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(false);
-	}
-	else
+	gamepad = nullptr;
+	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(false);
+	if (gamepads->Size != 0)
 	{
 		gamepad = gamepads->First()->Current;
 		ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(true);

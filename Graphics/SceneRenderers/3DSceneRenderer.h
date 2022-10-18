@@ -1,9 +1,7 @@
 ﻿#pragma once
 
-//#include <ppltasks.h>
-//#include <synchapi.h>
 #include <fstream>
-//#include <pix.h>
+#include <vector>
 #include <DirectXColors.h>
 #include <DirectXTex.h>
 #include "Graphics/DeviceResources/DeviceResources.h"
@@ -43,30 +41,30 @@ namespace VoxelConeTracing
 		private:
 			void LoadState();
 			// Constant buffers must be 256-byte aligned.
-			static const UINT c_alignedConstantBufferSize = (sizeof(ModelViewProjectionConstantBuffer) + 255) & ~255;
+			static const UINT c_aligned_constant_buffer_size = (sizeof(ViewProjectionConstantBuffer) + 255) & ~255;
 			// Direct3D resources for cube geometry.
-			std::shared_ptr<DX::DeviceResources>                device_resources;
-			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	command_list_direct;
-			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	command_list_copy;
-			Microsoft::WRL::ComPtr<ID3D12Fence>				    fence_copy_command_list_progress;
-			UINT64                                              fence_copy_command_list_progress_highest_value;
-			bool                                                copy_command_allocator_already_reset;
-			bool                                                copy_command_list_requires_reset;
-			Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
-			Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
-			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		descriptor_heap_cbv_srv;
-			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		descriptor_heap_sampler;
-			Microsoft::WRL::ComPtr<ID3D12Resource>				m_constantBuffer;
-			ModelViewProjectionConstantBuffer					m_constantBufferData;
-			UINT8*												m_mappedConstantBuffer;
-			UINT												cbv_srv_descriptor_size;
-			Microsoft::WRL::ComPtr<ID3D12Resource>				test_texture;
-			Microsoft::WRL::ComPtr<ID3D12Resource>				test_texture_upload;
-			D3D12_RECT											m_scissorRect;
-
-
-			float	m_radiansPerSecond;
-			float	m_angle;
+			std::shared_ptr<DX::DeviceResources>                   device_resources;
+			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>      command_list_direct;
+			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_copy;
+			Microsoft::WRL::ComPtr<ID3D12Fence>				       fence_copy_command_list_progress;
+			UINT64                                                 fence_copy_command_list_progress_highest_value;
+			bool                                                   copy_command_allocator_already_reset;
+			bool                                                   copy_command_list_requires_reset;
+			Microsoft::WRL::ComPtr<ID3D12RootSignature>			   root_signature;
+			Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state;
+			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_cbv_srv;
+			Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_sampler;
+			Microsoft::WRL::ComPtr<ID3D12Resource>				   camera_view_projection_constant_buffer;
+			ViewProjectionConstantBuffer					       camera_view_projection_constant_buffer_data;
+			UINT8*												   camera_view_projection_constant_mapped_buffer;
+			vector<Microsoft::WRL::ComPtr<ID3D12Resource>>         per_scene_object_model_transform_matrix_constant_buffers;
+			vector<Microsoft::WRL::ComPtr<ID3D12Resource>>         per_scene_object_model_transform_matrix_constant_upload_buffers;
+			vector<vector<UINT>>                                   per_scene_object_model_transform_matrix_constant_buffer_occupied_slot;
+			vector<vector<UINT>>                                   per_scene_object_model_transform_matrix_constant_buffer_free_slots;
+			UINT											   	   cbv_srv_descriptor_size;
+			Microsoft::WRL::ComPtr<ID3D12Resource>			   	   test_texture;
+			Microsoft::WRL::ComPtr<ID3D12Resource>				   test_texture_upload;
+			D3D12_RECT											   scissor_rect;
 	};
 }
 

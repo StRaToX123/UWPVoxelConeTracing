@@ -10,15 +10,13 @@ Platform::String^ TrackingKey = "Tracking";
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, Camera& camera) :
 	device_resources(deviceResources),
-	m_radiansPerSecond(XM_PIDIV4),	// rotate 45 degrees per second
-	m_angle(0),
-	m_mappedConstantBuffer(nullptr),
+	camera_view_projection_constant_mapped_buffer(nullptr),
 	fence_copy_command_list_progress_highest_value(0),
 	copy_command_allocator_already_reset(true),
 	copy_command_list_requires_reset(false)
 {
 	LoadState();
-	ZeroMemory(&m_constantBufferData, sizeof(m_constantBufferData));
+	ZeroMemory(&camera_view_projection_constant_buffer_data, sizeof(camera_view_projection_constant_buffer_data));
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources(camera);
@@ -26,8 +24,8 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 
 Sample3DSceneRenderer::~Sample3DSceneRenderer()
 {
-	m_constantBuffer->Unmap(0, nullptr);
-	m_mappedConstantBuffer = nullptr;
+	camera_view_projection_constant_buffer->Unmap(0, nullptr);
+	camera_view_projection_constant_mapped_buffer = nullptr;
 }
 
 void Sample3DSceneRenderer::CreateDeviceDependentResources()
@@ -78,8 +76,8 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	ComPtr<ID3DBlob> pSignature;
 	ComPtr<ID3DBlob> pError;
 	DX::ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf()));
-	DX::ThrowIfFailed(d3dDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-    NAME_D3D12_OBJECT(m_rootSignature);
+	DX::ThrowIfFailed(d3dDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
+    NAME_D3D12_OBJECT(root_signature);
 
 	// Load shaders
 	// Get the install folder full path
@@ -115,7 +113,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	// Create the pipeline state once the shaders are loaded.
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
 	state.InputLayout = { VertexPositionNormalTexture::input_elements, VertexPositionNormalTexture::input_element_count };
-	state.pRootSignature = m_rootSignature.Get();
+	state.pRootSignature = root_signature.Get();
 	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
 	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
 	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -128,7 +126,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	state.DSVFormat = device_resources->GetDepthBufferFormat();
 	state.SampleDesc.Count = 1;
 
-	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&m_pipelineState)));
+	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state)));
 
 	// Shader data can be deleted once the pipeline state is created.
 	delete[] pVertexShadeByteCode;
@@ -136,49 +134,49 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Upload cube geometry resources to the GPU.
 	// Create a direct command list.
-	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetDirectCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&command_list_direct)));
+	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetDirectCommandAllocator(), pipeline_state.Get(), IID_PPV_ARGS(&command_list_direct)));
 	NAME_D3D12_OBJECT(command_list_direct);
 	// Create a copy command list.
-	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCopyCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&command_list_copy)));
+	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCopyCommandAllocator(), pipeline_state.Get(), IID_PPV_ARGS(&command_list_copy)));
 	NAME_D3D12_OBJECT(command_list_copy);
 	// Create a fence to go along with the copy command list.
 	// This fence will be used to signal when a resource has been successfully uploaded to the gpu
 	DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_copy_command_list_progress)));
 	NAME_D3D12_OBJECT(fence_copy_command_list_progress);	
 
-	// Create a descriptor heap for the constant buffers and the test texture.
+	// Create a descriptor heap for the camera_view_projection_constant_buffer and the test texture.
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.NumDescriptors = DX::c_frameCount + 1;
+	heapDesc.NumDescriptors = DX::gsc_frame_count + 1;
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv)));
 	NAME_D3D12_OBJECT(descriptor_heap_cbv_srv);
 
-	// Create the constant buffer
+	// Create the camera view projection constant buffer
 	CD3DX12_HEAP_PROPERTIES uploadHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-	CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
+	CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::gsc_frame_count * c_aligned_constant_buffer_size);
 	DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&uploadHeapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&constantBufferDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(&m_constantBuffer)));
+		IID_PPV_ARGS(&camera_view_projection_constant_buffer)));
 
 
-	NAME_D3D12_OBJECT(m_constantBuffer);
+	NAME_D3D12_OBJECT(camera_view_projection_constant_buffer);
 
 	// Create constant buffer views to access the upload buffer.
-	D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = m_constantBuffer->GetGPUVirtualAddress();
+	D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = camera_view_projection_constant_buffer->GetGPUVirtualAddress();
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle(descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart());
 	cbv_srv_descriptor_size = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	for (int n = 0; n < DX::c_frameCount; n++)
+	for (int n = 0; n < DX::gsc_frame_count; n++)
 	{
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 		desc.BufferLocation = cbvGpuAddress;
-		desc.SizeInBytes = c_alignedConstantBufferSize;
+		desc.SizeInBytes = c_aligned_constant_buffer_size;
 		d3dDevice->CreateConstantBufferView(&desc, cbvSrvCpuHandle);
 
 		cbvGpuAddress += desc.SizeInBytes;
@@ -188,14 +186,36 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	// Map the constant buffers.
 	// We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
 	CD3DX12_RANGE readRange(0, 0);	// We do not intend to read from this resource on the CPU.
-	DX::ThrowIfFailed(m_constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_mappedConstantBuffer)));
-	ZeroMemory(m_mappedConstantBuffer, DX::c_frameCount * c_alignedConstantBufferSize);
+	DX::ThrowIfFailed(camera_view_projection_constant_buffer->Map(0, &readRange, reinterpret_cast<void**>(&camera_view_projection_constant_mapped_buffer)));
+	ZeroMemory(camera_view_projection_constant_mapped_buffer, DX::gsc_frame_count * c_aligned_constant_buffer_size);
+
+	// Create and setup a constant buffer that holds each scene's object world transform matrix
+	// Also initialize the arrays that track residency inside of the constant buffer
+	per_scene_object_model_transform_matrix_constant_buffers.push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
+	DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(PerSceneObjectModelTransformMatrixBuffer)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&per_scene_object_model_transform_matrix_constant_buffers[0])));
+
+	// Create an accompanying upload heap 
+	DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(PerSceneObjectModelTransformMatrixBuffer)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&per_scene_object_model_transform_matrix_constant_upload_buffers[0])));
+
+
+
 
 	// Create and upload the test texture
 	TexMetadata metadata;
 	ScratchImage scratchImage;
 	DX::ThrowIfFailed(LoadFromWICFile((wStringInstallPath + L"\\Assets\\woah.jpg").c_str(), WIC_FLAGS::WIC_FLAGS_NONE, &metadata, scratchImage));
-	CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 	D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		metadata.format,
 		static_cast<UINT64>(metadata.width),
@@ -228,6 +248,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		nullptr,
 		IID_PPV_ARGS(&test_texture_upload)));
 
+	
 	UpdateSubresources(command_list_direct.Get(), test_texture.Get(), test_texture_upload.Get(), 0, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 	CD3DX12_RESOURCE_BARRIER testTextureBarrier = CD3DX12_RESOURCE_BARRIER::Transition(test_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	command_list_direct->ResourceBarrier(1, &testTextureBarrier);
@@ -254,10 +275,10 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 void Sample3DSceneRenderer::CreateWindowSizeDependentResources(Camera& camera)
 {
 	D3D12_VIEWPORT viewport = device_resources->GetScreenViewport();
-	m_scissorRect = { 0, 0, static_cast<LONG>(viewport.Width), static_cast<LONG>(viewport.Height)};
+	scissor_rect = { 0, 0, static_cast<LONG>(viewport.Width), static_cast<LONG>(viewport.Height)};
 	XMFLOAT4X4 orientation = device_resources->GetOrientationTransform3D();
 	XMMATRIX orientationMatrix = XMLoadFloat4x4(&orientation);
-	XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
+	XMStoreFloat4x4(&camera_view_projection_constant_buffer_data.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
 }
 
 
@@ -271,7 +292,7 @@ void Sample3DSceneRenderer::SaveState()
 		state->Remove(AngleKey);
 	}
 
-	state->Insert(AngleKey, PropertyValue::CreateSingle(m_angle));
+	//state->Insert(AngleKey, PropertyValue::CreateSingle(m_angle));
 }
 
 // Restores the previous state of the renderer.
@@ -280,8 +301,8 @@ void Sample3DSceneRenderer::LoadState()
 	auto state = ApplicationData::Current->LocalSettings->Values;
 	if (state->HasKey(AngleKey))
 	{
-		m_angle = safe_cast<IPropertyValue^>(state->Lookup(AngleKey))->GetSingle();
-		state->Remove(AngleKey);
+		//m_angle = safe_cast<IPropertyValue^>(state->Lookup(AngleKey))->GetSingle();
+		//state->Remove(AngleKey);
 	}
 }
 
@@ -292,25 +313,25 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 {
 	DX::ThrowIfFailed(device_resources->GetDirectCommandAllocator()->Reset());
 	// The command list can be reset anytime after ExecuteCommandList() is called.
-	DX::ThrowIfFailed(command_list_direct->Reset(device_resources->GetDirectCommandAllocator(), m_pipelineState.Get()));
+	DX::ThrowIfFailed(command_list_direct->Reset(device_resources->GetDirectCommandAllocator(), pipeline_state.Get()));
 	// Update the view matrix
-	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(camera.GetViewMatrix()));
+	XMStoreFloat4x4(&camera_view_projection_constant_buffer_data.view, XMMatrixTranspose(camera.GetViewMatrix()));
 	// Set the graphics root signature and descriptor heaps to be used by this frame.
-	command_list_direct->SetGraphicsRootSignature(m_rootSignature.Get());
+	command_list_direct->SetGraphicsRootSignature(root_signature.Get());
 	ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv_srv.Get()/*, descriptor_heap_sampler.Get()*/};
 	command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 	// Bind the descriptor tables to their respective heap starts
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart(), device_resources->GetCurrentFrameIndex(), cbv_srv_descriptor_size);
 	command_list_direct->SetGraphicsRootDescriptorTable(0, gpuHandle);
-	gpuHandle.Offset((DX::c_frameCount - device_resources->GetCurrentFrameIndex()) * cbv_srv_descriptor_size);
+	gpuHandle.Offset((DX::gsc_frame_count - device_resources->GetCurrentFrameIndex()) * cbv_srv_descriptor_size);
 	command_list_direct->SetGraphicsRootDescriptorTable(1, gpuHandle);
 	//command_list_direct->SetGraphicsRootDescriptorTable(2, descriptor_heap_sampler->GetGPUDescriptorHandleForHeapStart());
 
 	// Set the viewport and scissor rectangle.
 	D3D12_VIEWPORT viewport = device_resources->GetScreenViewport();
 	command_list_direct->RSSetViewports(1, &viewport);
-	command_list_direct->RSSetScissorRects(1, &m_scissorRect);
+	command_list_direct->RSSetScissorRects(1, &scissor_rect);
 
 	// Indicate this resource will be in use as a render target.
 	CD3DX12_RESOURCE_BARRIER renderTargetResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -373,9 +394,10 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 			XMMATRIX translationMatrix = XMMatrixTranslation(scene[i].world_position.x,
 															  scene[i].world_position.y,
 														       scene[i].world_position.z);
-			XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(translationMatrix * rotationMatrix));
-			UINT8* destination = m_mappedConstantBuffer + (device_resources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
-			memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+			
+			// Update the camera view projection constant buffer
+			UINT8* destination = camera_view_projection_constant_mapped_buffer + (device_resources->GetCurrentFrameIndex() * c_aligned_constant_buffer_size);
+			memcpy(destination, &camera_view_projection_constant_buffer_data, sizeof(camera_view_projection_constant_buffer_data));
 
 			// Bind the vertex and index buffer views
 			command_list_direct->IASetVertexBuffers(0, 1, &scene[i].vertex_buffer_view);
@@ -391,7 +413,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				if (copy_command_list_requires_reset == true)
 				{
 					copy_command_list_requires_reset = false;
-					DX::ThrowIfFailed(command_list_copy->Reset(device_resources->GetCopyCommandAllocator(), m_pipelineState.Get()));
+					DX::ThrowIfFailed(command_list_copy->Reset(device_resources->GetCopyCommandAllocator(), pipeline_state.Get()));
 					fence_copy_command_list_progress_highest_value++;
 				}
 

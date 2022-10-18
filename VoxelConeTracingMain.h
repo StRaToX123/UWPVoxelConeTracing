@@ -14,7 +14,7 @@ using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
 
-
+#define GAMEPAD_TRIGGER_THRESHOLD 0.2
 
 
 namespace VoxelConeTracing
@@ -33,6 +33,7 @@ namespace VoxelConeTracing
 			void OnDeviceRemoved();
 			void HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
 			void HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
+			void UpdateCameraControllerPitchAndYaw(float mouseDeltaX, float mouseDeltaY);
 			void OnGamepadConnectedDisconnectedCallback();
 
 
@@ -45,8 +46,6 @@ namespace VoxelConeTracing
 			std::vector<Mesh> scene;
 			float cube_spin_angle;
 			bool show_imGui;
-			bool space_key_pressed_workaround;
-			bool control_key_pressed_workaround;
 			Windows::Gaming::Input::Gamepad^ gamepad;
 			// Camera
 			Camera camera;

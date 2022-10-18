@@ -247,6 +247,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NDEBUG;IMGUI_IMPL_UWP_DISABLE_GAMEPAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -262,6 +263,7 @@
   <ItemGroup>
     <ClInclude Include="App.h" />
     <ClInclude Include="Graphics\DeviceResources\DeviceResources.h" />
+    <ClInclude Include="Graphics\DeviceResources\DeviceResourcesCommons.h" />
     <ClInclude Include="Graphics\DirectX\Buffer.h" />
     <ClInclude Include="Graphics\DirectX\ByteAddressBuffer.h" />
     <ClInclude Include="Graphics\DirectX\CommandList.h" />
@@ -288,6 +290,7 @@
     <ClInclude Include="Graphics\DirectX\ThreadSafeQueue.h" />
     <ClInclude Include="Graphics\DirectX\UploadBuffer.h" />
     <ClInclude Include="Graphics\DirectX\VertexBuffer.h" />
+    <ClInclude Include="Graphics\PresentThread\PresentThread.h" />
     <ClInclude Include="Graphics\SceneRenderers\3DSceneRenderer.h" />
     <ClInclude Include="Graphics\Shaders\SampleShaders\ShaderStructures.h" />
     <ClInclude Include="ImGUI\imconfig.h" />
@@ -301,7 +304,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="Scene\Camera.h" />
     <ClInclude Include="Scene\Mesh.h" />
-    <ClInclude Include="Utility\Debug\DebugMessage.h" />
+    <ClInclude Include="Utility\Debugging\DebugMessage.h" />
     <ClInclude Include="Utility\Memory\Allocators\PreAllocator.h" />
     <ClInclude Include="Utility\Time\HighResolutionClock.h" />
     <ClInclude Include="Utility\Time\StepTimer.h" />
@@ -331,6 +334,7 @@
     <None Include="Graphics\DirectX\Texture.cpp" />
     <None Include="Graphics\DirectX\UploadBuffer.cpp" />
     <None Include="Graphics\DirectX\VertexBuffer.cpp" />
+    <ClCompile Include="Graphics\PresentThread\PresentThread.cpp" />
     <ClCompile Include="Graphics\SceneRenderers\3DSceneRenderer.cpp" />
     <ClCompile Include="ImGUI\imgui.cpp" />
     <ClCompile Include="ImGUI\imgui_demo.cpp" />
