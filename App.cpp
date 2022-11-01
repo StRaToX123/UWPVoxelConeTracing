@@ -23,7 +23,6 @@ App::App() :
 	m_windowVisible(true)
 {
 
-
 }
 
 
@@ -120,6 +119,12 @@ void App::Run()
 	GetDeviceResources();
 	while (!m_windowClosed)
 	{
+		//if (first_tick == true)
+		//{
+		//	first_tick = false;
+		//	high_resolution_clock.Tick();
+		//}
+
 		if (m_windowVisible)
 		{
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);

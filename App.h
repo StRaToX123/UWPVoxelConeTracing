@@ -7,7 +7,6 @@
 #if defined(_DEBUG)
 	#include <dxgidebug.h>
 #endif
-#include "Utility/Debugging/DebugMessage.h"
 
 using namespace VoxelConeTracing;
 using namespace concurrency;

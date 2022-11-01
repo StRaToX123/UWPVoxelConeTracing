@@ -56,14 +56,15 @@ namespace ScreenRotation
 
 // Constructor for DeviceResources.
 DX::DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat) :
-	//current_backbuffer_index(1),
+	current_back_buffer_index(0),
 	m_screenViewport(),
 	m_rtvDescriptorSize(0),
 	/*m_fenceEvent(0),*/
+	event_wait_for_gpu(NULL),
 	m_backBufferFormat(backBufferFormat),
 	m_depthBufferFormat(depthBufferFormat),
 	/*m_fenceValues{},*/
-	fence_latest_unused_value(1),
+	//fence_latest_unused_value(1),
 	m_d3dRenderTargetSize(),
 	m_outputSize(),
 	m_logicalSize(),
@@ -71,21 +72,31 @@ DX::DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT d
 	m_currentOrientation(DisplayOrientations::None),
 	m_dpi(-1.0f),
 	m_effectiveDpi(-1.0f),
-	m_deviceRemoved(false)
+	m_deviceRemoved(false),
+	first_tick(true),
+	frame_count(0)
 {
+	for (int i = 0; i < c_frame_count; i++)
+	{
+		fence_values[i] = 0;
+	}
+
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
 }
 
 DX::DeviceResources::~DeviceResources()
 {
-	PresentThread::ShutDown();
-	CloseHandle(event_wait_for_gpu_workload);
+	if (event_wait_for_gpu != NULL)
+	{
+		CloseHandle(event_wait_for_gpu);
+	}
 }
 
 // Configures resources that don't depend on the Direct3D device.
 void DX::DeviceResources::CreateDeviceIndependentResources()
 {
+	
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -138,14 +149,18 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_direct)));
 	NAME_D3D12_OBJECT(command_queue_direct);
 
-	// Create the copy command queue.
+	// Create the copy command queues.
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_copy)));
-	NAME_D3D12_OBJECT(command_queue_copy);
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_copy_normal_priority)));
+	NAME_D3D12_OBJECT(command_queue_copy_normal_priority);
+
+	queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_copy_high_priority)));
+	NAME_D3D12_OBJECT(command_queue_copy_high_priority);
 
 	// Create descriptor heaps for render target views and depth stencil views.
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-	rtvHeapDesc.NumDescriptors = gsc_frame_count;
+	rtvHeapDesc.NumDescriptors = c_frame_count;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DX::ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
@@ -160,36 +175,31 @@ void DX::DeviceResources::CreateDeviceResources()
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
 	NAME_D3D12_OBJECT(m_dsvHeap);
 
-	for (UINT n = 0; n < gsc_frame_count; n++)
+	for (UINT n = 0; n < c_frame_count; n++)
 	{
 		DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators_direct[n])));
 	}
 
-	DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocators_copy)));
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocator_copy_normal_priority)));
+	DX::ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocator_copy_high_priority)));
 
 	// Create synchronization objects.
-	//DX::ThrowIfFailed(m_d3dDevice->CreateFence(m_fenceValues[m_currentFrame], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-	//m_fenceValues[m_currentFrame]++;
+	DX::ThrowIfFailed(m_d3dDevice->CreateFence(fence_values[current_back_buffer_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	fence_values[current_back_buffer_index]++;
 
-	//m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	//if (m_fenceEvent == nullptr)
-	//{
-	//	DX::ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-	//}
-	DX::ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 	event_wait_for_gpu = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	if (event_wait_for_gpu == nullptr)
 	{
 		DX::ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 	}
-
-	bool result;
-	result = PresentThread::Initialize(fence);
-	if (result == false)
+	/*
+	DX::ThrowIfFailed(m_d3dDevice->CreateFence(fence_values[current_back_buffer_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	event_wait_for_gpu = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (event_wait_for_gpu == NULL)
 	{
-		DisplayDebugMessage("@@@@@@@@@@@@@@ PresentThread::Initialize() returned FALSE @@@@@@@@@@@@@@\n\0");
-		throw Platform::Exception::CreateException(E_UNEXPECTED);
+		DX::ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 	}
+	*/
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -199,10 +209,10 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	WaitForGpu();
 
 	// Clear the previous window size specific content and update the tracked fence values.
-	for (UINT n = 0; n < gsc_frame_count; n++)
+	for (UINT n = 0; n < c_frame_count; n++)
 	{
 		m_renderTargets[n] = nullptr;
-		//m_fenceValues[n] = m_fenceValues[current_backbuffer_index];
+		fence_values[n] = fence_values[current_back_buffer_index];
 	}
 
 	UpdateRenderTargetSize();
@@ -222,7 +232,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
-		HRESULT hr = m_swapChain->ResizeBuffers(gsc_frame_count, backBufferWidth, backBufferHeight, m_backBufferFormat, 0);
+		HRESULT hr = m_swapChain->ResizeBuffers(c_frame_count, backBufferWidth, backBufferHeight, m_backBufferFormat, 0);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -250,7 +260,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Count = 1;							// Don't use multi-sampling.
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.BufferCount = gsc_frame_count;					// Use triple-buffering to minimize latency.
+		swapChainDesc.BufferCount = c_frame_count;					// Use triple-buffering to minimize latency.
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;	// All Windows Universal apps must use _FLIP_ SwapEffects.
 		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = scaling;
@@ -302,9 +312,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 	// Create render target views of the swap chain back buffer.
 	{
-		current_backbuffer_index = m_swapChain->GetCurrentBackBufferIndex();
+		current_back_buffer_index = m_swapChain->GetCurrentBackBufferIndex();
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-		for (UINT n = 0; n < gsc_frame_count; n++)
+		for (UINT n = 0; n < c_frame_count; n++)
 		{
 			DX::ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
 			m_d3dDevice->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvDescriptor);
@@ -317,6 +327,19 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			}
 		}
 	}
+
+	// Initialize the PresentThread
+	/*
+	bool result;
+	result = present_thread.Initialize(m_d3dDevice, m_swapChain, command_queue_direct);
+	if (result == false)
+	{
+		DisplayDebugMessage("@@@@@@@@@@@@@@ PresentThread::Initialize() returned FALSE @@@@@@@@@@@@@@\n\0");
+		throw Platform::Exception::CreateException(E_UNEXPECTED);
+	}
+
+	present_thread.Start();
+	*/
 
 	// Create a depth stencil and view.
 	{
@@ -469,6 +492,8 @@ void DX::DeviceResources::ValidateDevice()
 }
 
 // Present the contents of the swap chain to the screen.
+
+
 void DX::DeviceResources::Present()
 {
 	// The first argument instructs DXGI to block until VSync, putting the application
@@ -486,7 +511,25 @@ void DX::DeviceResources::Present()
 	{
 		DX::ThrowIfFailed(hr);
 
-		MoveToNextFrame();
+		high_resolution_clock.Tick();
+		DisplayDebugMessage("FrameTime: %f FrameCount: %d BackBufferIndex: %d\n", high_resolution_clock.GetDeltaMilliseconds(), frame_count, current_back_buffer_index);
+		frame_count++;
+
+		// Move to next frame
+		// Schedule a Signal command in the queue.
+		const UINT64 currentFenceValue = fence_values[current_back_buffer_index];
+		DX::ThrowIfFailed(command_queue_direct->Signal(fence.Get(), currentFenceValue));
+		// Advance the frame index.
+		current_back_buffer_index = m_swapChain->GetCurrentBackBufferIndex();
+		// Check to see if the next frame is ready to start.
+		if (fence->GetCompletedValue() < fence_values[current_back_buffer_index])
+		{
+			DX::ThrowIfFailed(fence->SetEventOnCompletion(fence_values[current_back_buffer_index], event_wait_for_gpu));
+			WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
+		}
+
+		// Set the fence value for the next frame.
+		fence_values[current_back_buffer_index] = currentFenceValue + 1;
 	}
 }
 
@@ -494,36 +537,18 @@ void DX::DeviceResources::Present()
 void DX::DeviceResources::WaitForGpu()
 {
 	// Schedule a Signal command in the queue.
-	DX::ThrowIfFailed(command_queue_direct->Signal(fence.Get(), fence_latest_unused_value));
+	DX::ThrowIfFailed(command_queue_direct->Signal(fence.Get(), fence_values[current_back_buffer_index]));
 
 	// Wait until the fence has been crossed.
-	DX::ThrowIfFailed(fence->SetEventOnCompletion(fence_latest_unused_value, event_wait_for_gpu));
+	DX::ThrowIfFailed(fence->SetEventOnCompletion(fence_values[current_back_buffer_index], event_wait_for_gpu));
 	WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
 
 	// Increment the fence value for the current frame.
-	fence_latest_unused_value++;
+	fence_values[current_back_buffer_index]++;
 }
 
-// Prepare to render the next frame.
-void DX::DeviceResources::MoveToNextFrame()
-{
-	// Schedule a Signal command in the queue.
-	const UINT64 currentFenceValue = m_fenceValues[current_backbuffer_index];
-	DX::ThrowIfFailed(command_queue_direct->Signal(m_fence.Get(), currentFenceValue));
 
-	// Advance the frame index.
-	current_backbuffer_index = m_swapChain->GetCurrentBackBufferIndex();
 
-	// Check to see if the next frame is ready to start.
-	if (m_fence->GetCompletedValue() < m_fenceValues[current_backbuffer_index])
-	{
-		DX::ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[current_backbuffer_index], m_fenceEvent));
-		WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
-	}
-
-	// Set the fence value for the next frame.
-	m_fenceValues[current_backbuffer_index] = currentFenceValue + 1;
-}
 
 // This method determines the rotation between the display device's native Orientation and the
 // current display orientation.

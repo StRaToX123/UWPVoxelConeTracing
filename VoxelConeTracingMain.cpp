@@ -30,14 +30,14 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(2);
+	scene.reserve(1);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
 		scene.emplace_back(Mesh());
 	}
 
 	scene[0].InitializeAsCube();
-	scene[1].InitializeAsPlane(2.0f, 2.0f);
+	//scene[1].InitializeAsPlane(2.0f, 2.0f);
 }
 
 
@@ -47,7 +47,7 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 {
 	core_window = coreWindow;
 	device_resources = deviceResources;
-	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::gsc_frame_count, device_resources->GetBackBufferFormat());
+	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::c_frame_count, device_resources->GetBackBufferFormat());
 	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources, camera));
 	OnWindowSizeChanged();
 }

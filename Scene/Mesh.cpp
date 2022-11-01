@@ -9,12 +9,32 @@ const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTexture::input_elements[] =
     { "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
-Mesh::Mesh()
+Mesh::Mesh(bool isStatic)
 {
+    is_static = isStatic;
+    initialized_as_static = false;
+    if (isStatic == true)
+    {
+        is_static = false;
+        initialized_as_static = true;
+    }
+
     world_position = XMFLOAT3(0.0f, 0.0f, 0.0f);
     local_rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-    fence_value_signaling_buffers_are_present_on_the_gpu = 0;
-    buffer_upload_started = false;
+    fence_value_signaling_required_resource_residency = 0;
+    for (int i = 0; i < c_frame_count; i++)
+    {
+        per_frame_model_transform_matrix_buffer_indexes_assigned[i] = false;
+        per_frame_model_transform_matrix_buffer_indexes[i][0] = 0;
+        per_frame_model_transform_matrix_buffer_indexes[i][1] = 0;
+        //per_frame_fence_value_signaling_model_transform_matrix_residency[i] = 0;
+        //per_frame_model_transform_matrix_buffer_indexes_switch_direction[i] = 1;
+        //per_frame_model_transform_matrix_buffer_indexes_require_update[i] = false;
+    }
+
+    frame_index_containing_most_updated_model_transform_matrix = 0;
+    vertex_and_index_buffer_upload_started = false;
+    skip_rendering_this_object_for_its_first_frame = true;
 }
 
 
@@ -359,4 +379,9 @@ void Mesh::ReverseWinding(vector<uint16_t>& indices, vector<VertexPositionNormal
     {
         it->textureCoordinate.x = (1.f - it->textureCoordinate.x);
     }
+}
+
+void Mesh::SetIsStatic(bool isStatic)
+{
+    is_static = isStatic;
 }

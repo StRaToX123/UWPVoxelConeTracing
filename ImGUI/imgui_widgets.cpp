@@ -5133,7 +5133,7 @@ bool ImGui::ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flag
         SameLine(0.0f, style.ItemInnerSpacing.x);
         TextEx(label, label_display_end);
     }
-
+    
     // Convert back
     if (value_changed && picker_active_window == NULL)
     {
