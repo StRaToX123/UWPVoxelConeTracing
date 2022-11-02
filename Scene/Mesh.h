@@ -76,21 +76,16 @@ class Mesh
         UINT64 fence_value_signaling_required_resource_residency;
         bool vertex_and_index_buffer_upload_started;
 
-        UINT64 fence_value_signaling_model_transform_matrix_residency;
-        // We need to skip rendering the object for the frame it is shown,
+        // We need to skip rendering the object for this frame,
         // because it's model transform matrix isn't uploaded to the gpu yet
-        bool skip_rendering_this_object_for_its_first_frame;
+        bool model_transform_matrix_residency;
         // The first index tells us in which out of all the buffers reserved for that frame contains this object's model transform matrix
         // and the second index tells us the offset inside of that buffer.
         vector<UINT> per_frame_model_transform_matrix_buffer_indexes[c_frame_count];
         bool per_frame_model_transform_matrix_buffer_indexes_assigned[c_frame_count];
-        // Since each object's model transfom matrix comes in pairs of two (in order to have one be readable and the other
-        // writable for updates), we will need to switch which pair we are reading and writing to each time this object's
-        // model transform matrix needs to be updated. This happens on a per frame basis. This index switch direction
-        // tells us which if out subresource matrix copy pair is offset in the positive or the negative direction 
-        //int per_frame_model_transform_matrix_buffer_indexes_switch_direction[c_frame_count];
-        //bool per_frame_model_transform_matrix_buffer_indexes_require_update[c_frame_count];
-        UINT frame_index_containing_most_updated_model_transform_matrix;
+        UINT current_frame_index_containing_most_updated_model_transform_matrix;
+        UINT previous_frame_index_containing_most_updated_model_transform_matrix;
+        bool update_previous_frame_index_containing_most_updated_model_transform_matrix;
         bool is_static;
         
         

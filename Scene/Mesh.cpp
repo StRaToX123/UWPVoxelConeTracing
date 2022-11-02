@@ -27,14 +27,13 @@ Mesh::Mesh(bool isStatic)
         per_frame_model_transform_matrix_buffer_indexes_assigned[i] = false;
         per_frame_model_transform_matrix_buffer_indexes[i][0] = 0;
         per_frame_model_transform_matrix_buffer_indexes[i][1] = 0;
-        //per_frame_fence_value_signaling_model_transform_matrix_residency[i] = 0;
-        //per_frame_model_transform_matrix_buffer_indexes_switch_direction[i] = 1;
-        //per_frame_model_transform_matrix_buffer_indexes_require_update[i] = false;
     }
 
-    frame_index_containing_most_updated_model_transform_matrix = 0;
+    current_frame_index_containing_most_updated_model_transform_matrix = 0;
+    previous_frame_index_containing_most_updated_model_transform_matrix = c_frame_count - 1;
     vertex_and_index_buffer_upload_started = false;
-    skip_rendering_this_object_for_its_first_frame = true;
+    model_transform_matrix_residency = false;
+    update_previous_frame_index_containing_most_updated_model_transform_matrix = false;
 }
 
 

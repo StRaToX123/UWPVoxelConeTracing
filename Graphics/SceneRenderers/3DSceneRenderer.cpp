@@ -509,6 +509,12 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				scene[i].index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
 			}
 
+			if (scene[i].update_previous_frame_index_containing_most_updated_model_transform_matrix == true)
+			{
+				scene[i].update_previous_frame_index_containing_most_updated_model_transform_matrix = false;
+				scene[i].previous_frame_index_containing_most_updated_model_transform_matrix = scene[i].current_frame_index_containing_most_updated_model_transform_matrix;
+			}
+
 			// Now we can render out this object.
 			// But before that we need to start uploading it's model transform matrix to the gpu
 			// If the object isn't static we will need to update its model transform matrix
@@ -524,51 +530,35 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				}
 				
 				// Check if this object has a slot assigned to it, if not assign one
-				if (scene[i].per_frame_model_transform_matrix_buffer_indexes_assigned[currentFrameIndex] == false)
+				if (scene[i].per_frame_model_transform_matrix_buffer_indexes_assigned[scene[i].current_frame_index_containing_most_updated_model_transform_matrix] == false)
 				{
-					scene[i].per_frame_model_transform_matrix_buffer_indexes_assigned[currentFrameIndex] = true;
-					scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][0] = per_frame_available_model_transform_matrix_buffer[currentFrameIndex][0];
-					auto& freeSlotsArray = per_frame_model_transform_matrix_buffer_free_slots[currentFrameIndex][per_frame_available_model_transform_matrix_buffer[currentFrameIndex][0]];
-					scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][1] = freeSlotsArray[0];
+					scene[i].per_frame_model_transform_matrix_buffer_indexes_assigned[scene[i].current_frame_index_containing_most_updated_model_transform_matrix] = true;
+					scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0] = per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0];
+					auto& freeSlotsArray = per_frame_model_transform_matrix_buffer_free_slots[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]];
+					scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1] = freeSlotsArray[0];
 					// Erase that free slot
 					freeSlotsArray.erase(freeSlotsArray.begin());
 					// Check if that was the last free slot, and if so update the per_frame_available_scene_object_model_transform_matrix_buffer array
 					if (freeSlotsArray.size() == 0)
 					{
-						per_frame_available_model_transform_matrix_buffer[currentFrameIndex].erase(per_frame_available_model_transform_matrix_buffer[currentFrameIndex].begin());
+						per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].erase(per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].begin());
 						// Check if we ran out of buffers with free slots for this frame index
-						if (per_frame_available_model_transform_matrix_buffer[currentFrameIndex].size() == 0)
+						if (per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].size() == 0)
 						{
 							// Create a new buffer
-							per_frame_model_transform_matrix_buffers[currentFrameIndex].push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
-							per_frame_model_transform_matrix_upload_buffers[currentFrameIndex].push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
-							per_frame_model_transform_matrix_buffer_free_slots[currentFrameIndex].push_back(vector<UINT>());
-							per_frame_available_model_transform_matrix_buffer[currentFrameIndex].push_back(per_frame_model_transform_matrix_buffer_free_slots[currentFrameIndex].size() - 1);
-							/*
-							per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex].push_back(vector<D3D12_SUBRESOURCE_DATA>());
-							per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex].size() - 1].reserve(MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES);
-							per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex].push_back(vector<XMFLOAT4X4>());
-							per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex].size() - 1].reserve(MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES);
-							*/
-							auto& bufferFreeSlots = per_frame_model_transform_matrix_buffer_free_slots[currentFrameIndex][per_frame_model_transform_matrix_buffer_free_slots[currentFrameIndex].size() - 1];
+							per_frame_model_transform_matrix_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
+							per_frame_model_transform_matrix_upload_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
+							per_frame_model_transform_matrix_buffer_free_slots[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].push_back(vector<UINT>());
+							per_frame_available_model_transform_matrix_buffer[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].push_back(per_frame_model_transform_matrix_buffer_free_slots[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].size() - 1);
+							auto& bufferFreeSlots = per_frame_model_transform_matrix_buffer_free_slots[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][per_frame_model_transform_matrix_buffer_free_slots[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].size() - 1];
 							bufferFreeSlots.reserve(MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES);
 							for (int j = 0; j < MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES; j++)
 							{
 								bufferFreeSlots.emplace_back(j);
-
-								/*
-								per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex].size() - 1].push_back(D3D12_SUBRESOURCE_DATA());
-								per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex].size() - 1].push_back(XMFLOAT4X4());
-
-								auto& subresource = per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresources[currentFrameIndex].size() - 1][j];
-								subresource.RowPitch = c_aligned_model_transform_matrix;
-								subresource.SlicePitch = c_aligned_model_transform_matrix;
-								subresource.pData = &per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex][per_frame_updated_model_transform_matrix_buffer_subresource_data[currentFrameIndex].size() - 1][j];
-								*/
 							}
 
-							auto& newlyCreatedBuffer = per_frame_model_transform_matrix_buffers[currentFrameIndex][per_frame_model_transform_matrix_buffers[currentFrameIndex].size() - 1];
-							auto& newlyCreatedUploadBuffer = per_frame_model_transform_matrix_upload_buffers[currentFrameIndex][per_frame_model_transform_matrix_upload_buffers[currentFrameIndex].size() - 1];
+							auto& newlyCreatedBuffer = per_frame_model_transform_matrix_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][per_frame_model_transform_matrix_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].size() - 1];
+							auto& newlyCreatedUploadBuffer = per_frame_model_transform_matrix_upload_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][per_frame_model_transform_matrix_upload_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix].size() - 1];
 							DX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
 								&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 								D3D12_HEAP_FLAG_NONE,
@@ -618,12 +608,12 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 
 				// Next assign the footprint to the array describing all the subresources being updated for the buffer this
 				// scene object was assigned to
-				auto unorderedMapLookUpResult = per_model_transform_matrix_buffer_update_data.find(scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][0]);
+				auto unorderedMapLookUpResult = per_model_transform_matrix_buffer_update_data.find(scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]);
 				ModelTransformMatrixBufferUpdateData* pModelTransformMatrixBufferUpdateData;
 				// Check if this is the first subresource update being applied to this buffer on this frame
 				if (unorderedMapLookUpResult == per_model_transform_matrix_buffer_update_data.end())
 				{
-					auto newMapElement = make_pair(scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][0], ModelTransformMatrixBufferUpdateData());
+					auto newMapElement = make_pair(scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0], ModelTransformMatrixBufferUpdateData());
 					pModelTransformMatrixBufferUpdateData = &newMapElement.second;
 					per_model_transform_matrix_buffer_update_data.insert(newMapElement);
 				}
@@ -635,7 +625,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				// Create a new subresource footprint
 				// Update the model_transform_matrix_placed_subresource_footprint's offset so that it targets this scene object's
 				// model assigned slot
-				model_transform_matrix_placed_subresource_footprint.Offset = c_aligned_model_transform_matrix * scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][1];
+				model_transform_matrix_placed_subresource_footprint.Offset = c_aligned_model_transform_matrix * scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1];
 				pModelTransformMatrixBufferUpdateData->footprints.push_back(model_transform_matrix_placed_subresource_footprint);
 				pModelTransformMatrixBufferUpdateData->subresources_data.push_back(ShaderStructureModelTransformMatrix());
 				DirectX::XMStoreFloat4x4(&pModelTransformMatrixBufferUpdateData->subresources_data[pModelTransformMatrixBufferUpdateData->subresources_data.size() - 1].model, XMMatrixTranspose(XMMatrixMultiply(translationMatrix, rotationMatrix)));
@@ -646,18 +636,25 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				pModelTransformMatrixBufferUpdateData->subresources.push_back(subresource);
 
 				// Create transition barriers to go along with the footprints
-				CD3DX12_RESOURCE_BARRIER subresourceTransitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_model_transform_matrix_buffers[currentFrameIndex][scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][0]].Get(), 
+				CD3DX12_RESOURCE_BARRIER subresourceTransitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_model_transform_matrix_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]].Get(),
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
 					D3D12_RESOURCE_STATE_COPY_DEST, 
-					scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][1], 
+					scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1],
 					D3D12_RESOURCE_BARRIER_FLAG_NONE);
-				CD3DX12_RESOURCE_BARRIER subresourceReturnBarrier = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_model_transform_matrix_buffers[currentFrameIndex][scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][0]].Get(),
+				CD3DX12_RESOURCE_BARRIER subresourceReturnBarrier = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_model_transform_matrix_buffers[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]].Get(),
 					D3D12_RESOURCE_STATE_COPY_DEST,
 					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-					scene[i].per_frame_model_transform_matrix_buffer_indexes[currentFrameIndex][1],
+					scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1],
 					D3D12_RESOURCE_BARRIER_FLAG_NONE);
 				model_transform_matrix_resource_barrier_transitions_batch_array.emplace_back(subresourceTransitionBarrier);
 				model_transform_matrix_resource_barrier_returns_batch_array.emplace_back(subresourceReturnBarrier);
+
+				scene[i].update_previous_frame_index_containing_most_updated_model_transform_matrix == true;
+				scene[i].current_frame_index_containing_most_updated_model_transform_matrix++;
+				if (scene[i].current_frame_index_containing_most_updated_model_transform_matrix == c_frame_count)
+				{
+					scene[i].current_frame_index_containing_most_updated_model_transform_matrix = 0;
+				}
 				
 				// This way if the object was initialized as static
 				// this would have been it's one and only model transform update.
@@ -665,10 +662,11 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				scene[i].is_static = scene[i].initialized_as_static;
 			}
 			
-			if (scene[i].skip_rendering_this_object_for_its_first_frame == false)
+			// Draw the object only if it has a model transform matrix resident on the gpu
+			if (scene[i].model_transform_matrix_residency == true)
 			{
-				// Set the moderl transform matrix buffer indexes
-				command_list_direct->SetGraphicsRoot32BitConstants(0, 2, scene[i].per_frame_model_transform_matrix_buffer_indexes[previousFrameIndex].data(), 1);
+				// Set the model transform matrix buffer indexes
+				command_list_direct->SetGraphicsRoot32BitConstants(0, 2, scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].previous_frame_index_containing_most_updated_model_transform_matrix].data(), 1);
 				// Bind the vertex and index buffer views
 				command_list_direct->IASetVertexBuffers(0, 1, &scene[i].vertex_buffer_view);
 				command_list_direct->IASetIndexBuffer(&scene[i].index_buffer_view);
@@ -676,7 +674,8 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 			}
 			else
 			{
-				scene[i].skip_rendering_this_object_for_its_first_frame = false;
+				// Because we will wait for the data to be resident on the next frame, we can set the residency here to true
+				scene[i].model_transform_matrix_residency = true;
 			}
 		}
 		else
@@ -783,6 +782,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 		ID3D12CommandList* ppCommandLists[] = { command_list_copy_high_priority.Get() };
 		device_resources->GetCommandQueueCopyNormalPriority()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 		DX::ThrowIfFailed(device_resources->GetCommandQueueCopyHighPriority()->Signal(fence_command_list_copy_high_priority_progress.Get(), fence_command_list_copy_high_priority_progress_latest_unused_value));
+		fence_per_frame_command_list_copy_high_priority_values[currentFrameIndex] = fence_command_list_copy_high_priority_progress_latest_unused_value;
 		fence_command_list_copy_high_priority_progress_latest_unused_value++;
 	}
 
