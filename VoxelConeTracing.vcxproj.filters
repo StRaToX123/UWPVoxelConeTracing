@@ -358,6 +358,9 @@
       <Filter>Graphics\DirectX\Source</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="Graphics\Shaders\ShaderGlobals.hlsli">
+      <Filter>Graphics\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Graphics\Shaders\SampleShaders\SampleVertexShader.hlsl">

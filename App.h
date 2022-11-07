@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-
+#include <shlobj.h>
+#include <strsafe.h>
 #include <ppltasks.h>
 #include "Graphics/DeviceResources/DeviceResources.h"
 #include "VoxelConeTracingMain.h"
@@ -8,7 +9,6 @@
 	#include <dxgidebug.h>
 #endif
 
-using namespace VoxelConeTracing;
 using namespace concurrency;
 using namespace Windows::ApplicationModel;
 using namespace Windows::ApplicationModel::Core;
@@ -20,11 +20,10 @@ using namespace Windows::Foundation;
 using namespace Windows::Graphics::Display;
 using Microsoft::WRL::ComPtr;
 
-namespace VoxelConeTracing
+
+// Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
+ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
 {
-	// Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
-	ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
-	{
 	public:
 		App();
 		
@@ -66,15 +65,16 @@ namespace VoxelConeTracing
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
+		std::wstring GetLatestWinPixGpuCapturerPath();
 		Windows::Devices::Input::MouseDevice^ mouse;
 		// Private accessor for m_deviceResources, protects against device removed errors.
-		std::shared_ptr<DX::DeviceResources> GetDeviceResources();
-		std::shared_ptr<DX::DeviceResources> m_deviceResources;
+		std::shared_ptr<DeviceResources> GetDeviceResources();
+		std::shared_ptr<DeviceResources> m_deviceResources;
 		std::unique_ptr<VoxelConeTracingMain> m_main;
 		bool m_windowClosed;
 		bool m_windowVisible;
-	};
-}
+};
+
 
 ref class Direct3DApplicationSource sealed : Windows::ApplicationModel::Core::IFrameworkViewSource
 {

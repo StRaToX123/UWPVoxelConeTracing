@@ -94,11 +94,11 @@ void App::SetWindow(CoreWindow^ window)
 		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &App::OnGamepadAdded);
 
 	Windows::Gaming::Input::Gamepad::GamepadRemoved += 
-		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &VoxelConeTracing::App::OnGamepadRemoved);
+		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &App::OnGamepadRemoved);
 
 	
 	mouse = Windows::Devices::Input::MouseDevice::GetForCurrentView();
-	mouse->MouseMoved += ref new Windows::Foundation::TypedEventHandler<Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^>(this, &VoxelConeTracing::App::OnMouseMoved);
+	mouse->MouseMoved += ref new Windows::Foundation::TypedEventHandler<Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^>(this, &App::OnMouseMoved);
 	
 	ImGui::CreateContext(window);
 	ImGui_ImplUWP_Init();
@@ -110,8 +110,18 @@ void App::Load(Platform::String^ entryPoint)
 	if (m_main == nullptr)
 	{
 		m_main = std::unique_ptr<VoxelConeTracingMain>(new VoxelConeTracingMain());
+		/*
+		#ifdef _DEBUG
+			HMODULE hModule = LoadPackagedLibrary(L"WinPixGpuCapturer.dll", NULL);
+			if (hModule == NULL)
+			{
+				throw ref new FailureException;
+			}
+		#endif
+		*/
 	}
 }
+
 
 // This method is called after the window becomes active.
 void App::Run()
@@ -295,7 +305,7 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 	GetDeviceResources()->ValidateDevice();
 }
 
-std::shared_ptr<DX::DeviceResources> App::GetDeviceResources()
+std::shared_ptr<DeviceResources> App::GetDeviceResources()
 {
 	if (m_deviceResources != nullptr && m_deviceResources->IsDeviceRemoved())
 	{
@@ -316,7 +326,7 @@ std::shared_ptr<DX::DeviceResources> App::GetDeviceResources()
 
 	if (m_deviceResources == nullptr)
 	{
-		m_deviceResources = std::make_shared<DX::DeviceResources>();
+		m_deviceResources = std::make_shared<DeviceResources>();
 		m_deviceResources->SetWindow(CoreWindow::GetForCurrentThread());
 		m_main->CreateRenderers(CoreWindow::GetForCurrentThread(), m_deviceResources);
 	}

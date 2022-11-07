@@ -21,7 +21,7 @@ Mesh::Mesh(bool isStatic)
 
     world_position = XMFLOAT3(0.0f, 0.0f, 0.0f);
     local_rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-    fence_value_signaling_required_resource_residency = 0;
+    fence_value_signaling_vertex_and_index_bufferr_residency = UINT64_MAX;
     for (int i = 0; i < c_frame_count; i++)
     {
         per_frame_model_transform_matrix_buffer_indexes_assigned[i] = false;
@@ -29,11 +29,8 @@ Mesh::Mesh(bool isStatic)
         per_frame_model_transform_matrix_buffer_indexes[i][1] = 0;
     }
 
-    current_frame_index_containing_most_updated_model_transform_matrix = 0;
-    previous_frame_index_containing_most_updated_model_transform_matrix = c_frame_count - 1;
+    current_frame_index_containing_most_updated_model_transform_matrix = c_frame_count - 1;
     vertex_and_index_buffer_upload_started = false;
-    model_transform_matrix_residency = false;
-    update_previous_frame_index_containing_most_updated_model_transform_matrix = false;
 }
 
 

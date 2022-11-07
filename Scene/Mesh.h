@@ -73,19 +73,14 @@ class Mesh
         Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer_upload;
         D3D12_INDEX_BUFFER_VIEW index_buffer_view;
 
-        UINT64 fence_value_signaling_required_resource_residency;
+        UINT64 fence_value_signaling_vertex_and_index_bufferr_residency;
         bool vertex_and_index_buffer_upload_started;
 
-        // We need to skip rendering the object for this frame,
-        // because it's model transform matrix isn't uploaded to the gpu yet
-        bool model_transform_matrix_residency;
         // The first index tells us in which out of all the buffers reserved for that frame contains this object's model transform matrix
         // and the second index tells us the offset inside of that buffer.
-        vector<UINT> per_frame_model_transform_matrix_buffer_indexes[c_frame_count];
+        UINT per_frame_model_transform_matrix_buffer_indexes[c_frame_count][2];
         bool per_frame_model_transform_matrix_buffer_indexes_assigned[c_frame_count];
         UINT current_frame_index_containing_most_updated_model_transform_matrix;
-        UINT previous_frame_index_containing_most_updated_model_transform_matrix;
-        bool update_previous_frame_index_containing_most_updated_model_transform_matrix;
         bool is_static;
         
         

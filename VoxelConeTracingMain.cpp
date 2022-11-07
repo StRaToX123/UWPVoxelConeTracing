@@ -2,9 +2,7 @@
 
 
 
-// The DirectX 12 Application template is documented at https://go.microsoft.com/fwlink/?LinkID=613670&clcid=0x409
 
-// Loads and initializes application assets when the application is loaded.
 VoxelConeTracingMain::VoxelConeTracingMain() :
 	show_imGui(true),
 	camera_default_fov_degrees(70.0f),
@@ -30,24 +28,24 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(1);
+	scene.reserve(2);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
-		scene.emplace_back(Mesh());
+		scene.emplace_back(Mesh(false));
 	}
 
 	scene[0].InitializeAsCube();
-	//scene[1].InitializeAsPlane(2.0f, 2.0f);
+	scene[1].InitializeAsPlane(2.0f, 2.0f);
 }
 
 
 
 // Creates and initializes the renderers.
-void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DX::DeviceResources>& deviceResources)
+void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DeviceResources>& deviceResources)
 {
 	core_window = coreWindow;
 	device_resources = deviceResources;
-	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), DX::c_frame_count, device_resources->GetBackBufferFormat());
+	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
 	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources, camera));
 	OnWindowSizeChanged();
 }
@@ -322,6 +320,7 @@ void VoxelConeTracingMain::Update()
 	step_timer.Tick([&]()
 	{
 		scene[0].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+		scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
 	});
 }
 
@@ -337,7 +336,7 @@ void VoxelConeTracingMain::Render()
 
 	
 
-	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera, show_imGui);
+	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera);
 	if (show_imGui == true)
 	{
 		ImGui::ShowDemoWindow();
@@ -370,11 +369,11 @@ void VoxelConeTracingMain::Render()
 		CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	pCommandList->ResourceBarrier(1, &presentResourceBarrier);
 
-	DX::ThrowIfFailed(pCommandList->Close());
+	ThrowIfFailed(pCommandList->Close());
 
 	// Execute the command list.
 	ID3D12CommandList* ppCommandLists[] = { pCommandList };
-	device_resources->GetDirectCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
 // Updates application state when the window's size changes (e.g. device orientation change)
