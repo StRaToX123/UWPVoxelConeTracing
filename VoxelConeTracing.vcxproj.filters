@@ -113,6 +113,18 @@
     <Filter Include="Utility\Memory\Allocators">
       <UniqueIdentifier>{77c033a8-b995-4233-8051-1d3d7cdd9fe6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI">
+      <UniqueIdentifier>{56998d29-48e2-43bc-a282-5f22d07bf9d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\GS">
+      <UniqueIdentifier>{058f7029-8d30-49ba-b7cf-4bf63cbcd4b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\PS">
+      <UniqueIdentifier>{e1f2ce5e-8156-448a-acb3-d44cc986096f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\HF">
+      <UniqueIdentifier>{797d94ee-71e4-409b-9d63-5554ebb52da5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -190,9 +202,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\SceneRenderers\3DSceneRenderer.h">
       <Filter>Graphics\SceneRenderers\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Shaders\SampleShaders\ShaderStructures.h">
-      <Filter>Graphics\Shaders\SampleShaders</Filter>
     </ClInclude>
     <ClInclude Include="ImGUI\imgui_impl_UWP.h">
       <Filter>ImGUI\Headers</Filter>
@@ -291,6 +300,9 @@
     <ClInclude Include="Graphics\DeviceResources\DeviceResourcesCommon.h">
       <Filter>Graphics\DeviceResources\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Light.h">
+      <Filter>Scene\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -358,7 +370,22 @@
       <Filter>Graphics\DirectX\Source</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="Graphics\Shaders\ShaderGlobals.hlsli">
+    <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
+      <Filter>Graphics\Shaders</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\globals.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\objectHF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\voxelHF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI</Filter>
+    </None>
+    <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli">
       <Filter>Graphics\Shaders</Filter>
     </None>
   </ItemGroup>
@@ -368,6 +395,12 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\SampleShaders\SamplePixelShader.hlsl">
       <Filter>Graphics\Shaders\SampleShaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_PS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

@@ -65,7 +65,6 @@ ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
-		std::wstring GetLatestWinPixGpuCapturerPath();
 		Windows::Devices::Input::MouseDevice^ mouse;
 		// Private accessor for m_deviceResources, protects against device removed errors.
 		std::shared_ptr<DeviceResources> GetDeviceResources();

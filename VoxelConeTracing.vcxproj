@@ -295,7 +295,6 @@
     <ClInclude Include="Graphics\DirectX\UploadBuffer.h" />
     <ClInclude Include="Graphics\DirectX\VertexBuffer.h" />
     <ClInclude Include="Graphics\SceneRenderers\3DSceneRenderer.h" />
-    <ClInclude Include="Graphics\Shaders\SampleShaders\ShaderStructures.h" />
     <ClInclude Include="ImGUI\imconfig.h" />
     <ClInclude Include="ImGUI\imgui.h" />
     <ClInclude Include="ImGUI\imgui_impl_dx12.h" />
@@ -306,6 +305,7 @@
     <ClInclude Include="ImGUI\imstb_truetype.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Scene\Camera.h" />
+    <ClInclude Include="Scene\Light.h" />
     <ClInclude Include="Scene\Mesh.h" />
     <ClInclude Include="Utility\Debugging\DebugMessage.h" />
     <ClInclude Include="Utility\Memory\Allocators\PreAllocator.h" />
@@ -349,7 +349,12 @@
     <ClCompile Include="Scene\Mesh.cpp" />
     <ClCompile Include="Utility\Time\HighResolutionClock.cpp" />
     <ClCompile Include="VoxelConeTracingMain.cpp" />
-    <None Include="Graphics\Shaders\ShaderGlobals.hlsli" />
+    <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli" />
+    <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\globals.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\objectHF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\voxelHF.hlsli" />
     <None Include="packages.config" />
     <None Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -384,6 +389,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl" />
+    <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VoxelConeTracing.rc" />

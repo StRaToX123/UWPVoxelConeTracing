@@ -59,12 +59,9 @@ DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depth
 	current_back_buffer_index(0),
 	m_screenViewport(),
 	m_rtvDescriptorSize(0),
-	/*m_fenceEvent(0),*/
 	event_wait_for_gpu(NULL),
 	m_backBufferFormat(backBufferFormat),
 	m_depthBufferFormat(depthBufferFormat),
-	/*m_fenceValues{},*/
-	//fence_latest_unused_value(1),
 	m_d3dRenderTargetSize(),
 	m_outputSize(),
 	m_logicalSize(),

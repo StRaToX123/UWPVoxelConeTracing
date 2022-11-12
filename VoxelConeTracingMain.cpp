@@ -16,7 +16,8 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_down(0.0f),
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
-	camera_controller_yaw(0.0f)
+	camera_controller_yaw(0.0f),
+	voxel_debug_visualization(false)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -28,14 +29,54 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(2);
+	scene.reserve(8);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
-		scene.emplace_back(Mesh(false));
+		scene.emplace_back(Mesh(true));
 	}
 
-	scene[0].InitializeAsCube();
+	// Initialize and setup the Cornell box
+	scene[0].InitializeAsPlane(2.0f, 2.0f);
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
+	scene[2].InitializeAsPlane(2.0f, 2.0f);
+	scene[3].InitializeAsPlane(2.0f, 2.0f);
+	scene[4].InitializeAsPlane(2.0f, 2.0f);
+	scene[5].InitializeAsPlane(2.0f, 2.0f);
+	scene[6].InitializeAsCube(0.5f);
+	scene[7].InitializeAsSphere(0.4f);
+
+	scene[1].world_position.x = 1.0f;
+	scene[1].world_position.y = 1.0f;
+	scene[1].local_rotation.z = 90.0f;
+
+	scene[2].world_position.x = -1.0f;
+	scene[2].world_position.y = 1.0f;
+	scene[2].local_rotation.z = -90.0f;
+
+	scene[3].world_position.z = 1.0f;
+	scene[3].world_position.y = 1.0f;
+	scene[3].local_rotation.x = -90.0f;
+
+	scene[4].world_position.z = -1.0f;
+	scene[4].world_position.y = 1.0f;
+	scene[4].local_rotation.x = 90.0f;
+
+	scene[5].world_position.y = 2.0f;
+	scene[5].local_rotation.x = 180.0f;
+
+	scene[6].world_position.x = -0.3f;
+	scene[6].world_position.y = 0.25f;
+	scene[6].world_position.z = 0.3f;
+
+
+	scene[7].world_position.x = 0.3f;
+	scene[7].world_position.y = 0.2f;
+	scene[7].world_position.z = -0.3f;
+
+	// Setup the spot light
+	spot_light.world_position.y = 1.99f;
+	spot_light.direction_world_space.z = 0.0f;
+	spot_light.direction_world_space.y = -1.0f;
 }
 
 
@@ -46,7 +87,7 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 	core_window = coreWindow;
 	device_resources = deviceResources;
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
-	scene_renderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(device_resources, camera));
+	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera));
 	OnWindowSizeChanged();
 }
 
@@ -190,6 +231,7 @@ void VoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDeltaX, 
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
+#pragma region UpdateTheCamera
 	// Update the camera
 	// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
 	if (gamepad != nullptr)
@@ -228,7 +270,7 @@ void VoxelConeTracingMain::Update()
 			camera_controller_right = 0.0f;
 			camera_controller_down = 0.0f;
 			if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
-				||(gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
+				|| (gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
 			{
 				camera_controller_left = gamepadReading.LeftThumbstickX;
 			}
@@ -248,7 +290,7 @@ void VoxelConeTracingMain::Update()
 			}
 
 			UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
-											      ((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
+				((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
 
 			if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
 			{
@@ -315,12 +357,21 @@ void VoxelConeTracingMain::Update()
 			camera.Translate(cameraTranslate, Space::Local);
 		}
 	}
-	
+#pragma endregion
+
 	// Update scene objects.
 	step_timer.Tick([&]()
-	{
-		scene[0].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-		scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+	{	
+			
+		//scene[0].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+			/*
+		if (scene[1].is_static == false)
+		{
+			scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+
+		}
+		*/
+		
 	});
 }
 
@@ -336,7 +387,7 @@ void VoxelConeTracingMain::Render()
 
 	
 
-	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera);
+	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera, voxel_debug_visualization);
 	if (show_imGui == true)
 	{
 		ImGui::ShowDemoWindow();
@@ -346,6 +397,7 @@ void VoxelConeTracingMain::Render()
 		ImGui::Text("ImGui Mouse Pos:");               
 		ImGui::InputFloat("MouseX", &io.MousePos.x);
 		ImGui::InputFloat("MouseY", &io.MousePos.y);
+		ImGui::Checkbox("Voxel Debug Visualization", &voxel_debug_visualization);
 		ImGui::End();
 
 		/*

@@ -12,15 +12,16 @@
 using namespace DirectX;
 using namespace std;
 
+// Used to send per-vertex data to the vertex shader.
 // Vertex struct holding position, normal vector, and texture mapping information.
-struct VertexPositionNormalTexture
+struct ShaderStructureCPUVertexPositionNormalTexture
 {
-    VertexPositionNormalTexture()
+    ShaderStructureCPUVertexPositionNormalTexture()
     { 
     
     }
 
-    VertexPositionNormalTexture(const XMFLOAT3& position, const XMFLOAT3& normal, const XMFLOAT2& textureCoordinate)
+    ShaderStructureCPUVertexPositionNormalTexture(const XMFLOAT3& position, const XMFLOAT3& normal, const XMFLOAT2& textureCoordinate)
         : position(position),
           normal(normal),
           textureCoordinate(textureCoordinate)
@@ -28,7 +29,7 @@ struct VertexPositionNormalTexture
     
     }
 
-    VertexPositionNormalTexture(FXMVECTOR position, FXMVECTOR normal, FXMVECTOR textureCoordinate)
+    ShaderStructureCPUVertexPositionNormalTexture(FXMVECTOR position, FXMVECTOR normal, FXMVECTOR textureCoordinate)
     {
         XMStoreFloat3(&this->position, position);
         XMStoreFloat3(&this->normal, normal);
@@ -43,7 +44,44 @@ struct VertexPositionNormalTexture
     static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
 };
 
+// Used to send per-vertex data to the vertex shader.
+// Vertex struct holding position, normal vector, and texture mapping information.
+struct ShaderStructureCPUVertexPositionNormalColor
+{
+    ShaderStructureCPUVertexPositionNormalColor()
+    {
 
+    }
+
+    ShaderStructureCPUVertexPositionNormalColor(const XMFLOAT3& position, const XMFLOAT3& normal, const XMFLOAT3& color)
+        : position(position),
+        normal(normal),
+        color(color)
+    {
+
+    }
+
+    ShaderStructureCPUVertexPositionNormalColor(FXMVECTOR position, FXMVECTOR normal, FXMVECTOR color)
+    {
+        XMStoreFloat3(&this->position, position);
+        XMStoreFloat3(&this->normal, normal);
+        XMStoreFloat3(&this->color, color);
+    }
+
+    XMFLOAT3 position;
+    XMFLOAT3 normal;
+    XMFLOAT3 color;
+
+    static const int input_element_count = 3;
+    static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
+};
+
+// Used to send per-vertex data to the vertex shader.
+struct ShaderStructureCPUVertexPositionColor
+{
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT3 color;
+};
 
 class Mesh
 {
@@ -55,11 +93,11 @@ class Mesh
         void InitializeAsCone(float diameter = 1, float height = 1, size_t tessellation = 32);
         void InitializeAsTorus(float diameter = 1, float thickness = 0.333f, size_t tessellation = 32);
         void InitializeAsPlane(float width = 1, float height = 1);
-        static void ReverseWinding(vector<uint16_t>& indices, vector<VertexPositionNormalTexture>& vertices);
+        static void ReverseWinding(vector<uint16_t>& indices, vector<ShaderStructureCPUVertexPositionNormalTexture>& vertices);
 
         void SetIsStatic(bool isStatic);
 
-        vector<VertexPositionNormalTexture> vertices;
+        vector<ShaderStructureCPUVertexPositionNormalTexture> vertices;
         vector<uint16_t> indices;
 
         XMFLOAT3 world_position;
@@ -87,7 +125,7 @@ class Mesh
         
 
     private:
-        friend class Sample3DSceneRenderer;
+        friend class SceneRenderer3D;
         // If the mesh is initialized as static, it will require one model transform matrix update in order for it to be renderer at the
         // right place. When initialized as static, the mesh will have the public is_static bool set to false
         // and this private initialized_as_statis bool set to true. This bool overrides the public is_static bool for only one frame, 
@@ -98,7 +136,7 @@ class Mesh
         inline XMVECTOR GetCircleVector(size_t i, size_t tessellation);
         XMVECTOR GetCircleTangent(size_t i, size_t tessellation);
         // Helper creates a triangle fan to close the end of a cylinder / cone
-        void CreateCylinderCap(vector<VertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop);
+        void CreateCylinderCap(vector<ShaderStructureCPUVertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop);
 
         
 };

@@ -2,11 +2,18 @@
 
 
 
-const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTexture::input_elements[] =
+const D3D12_INPUT_ELEMENT_DESC ShaderStructureCPUVertexPositionNormalTexture::input_elements[] =
 {
     { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     { "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     { "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+};
+
+const D3D12_INPUT_ELEMENT_DESC ShaderStructureCPUVertexPositionNormalColor::input_elements[] =
+{
+    { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
 Mesh::Mesh(bool isStatic)
@@ -74,7 +81,7 @@ void Mesh::InitializeAsSphere(float diameter, size_t tessellation)
             XMVECTOR normal = XMVectorSet(dx, dy, dz, 0);
             XMVECTOR textureCoordinate = XMVectorSet(u, v, 0, 0);
 
-            vertices.emplace_back(VertexPositionNormalTexture(normal * radius, normal, textureCoordinate));
+            vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(normal * radius, normal, textureCoordinate));
         }
     }
 
@@ -152,10 +159,10 @@ void Mesh::InitializeAsCube(float size)
         indices.emplace_back(static_cast<uint16_t>(vbase + 3));
 
         // Four vertices per face.
-        vertices.emplace_back(VertexPositionNormalTexture((normal - side1 - side2) * size, normal, textureCoordinates[0]));
-        vertices.emplace_back(VertexPositionNormalTexture((normal - side1 + side2) * size, normal, textureCoordinates[1]));
-        vertices.emplace_back(VertexPositionNormalTexture((normal + side1 + side2) * size, normal, textureCoordinates[2]));
-        vertices.emplace_back(VertexPositionNormalTexture((normal + side1 - side2) * size, normal, textureCoordinates[3]));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture((normal - side1 - side2) * size, normal, textureCoordinates[0]));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture((normal - side1 + side2) * size, normal, textureCoordinates[1]));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture((normal + side1 + side2) * size, normal, textureCoordinates[2]));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture((normal + side1 - side2) * size, normal, textureCoordinates[3]));
     }
 
     // Make sure to invert the indices and vertices winding orders, to match
@@ -187,7 +194,7 @@ inline XMVECTOR Mesh::GetCircleTangent(size_t i, size_t tessellation)
 }
 
 
-void Mesh::CreateCylinderCap(vector<VertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop)
+void Mesh::CreateCylinderCap(vector<ShaderStructureCPUVertexPositionNormalTexture>& vertices, vector<uint16_t>& indices, size_t tessellation, float height, float radius, bool isTop)
 {
     // Create cap indices.
     for (size_t i = 0; i < tessellation - 2; i++)
@@ -225,7 +232,7 @@ void Mesh::CreateCylinderCap(vector<VertexPositionNormalTexture>& vertices, vect
 
         XMVECTOR textureCoordinate = XMVectorMultiplyAdd(XMVectorSwizzle<0, 2, 3, 3>(circleVector), textureScale, g_XMOneHalf);
 
-        vertices.emplace_back(VertexPositionNormalTexture(position, normal, textureCoordinate));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(position, normal, textureCoordinate));
     }
 }
 
@@ -263,8 +270,8 @@ void Mesh::InitializeAsCone(float diameter, float height, size_t tessellation)
         normal = XMVector3Normalize(normal);
 
         // Duplicate the top vertex for distinct normals
-        vertices.emplace_back(VertexPositionNormalTexture(topOffset, normal, g_XMZero));
-        vertices.emplace_back(VertexPositionNormalTexture(pt, normal, textureCoordinate + g_XMIdentityR1));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(topOffset, normal, g_XMZero));
+        vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(pt, normal, textureCoordinate + g_XMIdentityR1));
 
         indices.emplace_back(static_cast<uint16_t>(i * 2));
         indices.emplace_back(static_cast<uint16_t>((i * 2 + 3) % (stride * 2)));
@@ -318,7 +325,7 @@ void Mesh::InitializeAsTorus(float diameter, float thickness, size_t tessellatio
             position = XMVector3Transform(position, transform);
             normal = XMVector3TransformNormal(normal, transform);
 
-            vertices.emplace_back(VertexPositionNormalTexture(position, normal, textureCoordinate));
+            vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(position, normal, textureCoordinate));
 
             // And create indices for two triangles.
             size_t nextI = (i + 1) % stride;
@@ -344,10 +351,10 @@ void Mesh::InitializeAsPlane(float width, float height)
     vertices.reserve(4);
     indices.reserve(6);
 
-    vertices.emplace_back(VertexPositionNormalTexture(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)));
-    vertices.emplace_back(VertexPositionNormalTexture(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)));
-    vertices.emplace_back(VertexPositionNormalTexture(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f)));
-    vertices.emplace_back(VertexPositionNormalTexture(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTexture(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f)));
     
     indices.emplace_back(0);
     indices.emplace_back(3);
@@ -363,7 +370,7 @@ void Mesh::InitializeAsPlane(float width, float height)
 
 
 
-void Mesh::ReverseWinding(vector<uint16_t>& indices, vector<VertexPositionNormalTexture>& vertices)
+void Mesh::ReverseWinding(vector<uint16_t>& indices, vector<ShaderStructureCPUVertexPositionNormalTexture>& vertices)
 {
     assert((indices.size() % 3) == 0);
     for (auto it = indices.begin(); it != indices.end(); it += 3)

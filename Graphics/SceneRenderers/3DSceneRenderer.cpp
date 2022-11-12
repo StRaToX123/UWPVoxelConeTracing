@@ -8,7 +8,7 @@ Platform::String^ AngleKey = "Angle";
 Platform::String^ TrackingKey = "Tracking";
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
-Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DeviceResources>& deviceResources, Camera& camera) :
+SceneRenderer3D::SceneRenderer3D(const std::shared_ptr<DeviceResources>& deviceResources, Camera& camera) :
 	device_resources(deviceResources),
 	camera_view_projection_constant_mapped_buffer(nullptr),
 	fence_command_list_copy_normal_priority_progress_latest_unused_value(1),
@@ -27,7 +27,7 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DeviceResourc
 	CreateWindowSizeDependentResources(camera);
 }
 
-Sample3DSceneRenderer::~Sample3DSceneRenderer()
+SceneRenderer3D::~SceneRenderer3D()
 {
 	camera_view_projection_constant_buffer->Unmap(0, nullptr);
 	camera_view_projection_constant_mapped_buffer = nullptr;
@@ -37,24 +37,39 @@ Sample3DSceneRenderer::~Sample3DSceneRenderer()
 	}
 }
 
-void Sample3DSceneRenderer::CreateDeviceDependentResources()
+void SceneRenderer3D::LoadShaderByteCode(const char* shaderPath, _Out_ char*& shaderByteCode, _Out_ int& shaderByteCodeLength)
+{
+	ifstream is;
+	is.open(shaderPath, ios::binary);
+	// Get the length of file:
+	is.seekg(0, ios::end);
+	shaderByteCodeLength = is.tellg();
+	is.seekg(0, ios::beg);
+	// Allocate memory:
+	shaderByteCode = new char[shaderByteCodeLength];
+	// Read the data
+	is.read(shaderByteCode, shaderByteCodeLength);
+	is.close();
+}
+
+void SceneRenderer3D::CreateDeviceDependentResources()
 {
 	auto d3dDevice = device_resources->GetD3DDevice();
-	// Create a root signature with a single constant buffer slot.
+#pragma region Default Pipeline State
 	CD3DX12_DESCRIPTOR_RANGE rangeSRV;
 	CD3DX12_DESCRIPTOR_RANGE rangeCBVviewProjectionMatrix;
 	CD3DX12_DESCRIPTOR_RANGE rangeCBVmodelTransformMatrix;
-	
+
 	CD3DX12_ROOT_PARAMETER parameterConstants; // contains modelTransformMatrixBufferIndex, modelTransformMatrixBufferInternalIndex
 	CD3DX12_ROOT_PARAMETER parameterPixelVisibleDescriptorTable;
 	CD3DX12_ROOT_PARAMETER parameterVertexVisibleDescriptorTableViewProjectionMatrixBuffer;
 	CD3DX12_ROOT_PARAMETER parameterVertexVisibleDescriptorTableModelTransformMatrixBuffers;
-	
+
 
 	rangeSRV.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	rangeCBVviewProjectionMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 	rangeCBVmodelTransformMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
-	
+
 	parameterConstants.InitAsConstants(2, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 	parameterPixelVisibleDescriptorTable.InitAsDescriptorTable(1, &rangeSRV, D3D12_SHADER_VISIBILITY_PIXEL);
 	parameterVertexVisibleDescriptorTableViewProjectionMatrixBuffer.InitAsDescriptorTable(1, &rangeCBVviewProjectionMatrix, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -98,44 +113,28 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		throw ref new FailureException();
 	}
 
-	ThrowIfFailed(d3dDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
-    NAME_D3D12_OBJECT(root_signature);
-	
+	ThrowIfFailed(d3dDevice->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&default_root_signature)));
+	NAME_D3D12_OBJECT(default_root_signature);
+
 	// Load shaders
 	// Get the install folder full path
 	auto folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
 	wstring wStringInstallPath(Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
 	string standardStringInstallPath(wStringInstallPath.begin(), wStringInstallPath.end());
 	// Load the vertex shader
-	ifstream is;
-	is.open((standardStringInstallPath + "\\SampleVertexShader.cso").c_str(), ios::binary);
-	// get length of file:
-	is.seekg(0, ios::end);
-	int vertexShaderByteCodeLength = is.tellg();
-	is.seekg(0, ios::beg);
-	// allocate memory:
-	char* pVertexShadeByteCode = new char[vertexShaderByteCodeLength];
-	// read data as a block:
-    is.read(pVertexShadeByteCode, vertexShaderByteCodeLength);
-	is.close();
-
+	char* pVertexShadeByteCode;
+	int vertexShaderByteCodeLength;
+	LoadShaderByteCode((standardStringInstallPath + "\\SampleVertexShader.cso").c_str(), pVertexShadeByteCode, vertexShaderByteCodeLength);
 	// Load the pixel shader
-	is.open((standardStringInstallPath + "\\SamplePixelShader.cso").c_str(), ios::binary);
-	// get length of file:
-	is.seekg(0, ios::end);
-	int pixelShaderByteCodeLength = is.tellg();
-	is.seekg(0, ios::beg);
-	// allocate memory:
-	char* pPixelShadeByteCode = new char[pixelShaderByteCodeLength];
-	// read data as a block:
-	is.read(pPixelShadeByteCode, pixelShaderByteCodeLength);
-	is.close();
+	char* pPixelShadeByteCode;
+	int pixelShaderByteCodeLength;
+	LoadShaderByteCode((standardStringInstallPath + "\\SampleVertexShader.cso").c_str(), pPixelShadeByteCode, pixelShaderByteCodeLength);
 
-	
+
 	// Create the pipeline state once the shaders are loaded.
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { VertexPositionNormalTexture::input_elements, VertexPositionNormalTexture::input_element_count };
-	state.pRootSignature = root_signature.Get();
+	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTexture::input_elements, ShaderStructureCPUVertexPositionNormalTexture::input_element_count };
+	state.pRootSignature = default_root_signature.Get();
 	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
 	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
 	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -148,20 +147,108 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	state.DSVFormat = device_resources->GetDepthBufferFormat();
 	state.SampleDesc.Count = 1;
 
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state)));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&default_pipeline_state)));
 
 	// Shader data can be deleted once the pipeline state is created.
 	delete[] pVertexShadeByteCode;
 	delete[] pPixelShadeByteCode;
+#pragma endregion
 
-	// Upload cube geometry resources to the GPU.
+#pragma region Voxelizer Pipeline State
+	CD3DX12_DESCRIPTOR_RANGE voxelizerRangeCBVmodelTransformMatrix;
+	CD3DX12_DESCRIPTOR_RANGE voxelizerRangeCBVvoxelData;
+
+	CD3DX12_ROOT_PARAMETER voxelizerParameterConstants; // contains modelTransformMatrixBufferIndex, modelTransformMatrixBufferInternalIndex
+	CD3DX12_ROOT_PARAMETER voxelizerParameterGeometryVisibleDescriptorTableModelTransformMatrixBuffers;
+	CD3DX12_ROOT_PARAMETER voxelizerParameterGeometryPixelVisibleDescriptorTableVoxelDataBuffers;
+
+	voxelizerRangeCBVmodelTransformMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+	voxelizerRangeCBVvoxelData.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+	
+	voxelizerParameterConstants.InitAsConstants(2, 0, 0, D3D12_SHADER_VISIBILITY_GEOMETRY);
+	voxelizerParameterGeometryVisibleDescriptorTableModelTransformMatrixBuffers.InitAsDescriptorTable(1, &voxelizerRangeCBVmodelTransformMatrix, D3D12_SHADER_VISIBILITY_GEOMETRY);
+	voxelizerParameterGeometryPixelVisibleDescriptorTableVoxelDataBuffers.InitAsDescriptorTable(1, &voxelizerRangeCBVvoxelData, D3D12_SHADER_VISIBILITY_ALL);
+
+
+	D3D12_ROOT_SIGNATURE_FLAGS voxelizerRootSignatureFlags =
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+
+	CD3DX12_ROOT_SIGNATURE_DESC voxelizerDescRootSignature;
+	CD3DX12_ROOT_PARAMETER voxelizerParameterArray[3] = { voxelizerParameterConstants,
+		voxelizerParameterGeometryVisibleDescriptorTableModelTransformMatrixBuffers,
+		voxelizerParameterGeometryPixelVisibleDescriptorTableVoxelDataBuffers };
+
+	voxelizerDescRootSignature.Init(3, voxelizerParameterArray, 0, NULL, voxelizerRootSignatureFlags);
+
+	ComPtr<ID3DBlob> pVoxelizerSignature;
+	ComPtr<ID3DBlob> pVoxelizerError;
+	D3D12SerializeRootSignature(&voxelizerDescRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, pVoxelizerSignature.GetAddressOf(), pVoxelizerError.GetAddressOf());
+	if (pError.Get() != NULL)
+	{
+		DisplayDebugMessage("@@@@@@@@@@@@@@@@@@@@\n%s\n@@@@@@@@@@@@@@@@@@@@@\n", (char*)pVoxelizerError->GetBufferPointer());
+		throw ref new FailureException();
+	}
+
+	ThrowIfFailed(d3dDevice->CreateRootSignature(0, pVoxelizerSignature->GetBufferPointer(), pVoxelizerSignature->GetBufferSize(), IID_PPV_ARGS(&voxelizer_root_signature)));
+	NAME_D3D12_OBJECT(voxelizer_root_signature);
+
+	// Load the geometry shader
+	char* pGeometryShaderByteCode;
+	int geometryShaderByteCodeLength;
+	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_GS.cso").c_str(), pGeometryShaderByteCode, geometryShaderByteCodeLength);
+	//LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_VS.cso").c_str(), pVertexShadeByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_PS.cso").c_str(), pPixelShadeByteCode, pixelShaderByteCodeLength);
+
+	// Create the pipeline state once the shaders are loaded.
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC voxelizerState = {};
+	voxelizerState.InputLayout = { ShaderStructureCPUVertexPositionNormalColor::input_elements, ShaderStructureCPUVertexPositionNormalColor::input_element_count };
+	voxelizerState.pRootSignature = voxelizer_root_signature.Get();
+	voxelizerState.GS = CD3DX12_SHADER_BYTECODE(pGeometryShaderByteCode, geometryShaderByteCodeLength);
+	//voxelizerState.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
+	voxelizerState.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
+	D3D12_RASTERIZER_DESC rasterizerDesc;
+	rasterizerDesc.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
+	rasterizerDesc.FrontCounterClockwise = true;
+	rasterizerDesc.DepthBias = 0;
+	rasterizerDesc.DepthBiasClamp = 0;
+	rasterizerDesc.SlopeScaledDepthBias = 0;
+	rasterizerDesc.DepthClipEnable = true;
+	rasterizerDesc.MultisampleEnable = false;
+	rasterizerDesc.AntialiasedLineEnable = false;
+	rasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE::D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+	rasterizerDesc.ForcedSampleCount = 8;
+	voxelizerState.RasterizerState = rasterizerDesc;
+	voxelizerState.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
+	depthStencilDesc.DepthEnable = false;
+	depthStencilDesc.StencilEnable = false;
+	voxelizerState.DepthStencilState = depthStencilDesc;
+	voxelizerState.SampleMask = UINT_MAX;
+	voxelizerState.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	voxelizerState.NumRenderTargets = 1;
+	//state.RTVFormats[0] = device_resources->GetBackBufferFormat();
+	//state.DSVFormat = device_resources->GetDepthBufferFormat();
+	voxelizerState.SampleDesc.Count = 1;
+
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&voxelizer_pipeline_state)));
+
+	// Shader data can be deleted once the pipeline state is created.
+	delete[] pGeometryShaderByteCode;
+	delete[] pVertexShadeByteCode;
+	delete[] pPixelShadeByteCode;
+#pragma endregion
+
+
 	// Create a direct command list.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), pipeline_state.Get(), IID_PPV_ARGS(&command_list_direct)));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), default_pipeline_state.Get(), IID_PPV_ARGS(&command_list_direct)));
 	NAME_D3D12_OBJECT(command_list_direct);
 	// Create copy command lists.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyNormalPriority(), pipeline_state.Get(), IID_PPV_ARGS(&command_list_copy_normal_priority)));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyNormalPriority(), default_pipeline_state.Get(), IID_PPV_ARGS(&command_list_copy_normal_priority)));
 	NAME_D3D12_OBJECT(command_list_copy_normal_priority);
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyHighPriority(), pipeline_state.Get(), IID_PPV_ARGS(&command_list_copy_high_priority)));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyHighPriority(), default_pipeline_state.Get(), IID_PPV_ARGS(&command_list_copy_high_priority)));
 	NAME_D3D12_OBJECT(command_list_copy_high_priority);
 	// Create a fences to go along with the copy command lists.
 	// This fence will be used to signal when a resource has been successfully uploaded to the gpu
@@ -324,7 +411,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 }
 
 // Initializes view parameters when the window size changes.
-void Sample3DSceneRenderer::CreateWindowSizeDependentResources(Camera& camera)
+void SceneRenderer3D::CreateWindowSizeDependentResources(Camera& camera)
 {
 	D3D12_VIEWPORT viewport = device_resources->GetScreenViewport();
 	scissor_rect = { 0, 0, static_cast<LONG>(viewport.Width), static_cast<LONG>(viewport.Height)};
@@ -335,7 +422,7 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources(Camera& camera)
 
 
 // Saves the current state of the renderer.
-void Sample3DSceneRenderer::SaveState()
+void SceneRenderer3D::SaveState()
 {
 	auto state = ApplicationData::Current->LocalSettings->Values;
 
@@ -348,7 +435,7 @@ void Sample3DSceneRenderer::SaveState()
 }
 
 // Restores the previous state of the renderer.
-void Sample3DSceneRenderer::LoadState()
+void SceneRenderer3D::LoadState()
 {
 	auto state = ApplicationData::Current->LocalSettings->Values;
 	if (state->HasKey(AngleKey))
@@ -361,19 +448,19 @@ void Sample3DSceneRenderer::LoadState()
 
 
 // Renders one frame using the vertex and pixel shaders.
-ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Camera& camera)
+ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& camera, bool voxelDebugVisualization)
 {
 	UINT currentFrameIndex = device_resources->GetCurrentFrameIndex();
 	ThrowIfFailed(device_resources->GetCommandAllocatorDirect()->Reset());
 	// The command list can be reset anytime after ExecuteCommandList() is called.
-	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state.Get()));
+	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), default_pipeline_state.Get()));
 	// Update the view matrix
 	DirectX::XMStoreFloat4x4(&camera_view_projection_constant_buffer_data.view, XMMatrixTranspose(camera.GetViewMatrix()));
 	// Update the mapped viewProjection constant buffer
 	UINT8* destination = camera_view_projection_constant_mapped_buffer + (currentFrameIndex * c_aligned_view_projection_matrix_constant_buffer);
 	std::memcpy(destination, &camera_view_projection_constant_buffer_data, sizeof(camera_view_projection_constant_buffer_data));
 	// Set the graphics root signature and descriptor heaps to be used by this frame.
-	command_list_direct->SetGraphicsRootSignature(root_signature.Get());
+	command_list_direct->SetGraphicsRootSignature(default_root_signature.Get());
 	ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv_srv.Get() };
 	command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 	// Bind the descriptor tables to their respective heap starts
@@ -444,8 +531,8 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 
 				// Create vertex/index views
 				scene[i].vertex_buffer_view.BufferLocation = scene[i].vertex_buffer->GetGPUVirtualAddress();
-				scene[i].vertex_buffer_view.StrideInBytes = sizeof(VertexPositionNormalTexture);
-				scene[i].vertex_buffer_view.SizeInBytes = scene[i].vertices.size() * sizeof(VertexPositionNormalTexture);
+				scene[i].vertex_buffer_view.StrideInBytes = sizeof(ShaderStructureCPUVertexPositionNormalTexture);
+				scene[i].vertex_buffer_view.SizeInBytes = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTexture);
 
 				scene[i].index_buffer_view.BufferLocation = scene[i].index_buffer->GetGPUVirtualAddress();
 				scene[i].index_buffer_view.SizeInBytes = scene[i].indices.size() * sizeof(uint16_t);
@@ -461,7 +548,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				if (command_list_copy_high_priority_requires_reset == true)
 				{
 					command_list_copy_high_priority_requires_reset = false;
-					ThrowIfFailed(command_list_copy_high_priority->Reset(device_resources->GetCommandAllocatorCopyHighPriority(), pipeline_state.Get()));
+					ThrowIfFailed(command_list_copy_high_priority->Reset(device_resources->GetCommandAllocatorCopyHighPriority(), default_pipeline_state.Get()));
 				}
 				
 				scene[i].current_frame_index_containing_most_updated_model_transform_matrix++;
@@ -496,7 +583,6 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 							ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
 								&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 								D3D12_HEAP_FLAG_NONE,
-								//&CD3DX12_RESOURCE_DESC::Buffer(GetRequiredIntermediateSize(newlyCreatedBuffer.Get(), 0, MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES)),
 								&CD3DX12_RESOURCE_DESC::Buffer(sizeof(XMFLOAT4X4) * MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES),
 								D3D12_RESOURCE_STATE_GENERIC_READ,
 								nullptr,
@@ -525,12 +611,13 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 					scene[i].world_position.y,
 					scene[i].world_position.z);
 
-				XMStoreFloat4x4(model_transform_matrix_mapped_upload_buffers[scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]] + scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1], XMMatrixTranspose(XMMatrixMultiply(translationMatrix, rotationMatrix)));
+				XMStoreFloat4x4(model_transform_matrix_mapped_upload_buffers[scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][0]] + scene[i].per_frame_model_transform_matrix_buffer_indexes[scene[i].current_frame_index_containing_most_updated_model_transform_matrix][1], XMMatrixTranspose(XMMatrixMultiply(rotationMatrix, translationMatrix)));
 				
 				// This way if the object was initialized as static
 				// this would have been it's one and only model transform update.
 				// After this it won't be updated anymore
 				scene[i].is_static = scene[i].initialized_as_static;
+				scene[i].initialized_as_static = false;
 			}
 			
 			// Set the model transform matrix buffer indexes
@@ -552,11 +639,11 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 				if (command_list_copy_normal_priority_requires_reset == true)
 				{
 					command_list_copy_normal_priority_requires_reset = false;
-					ThrowIfFailed(command_list_copy_normal_priority->Reset(device_resources->GetCommandAllocatorCopyNormalPriority(), pipeline_state.Get()));
+					ThrowIfFailed(command_list_copy_normal_priority->Reset(device_resources->GetCommandAllocatorCopyNormalPriority(), default_pipeline_state.Get()));
 				}
 				
 				// Upload the vertex buffer to the GPU.
-				const UINT vertexBufferSize = scene[i].vertices.size() * sizeof(VertexPositionNormalTexture);
+				const UINT vertexBufferSize = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTexture);
 				CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 				CD3DX12_RESOURCE_DESC vertexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 				ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
@@ -629,7 +716,7 @@ ID3D12GraphicsCommandList* Sample3DSceneRenderer::Render(vector<Mesh>& scene, Ca
 		fence_command_list_copy_normal_priority_progress_latest_unused_value++;
 	}
 
-	// Wait for the previous frames model transform matrixes to be uploaded to the gpu
+	// Wait for the previous frame's high priority copy command queue workload to finish
 	if (fence_per_frame_command_list_copy_high_priority_values[previous_frame_index] > fenceCommandListCopyHighPriorityProgressValue)
 	{
 		ThrowIfFailed(fence_command_list_copy_high_priority_progress->SetEventOnCompletion(fence_per_frame_command_list_copy_high_priority_values[previous_frame_index], event_command_list_copy_high_priority_progress));

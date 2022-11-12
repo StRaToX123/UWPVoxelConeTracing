@@ -1,13 +1,17 @@
 #pragma once
-
-
-
 #include <DirectXMath.h>
 
-
-
-
 using namespace DirectX;
+
+
+
+
+
+struct ShaderStructureCPUViewProjectionBuffer
+{
+    DirectX::XMFLOAT4X4 view;
+    DirectX::XMFLOAT4X4 projection;
+};
 
 // When performing transformations on the camera, 
 // it is sometimes useful to express which space this 

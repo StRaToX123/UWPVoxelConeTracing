@@ -38,7 +38,7 @@ class VoxelConeTracingMain
 		CoreWindow^ core_window;
 		// Cached pointer to device resources.
 		std::shared_ptr<DeviceResources> device_resources;
-		std::unique_ptr<Sample3DSceneRenderer> scene_renderer;
+		std::unique_ptr<SceneRenderer3D> scene_renderer;
 		// Rendering loop timer.
 		DX::StepTimer step_timer;
 		std::vector<Mesh> scene;
@@ -59,4 +59,8 @@ class VoxelConeTracingMain
 		float camera_controller_pitch;
 		float camera_controller_pitch_limit;
 		float camera_controller_yaw;
+		
+		ShaderStructureSpotLight spot_light;
+
+		bool voxel_debug_visualization;
 };
