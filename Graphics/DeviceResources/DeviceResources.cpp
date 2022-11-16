@@ -155,6 +155,11 @@ void DeviceResources::CreateDeviceResources()
 	ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_copy_high_priority)));
 	NAME_D3D12_OBJECT(command_queue_copy_high_priority);
 
+	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_compute)));
+	NAME_D3D12_OBJECT(command_queue_compute);
+
 	// Create descriptor heaps for render target views and depth stencil views.
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.NumDescriptors = c_frame_count;
@@ -179,6 +184,7 @@ void DeviceResources::CreateDeviceResources()
 
 	ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocator_copy_normal_priority)));
 	ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocator_copy_high_priority)));
+	ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&command_allocator_compute)));
 
 	// Create synchronization objects.
 	ThrowIfFailed(m_d3dDevice->CreateFence(fence_values[current_back_buffer_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));

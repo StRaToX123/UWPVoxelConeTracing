@@ -3,8 +3,9 @@
 
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
-ConstantBuffer<ShaderStructureGPUModelTransformMarixBuffer> model_ransform_matrix_buffers[] : register(b1);
-ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b2);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b1);
+ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
+ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b3);
 
 [maxvertexcount(3)]
 void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometryShaderOutput> outputStream)
@@ -17,8 +18,9 @@ void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometrySh
 	{
 		GeometryShaderOutput output;
 		output.position = float4(input[i].position, 1.0f);
-		output.position = mul(output.position, model_ransform_matrix_buffers[root_constants.model_transform_matrix_buffer_index].model[root_constants.model_transform_matrix_buffer_inner_index]);
+		output.position = mul(output.position, transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model);
 		output.position_world_space = output.position.xyz;
+		output.position_view_space = mul(float4(output.position_world_space, 1.0f), view_projection_matrix_buffer.view).xyz;
 		// World space -> Voxel grid space:
 		output.position = (output.position.xyz - voxel_grid_data.center) * voxel_grid_data.voxel_size_rcp;
 		// Project onto dominant axis:
@@ -36,9 +38,8 @@ void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometrySh
 		output.position.xy *= voxel_grid_data.res_rcp;
 		output.position.zw = 1;
 
-		// Append the rest of the parameters as is:
 		output.color = input[i].color;
-		output.normal = input[i].normal;
+		output.normal_view_space = mul(float4(input[i].normal, 1.0f), transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].inverse_transpose_model_view).xyz;
 
 		outputStream.Append(output);
 	}

@@ -125,6 +125,9 @@
     <Filter Include="Graphics\Shaders\VoxelGI\HF">
       <UniqueIdentifier>{797d94ee-71e4-409b-9d63-5554ebb52da5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\VS">
+      <UniqueIdentifier>{ef341eaa-2603-4297-8666-49e2b4055145}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -400,6 +403,12 @@
       <Filter>Graphics\Shaders\VoxelGI\GS</Filter>
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_PS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_VS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugView_PS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
     </FxCompile>
   </ItemGroup>

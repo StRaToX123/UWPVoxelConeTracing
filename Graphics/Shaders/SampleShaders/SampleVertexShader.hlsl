@@ -17,13 +17,13 @@ struct PixelShaderInput
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
 ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b1);
-ConstantBuffer<ShaderStructureGPUModelTransformMarixBuffer> model_ransform_matrix_buffers[] : register(b2);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b2);
 
 PixelShaderInput main(VertexShaderInput input)
 {
 	PixelShaderInput output;
 	float4 pos = float4(input.pos, 1.0f);
-	pos = mul(pos, model_ransform_matrix_buffers[root_constants.model_transform_matrix_buffer_index].model[root_constants.model_transform_matrix_buffer_inner_index]);
+	pos = mul(pos, transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model);
 	pos = mul(pos, view_projection_matrix_buffer.view);
 	pos = mul(pos, view_projection_matrix_buffer.projection);
 	output.pos = pos;

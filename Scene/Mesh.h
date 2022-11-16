@@ -83,6 +83,12 @@ struct ShaderStructureCPUVertexPositionColor
     DirectX::XMFLOAT3 color;
 };
 
+struct ShaderStructureCPUModelAndInverseTransposeModelView
+{
+    DirectX::XMFLOAT4X4 model;
+    DirectX::XMFLOAT4X4 inverse_transpose_model_view;
+};
+
 class Mesh
 {
     public:
@@ -102,11 +108,18 @@ class Mesh
 
         XMFLOAT3 world_position;
         XMFLOAT3 local_rotation;
+        
+        bool is_static;
+
+    private:
+        Mesh();
+        friend class SceneRenderer3D;
+        XMMATRIX transform_matrix;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
         Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer_upload;
         D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
-           
+
         Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
         Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer_upload;
         D3D12_INDEX_BUFFER_VIEW index_buffer_view;
@@ -116,16 +129,9 @@ class Mesh
 
         // The first index tells us in which out of all the buffers reserved for that frame contains this object's model transform matrix
         // and the second index tells us the offset inside of that buffer.
-        UINT per_frame_model_transform_matrix_buffer_indexes[c_frame_count][2];
-        bool per_frame_model_transform_matrix_buffer_indexes_assigned[c_frame_count];
-        UINT current_frame_index_containing_most_updated_model_transform_matrix;
-        bool is_static;
-        
-        
-        
-
-    private:
-        friend class SceneRenderer3D;
+        UINT per_frame_transform_matrix_buffer_indexes[c_frame_count][2];
+        bool per_frame_transform_matrix_buffer_indexes_assigned[c_frame_count];
+        UINT current_frame_index_containing_most_updated_transform_matrix;
         // If the mesh is initialized as static, it will require one model transform matrix update in order for it to be renderer at the
         // right place. When initialized as static, the mesh will have the public is_static bool set to false
         // and this private initialized_as_statis bool set to true. This bool overrides the public is_static bool for only one frame, 

@@ -389,6 +389,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_VS.hlsl" />
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugView_PS.hlsl" />
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl" />
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_PS.hlsl" />
   </ItemGroup>

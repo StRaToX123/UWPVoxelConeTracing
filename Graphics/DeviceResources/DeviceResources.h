@@ -52,9 +52,11 @@ class DeviceResources
 		ID3D12CommandQueue*			GetCommandQueueDirect() const	    { return command_queue_direct.Get(); }
 		ID3D12CommandQueue*         GetCommandQueueCopyNormalPriority() const { return command_queue_copy_normal_priority.Get(); }
 		ID3D12CommandQueue*         GetCommandQueueCopyHighPriority() const { return command_queue_copy_high_priority.Get(); }
+		ID3D12CommandQueue*         GetCommandQueueCompute() const      { return command_queue_compute.Get(); }
 		ID3D12CommandAllocator*		GetCommandAllocatorDirect() const	{ return command_allocators_direct[current_back_buffer_index].Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyNormalPriority() const     { return command_allocator_copy_normal_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyHighPriority() const { return command_allocator_copy_high_priority.Get(); }
+		ID3D12CommandAllocator*     GetCommandAllocatorCompute() const  { return command_allocator_compute.Get(); }
 
 		DXGI_FORMAT					GetBackBufferFormat() const			{ return m_backBufferFormat; }
 		DXGI_FORMAT					GetDepthBufferFormat() const		{ return m_depthBufferFormat; }
@@ -98,9 +100,11 @@ class DeviceResources
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_direct;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_copy_high_priority;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue>      command_queue_compute;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocators_direct[c_frame_count];
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_high_priority;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_compute;
 		DXGI_FORMAT										m_backBufferFormat;
 		DXGI_FORMAT										m_depthBufferFormat;
 		D3D12_VIEWPORT									m_screenViewport;

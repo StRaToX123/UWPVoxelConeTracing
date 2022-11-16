@@ -5,8 +5,8 @@
 
 struct ShaderStructureGPURootConstants
 {
-	uint model_transform_matrix_buffer_index;
-	uint model_transform_matrix_buffer_inner_index;
+	uint transform_matrix_buffer_index;
+	uint transform_matrix_buffer_inner_index;
 };
 
 struct ShaderStructureGPUViewProjectionBuffer
@@ -15,10 +15,40 @@ struct ShaderStructureGPUViewProjectionBuffer
 	matrix projection;
 };
 
-struct ShaderStructureGPUModelTransformMarixBuffer
+struct ShaderStructureGPUModelAndInverseTransposeModelView
 {
-	matrix model[MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES];
+	matrix model;
+	matrix inverse_transpose_model_view;
 };
+
+struct ShaderStructureGPUTransformBuffer
+{
+	ShaderStructureGPUModelAndInverseTransposeModelView data[TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES];
+};
+
+inline uint PackUnitvector(in float3 value)
+{
+	uint retVal = 0;
+	retVal |= (uint) ((value.x * 0.5 + 0.5) * 255.0) << 0u;
+	retVal |= (uint) ((value.y * 0.5 + 0.5) * 255.0) << 8u;
+	retVal |= (uint) ((value.z * 0.5 + 0.5) * 255.0) << 16u;
+	return retVal;
+}
+inline float3 UnpackUnitvector(in uint value)
+{
+	float3 retVal;
+	retVal.x = (float) ((value >> 0u) & 0xFF) / 255.0 * 2 - 1;
+	retVal.y = (float) ((value >> 8u) & 0xFF) / 255.0 * 2 - 1;
+	retVal.z = (float) ((value >> 16u) & 0xFF) / 255.0 * 2 - 1;
+	return retVal;
+}
+
+// 3D array index to flattened 1D array index
+inline uint Flatten3DIndex(uint3 coord, uint3 dim)
+{
+	return (coord.z * dim.x * dim.y) + (coord.y * dim.x) + coord.x;
+}
+
 
 
 #endif

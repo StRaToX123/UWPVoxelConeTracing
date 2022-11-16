@@ -82,23 +82,23 @@ class SceneRenderer3D
 		bool                                                   command_list_copy_normal_priority_requires_reset;
 		bool                                                   command_allocator_copy_high_priority_already_reset;
 		bool                                                   command_list_copy_high_priority_requires_reset;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature>			   default_root_signature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   default_pipeline_state;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_cbv_srv;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature>			   root_signature;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_default;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_cbv_srv_uav;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_sampler;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_cpu_handle;
-		UINT										   	       cbv_srv_descriptor_size;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
+		UINT										   	       cbv_srv_uav_descriptor_size;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			   	   test_texture;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				   test_texture_upload;
 		D3D12_RECT											   scissor_rect;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				   camera_view_projection_constant_buffer;
-		ShaderStructureCPUViewProjectionBuffer		       camera_view_projection_constant_buffer_data;
+		ShaderStructureCPUViewProjectionBuffer		           camera_view_projection_constant_buffer_data;
 		UINT8*												   camera_view_projection_constant_mapped_buffer;
-		vector<Microsoft::WRL::ComPtr<ID3D12Resource>>         model_transform_matrix_upload_buffers;
-		vector<XMFLOAT4X4*>                                    model_transform_matrix_mapped_upload_buffers;
-		vector<vector<UINT>>                                   model_transform_matrix_buffer_free_slots;
-		UINT                                                   free_slots_preallocated_array[MODEL_TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES];
-		vector<UINT>                                           available_model_transform_matrix_buffer;
+		vector<Microsoft::WRL::ComPtr<ID3D12Resource>>         transform_matrix_upload_buffers;
+		vector<ShaderStructureCPUModelAndInverseTransposeModelView*> transform_matrix_mapped_upload_buffers;
+		vector<vector<UINT>>                                   transform_matrix_buffer_free_slots;
+		UINT                                                   free_slots_preallocated_array[TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES];
+		vector<UINT>                                           available_transform_matrix_buffers;
 		
 		//////////////
 		// Voxel GI //
@@ -120,9 +120,33 @@ class SceneRenderer3D
 			uint32_t mips = 7;
 		};
 
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   voxelizer_pipeline_state;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature>	           voxelizer_root_signature;
-		D3D12_VIEWPORT									       voxelizer_viewport;
+		struct IndirectCommand
+		{
+			D3D12_GPU_VIRTUAL_ADDRESS cbv;
+			D3D12_DRAW_ARGUMENTS draw_arguments;
+		};
+
+		struct ShaderStructureCPUVoxelDebugData
+		{
+			UINT voxel_index;
+			XMFLOAT4X4 debug_cube_model_transform_matrix;
+		};
+
+		ShaderStructureCPUVoxelGridData                        voxel_grid_data;
+		UINT                                                   voxel_grid_allowed_resolutions[4];
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>      command_list_compute;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
+		D3D12_VIEWPORT									       viewport_voxelizer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_procesed_commands_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
+		Mesh                                                   voxel_debug_cube;
+		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
+		
+
+		
 };
 
 

@@ -16,6 +16,11 @@ const D3D12_INPUT_ELEMENT_DESC ShaderStructureCPUVertexPositionNormalColor::inpu
     { "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
+Mesh::Mesh()
+{
+
+}
+
 Mesh::Mesh(bool isStatic)
 {
     is_static = isStatic;
@@ -31,12 +36,12 @@ Mesh::Mesh(bool isStatic)
     fence_value_signaling_vertex_and_index_bufferr_residency = UINT64_MAX;
     for (int i = 0; i < c_frame_count; i++)
     {
-        per_frame_model_transform_matrix_buffer_indexes_assigned[i] = false;
-        per_frame_model_transform_matrix_buffer_indexes[i][0] = 0;
-        per_frame_model_transform_matrix_buffer_indexes[i][1] = 0;
+        per_frame_transform_matrix_buffer_indexes_assigned[i] = false;
+        per_frame_transform_matrix_buffer_indexes[i][0] = 0;
+        per_frame_transform_matrix_buffer_indexes[i][1] = 0;
     }
 
-    current_frame_index_containing_most_updated_model_transform_matrix = c_frame_count - 1;
+    current_frame_index_containing_most_updated_transform_matrix = c_frame_count - 1;
     vertex_and_index_buffer_upload_started = false;
 }
 
