@@ -49,6 +49,15 @@ inline uint Flatten3DIndex(uint3 coord, uint3 dim)
 	return (coord.z * dim.x * dim.y) + (coord.y * dim.x) + coord.x;
 }
 
+// Flattened array index to 3D array index
+inline uint3 UnFlatten1DTo3DIndex(uint idx, uint3 dim)
+{
+	const uint z = idx / (dim.x * dim.y);
+	idx -= (z * dim.x * dim.y);
+	const uint y = idx / dim.x;
+	const uint x = idx % dim.x;
+	return uint3(x, y, z);
+}
 
 
 #endif

@@ -128,6 +128,9 @@
     <Filter Include="Graphics\Shaders\VoxelGI\VS">
       <UniqueIdentifier>{ef341eaa-2603-4297-8666-49e2b4055145}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\CS">
+      <UniqueIdentifier>{47f6574f-d1d9-402c-9b54-5cfe64f62f7f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -410,6 +413,9 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugView_PS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceTemporalCopyClear_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

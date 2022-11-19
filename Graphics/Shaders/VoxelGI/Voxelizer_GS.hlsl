@@ -3,9 +3,9 @@
 
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b1);
+ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
-ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b3);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b3);
 
 [maxvertexcount(3)]
 void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometryShaderOutput> outputStream)
@@ -22,7 +22,7 @@ void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometrySh
 		output.position_world_space = output.position.xyz;
 		output.position_view_space = mul(float4(output.position_world_space, 1.0f), view_projection_matrix_buffer.view).xyz;
 		// World space -> Voxel grid space:
-		output.position = (output.position.xyz - voxel_grid_data.center) * voxel_grid_data.voxel_size_rcp;
+		output.position = (output.position.xyz - voxel_grid_data.center_world_space) * voxel_grid_data.voxel_half_extent_rcp;
 		// Project onto dominant axis:
 		[flatten]
 		if (maxFaceNormalIndex == 0)

@@ -29,10 +29,12 @@ struct ShaderStructureGPUVoxelGridData
 {
 	uint res;
 	float res_rcp;
-	float voxel_size;
-	float voxel_size_rcp;
-	float3 center;
-	float3 extents;
+	float voxel_extent;
+	float voxel_extent_rcp;
+	float voxel_half_extent;
+	float voxel_half_extent_rcp;
+	float3 bottom_left_point_world_space;
+	float3 center_world_space;
 	uint num_cones;
 	float ray_step_size;
 	float max_distance;
@@ -84,7 +86,7 @@ inline bool IsSaturated(float4 value)
 	return IsSaturated(value.x) && IsSaturated(value.y) && IsSaturated(value.z) && IsSaturated(value.w);
 }
 
-static const float __hdrRange = 10.0f;
+static const float sc_hdr_range = 10.0f;
 
 // Encode HDR color to a 32 bit uint
 // Alpha is 1 bit + 7 bit HDR remapping
@@ -96,7 +98,7 @@ uint PackVoxelColor(in float4 color)
 
 	// encode LDR color and HDR range
 	uint3 iColor = uint3(color.rgb * 255.0f);
-	uint iHDR = (uint) (saturate(hdr / __hdrRange) * 127);
+	uint iHDR = (uint) (saturate(hdr / sc_hdr_range) * 127);
 	uint colorMask = (iHDR << 24u) | (iColor.r << 16u) | (iColor.g << 8u) | iColor.b;
 
 	// encode alpha into highest bit
@@ -120,7 +122,7 @@ float4 UnpackVoxelColor(in uint colorMask)
 	hdr /= 127.0f;
 	color.rgb /= 255.0f;
 
-	color.rgb *= hdr * __hdrRange;
+	color.rgb *= hdr * sc_hdr_range;
 
 	color.a = (colorMask >> 31u) & 0x00000001;
 
