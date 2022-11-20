@@ -60,7 +60,7 @@ class VoxelConeTracingMain
 		float camera_controller_pitch_limit;
 		float camera_controller_yaw;
 		
-		ShaderStructureSpotLight spot_light;
+		ShaderStructureCPUSpotLight spot_light;
 
 		bool voxel_debug_visualization;
 };

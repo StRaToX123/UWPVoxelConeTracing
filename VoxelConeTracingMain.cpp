@@ -37,13 +37,21 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 
 	// Initialize and setup the Cornell box
 	scene[0].InitializeAsPlane(2.0f, 2.0f);
+	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
+	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 	scene[2].InitializeAsPlane(2.0f, 2.0f);
+	scene[2].SetColor(XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f));
 	scene[3].InitializeAsPlane(2.0f, 2.0f);
+	scene[3].SetColor(XMVectorSet(1.0f, 1.0f, 0.0f, 1.0f));
 	scene[4].InitializeAsPlane(2.0f, 2.0f);
+	scene[4].SetColor(XMVectorSet(0.0f, 1.0f, 1.0f, 1.0f));
 	scene[5].InitializeAsPlane(2.0f, 2.0f);
+	scene[5].SetColor(XMVectorSet(1.0f, 0.0f, 1.0f, 1.0f));
 	scene[6].InitializeAsCube(0.5f);
+	scene[6].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 	scene[7].InitializeAsSphere(0.4f);
+	scene[7].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 
 	scene[1].world_position.x = 1.0f;
 	scene[1].world_position.y = 1.0f;
@@ -74,9 +82,11 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[7].world_position.z = -0.3f;
 
 	// Setup the spot light
+	/*
 	spot_light.world_position.y = 1.99f;
 	spot_light.direction_world_space.z = 0.0f;
 	spot_light.direction_world_space.y = -1.0f;
+	*/
 }
 
 

@@ -97,8 +97,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	CD3DX12_ROOT_PARAMETER parameterGeometryVisibleDescriptorTableVoxelGridDataBuffer;
 	CD3DX12_ROOT_PARAMETER parameterGeometryVisibleDescriptorTableViewProjectionMatrixBuffer;
 	CD3DX12_ROOT_PARAMETER parameterGeometryVisibleDescriptorTableTransformMatrixBuffers;
+	CD3DX12_ROOT_PARAMETER parameterVertexVisibleRootCBVForIndirectCommandVoxelData;
 
-	parameterRootConstants.InitAsConstants(2, 0, 0, D3D12_SHADER_VISIBILITY_GEOMETRY);
+	parameterRootConstants.InitAsConstants(2, 0, 0, D3D12_SHADER_VISIBILITY_ALL);
 	parameterPixelVisibleDescriptorTableTestTexture.InitAsDescriptorTable(1, &rangeSRVTestTexture, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableVoxelDebugData.InitAsDescriptorTable(1, &rangeSRVVoxelDebugData, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableIndirectCommandsSRV.InitAsDescriptorTable(1, &rangeSRVIndirectCommands, D3D12_SHADER_VISIBILITY_ALL);
@@ -106,8 +107,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	parameterAllVisibleDescriptorTableVoxelDataStructuredBufferUAV.InitAsDescriptorTable(1, &rangeUAVVoxelDataStructuredBuffer, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableRadianceTexture3D.InitAsDescriptorTable(1, &rangeUAVRadianceTexture3D, D3D12_SHADER_VISIBILITY_ALL);
 	parameterGeometryVisibleDescriptorTableVoxelGridDataBuffer.InitAsDescriptorTable(1, &rangeCBVVoxelGridData, D3D12_SHADER_VISIBILITY_ALL);
-	parameterGeometryVisibleDescriptorTableViewProjectionMatrixBuffer.InitAsDescriptorTable(1, &rangeCBVviewProjectionMatrix, D3D12_SHADER_VISIBILITY_GEOMETRY);
-	parameterGeometryVisibleDescriptorTableTransformMatrixBuffers.InitAsDescriptorTable(1, &rangeCBVTransformMatrix, D3D12_SHADER_VISIBILITY_GEOMETRY);
+	parameterGeometryVisibleDescriptorTableViewProjectionMatrixBuffer.InitAsDescriptorTable(1, &rangeCBVviewProjectionMatrix, D3D12_SHADER_VISIBILITY_ALL);
+	parameterGeometryVisibleDescriptorTableTransformMatrixBuffers.InitAsDescriptorTable(1, &rangeCBVTransformMatrix, D3D12_SHADER_VISIBILITY_ALL);
+	parameterVertexVisibleRootCBVForIndirectCommandVoxelData.InitAsConstantBufferView(4, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // Only the input assembler stage needs access to the constant buffer.
@@ -115,7 +117,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
 
 	CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
-	CD3DX12_ROOT_PARAMETER parameterArray[10] = { parameterRootConstants,
+	CD3DX12_ROOT_PARAMETER parameterArray[11] = { parameterRootConstants,
 		parameterPixelVisibleDescriptorTableTestTexture,
 		parameterComputeVisibleDescriptorTableVoxelDebugData,
 		parameterComputeVisibleDescriptorTableIndirectCommandsSRV,
@@ -124,7 +126,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		parameterComputeVisibleDescriptorTableRadianceTexture3D,
 		parameterGeometryVisibleDescriptorTableVoxelGridDataBuffer,
 		parameterGeometryVisibleDescriptorTableViewProjectionMatrixBuffer,
-		parameterGeometryVisibleDescriptorTableTransformMatrixBuffers };
+		parameterGeometryVisibleDescriptorTableTransformMatrixBuffers,
+	    parameterVertexVisibleRootCBVForIndirectCommandVoxelData };
 	// Create a texture sampler
 	D3D12_STATIC_SAMPLER_DESC staticSamplerDesc = {};
 	staticSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -141,7 +144,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	staticSamplerDesc.RegisterSpace = 0;
 	staticSamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	descRootSignature.Init(10, parameterArray, 1, &staticSamplerDesc, rootSignatureFlags);
+	descRootSignature.Init(11, parameterArray, 1, &staticSamplerDesc, rootSignatureFlags);
 
 	ComPtr<ID3DBlob> pSignature;
 	ComPtr<ID3DBlob> pError;
@@ -161,21 +164,21 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	wstring wStringInstallPath(Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
 	string standardStringInstallPath(wStringInstallPath.begin(), wStringInstallPath.end());
 	// Load the vertex shader
-	char* pVertexShadeByteCode;
+	char* pVertexShaderByteCode;
 	int vertexShaderByteCodeLength;
-	LoadShaderByteCode((standardStringInstallPath + "\\SampleVertexShader.cso").c_str(), pVertexShadeByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\Sample_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
 	// Load the pixel shader
-	char* pPixelShadeByteCode;
+	char* pPixelShaderByteCode;
 	int pixelShaderByteCodeLength;
-	LoadShaderByteCode((standardStringInstallPath + "\\SamplePixelShader.cso").c_str(), pPixelShadeByteCode, pixelShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\Sample_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
 
 	// Create the pipeline state once the shaders are loaded.
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTexture::input_elements, ShaderStructureCPUVertexPositionNormalTexture::input_element_count };
+	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
 	state.pRootSignature = root_signature.Get();
-	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
-	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
+	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
 	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -189,25 +192,25 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_default)));
 
 	// Shader data can be deleted once the pipeline state is created.
-	delete[] pVertexShadeByteCode;
-	delete[] pPixelShadeByteCode;
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 #pragma endregion
 
 #pragma region Voxelizer Pipeline State
 	// Load the geometry shader
 	char* pGeometryShaderByteCode;
 	int geometryShaderByteCodeLength;
+	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
 	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_GS.cso").c_str(), pGeometryShaderByteCode, geometryShaderByteCodeLength);
-	//LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_VS.cso").c_str(), pVertexShadeByteCode, vertexShaderByteCodeLength);
-	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_PS.cso").c_str(), pPixelShadeByteCode, pixelShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\Voxelizer_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
 	// Create the pipeline state once the shaders are loaded.
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC voxelizerState = {};
-	voxelizerState.InputLayout = { ShaderStructureCPUVertexPositionNormalColor::input_elements, ShaderStructureCPUVertexPositionNormalColor::input_element_count };
+	voxelizerState.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
 	voxelizerState.pRootSignature = root_signature.Get();
+	voxelizerState.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
 	voxelizerState.GS = CD3DX12_SHADER_BYTECODE(pGeometryShaderByteCode, geometryShaderByteCodeLength);
-	//voxelizerState.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
-	voxelizerState.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
+	voxelizerState.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
 	D3D12_RASTERIZER_DESC rasterizerDesc;
 	rasterizerDesc.FillMode = D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID;
 	rasterizerDesc.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_NONE;
@@ -225,20 +228,21 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
 	depthStencilDesc.DepthEnable = false;
 	depthStencilDesc.StencilEnable = false;
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	voxelizerState.DepthStencilState = depthStencilDesc;
 	voxelizerState.SampleMask = UINT_MAX;
 	voxelizerState.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	voxelizerState.NumRenderTargets = 1;
+	//voxelizerState.NumRenderTargets = 1;
 	//state.RTVFormats[0] = device_resources->GetBackBufferFormat();
 	//state.DSVFormat = device_resources->GetDepthBufferFormat();
 	voxelizerState.SampleDesc.Count = 1;
 
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_voxelizer)));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&voxelizerState, IID_PPV_ARGS(&pipeline_state_voxelizer)));
 
 	// Shader data can be deleted once the pipeline state is created.
+	delete[] pVertexShaderByteCode;
 	delete[] pGeometryShaderByteCode;
-	delete[] pVertexShadeByteCode;
-	delete[] pPixelShadeByteCode;
+	delete[] pPixelShaderByteCode;
 
 	// Setup the voxelizer viewport
 	viewport_voxelizer.Width = voxel_grid_data.res;
@@ -255,73 +259,71 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	int computeShaderByteCodeLength;
 	LoadShaderByteCode((standardStringInstallPath + "\\RadianceTemporalCopyClear_CS.cso").c_str(), pComputeShaderByteCode, computeShaderByteCodeLength);
 
-	D3D12_COMPUTE_PIPELINE_STATE_DESC computePipelineStateDesc;
+	D3D12_COMPUTE_PIPELINE_STATE_DESC computePipelineStateDesc = {};
 	computePipelineStateDesc.pRootSignature = root_signature.Get();
 	computePipelineStateDesc.CS = CD3DX12_SHADER_BYTECODE(pComputeShaderByteCode, computeShaderByteCodeLength);
-	computePipelineStateDesc.NodeMask = NULL;
+	computePipelineStateDesc.NodeMask = 0;
 	computePipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateComputePipelineState(&computePipelineStateDesc, IID_PPV_ARGS(&pipeline_state_radiance_temporal_clear)));
+	ThrowIfFailed(d3dDevice->CreateComputePipelineState(&computePipelineStateDesc, IID_PPV_ARGS(&pipeline_state_radiance_temporal_clear)));
+
 
 	// Shader data can be deleted once the pipeline state is created.
 	delete[] pComputeShaderByteCode;
 #pragma endregion
 
-#pragma region Voxel Debug Visualization Pipeline
-	// Load shaders
-	// Get the install folder full path
-	wstring wStringInstallPath(Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
-	string standardStringInstallPath(wStringInstallPath.begin(), wStringInstallPath.end());
+#pragma region Voxel Debug Visualization Pipeline State
 	// Load the vertex shader
-	LoadShaderByteCode((standardStringInstallPath + "\\VoxelDebugDraw_VS.cso").c_str(), pVertexShadeByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\VoxelDebugDraw_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
 	// Load the pixel shader
-	LoadShaderByteCode((standardStringInstallPath + "\\VoxelDebugDraw_PS.cso").c_str(), pPixelShadeByteCode, pixelShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\VoxelDebugDraw_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
 
 	// Create the pipeline state once the shaders are loaded.
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTexture::input_elements, ShaderStructureCPUVertexPositionNormalTexture::input_element_count };
-	state.pRootSignature = root_signature.Get();
-	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShadeByteCode, vertexShaderByteCodeLength);
-	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShadeByteCode, pixelShaderByteCodeLength);
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	state.SampleMask = UINT_MAX;
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	state.NumRenderTargets = 1;
-	state.RTVFormats[0] = device_resources->GetBackBufferFormat();
-	state.DSVFormat = device_resources->GetDepthBufferFormat();
-	state.SampleDesc.Count = 1;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC voxelDebugVisualizationPiepelineStateDesc = {};
+	voxelDebugVisualizationPiepelineStateDesc.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	voxelDebugVisualizationPiepelineStateDesc.pRootSignature = root_signature.Get();
+	voxelDebugVisualizationPiepelineStateDesc.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	voxelDebugVisualizationPiepelineStateDesc.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	voxelDebugVisualizationPiepelineStateDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	voxelDebugVisualizationPiepelineStateDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	voxelDebugVisualizationPiepelineStateDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	voxelDebugVisualizationPiepelineStateDesc.SampleMask = UINT_MAX;
+	voxelDebugVisualizationPiepelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	voxelDebugVisualizationPiepelineStateDesc.NumRenderTargets = 1;
+	voxelDebugVisualizationPiepelineStateDesc.RTVFormats[0] = device_resources->GetBackBufferFormat();
+	voxelDebugVisualizationPiepelineStateDesc.DSVFormat = device_resources->GetDepthBufferFormat();
+	voxelDebugVisualizationPiepelineStateDesc.SampleDesc.Count = 1;
 
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_voxel_debug_visualization)));
+
+	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&voxelDebugVisualizationPiepelineStateDesc, IID_PPV_ARGS(&pipeline_voxel_debug_visualization)));
 
 	// Shader data can be deleted once the pipeline state is created.
-	delete[] pVertexShadeByteCode;
-	delete[] pPixelShadeByteCode;
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 #pragma endregion
 
 
 	// Create a direct command list.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_direct)));
+	ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_direct)));
 	NAME_D3D12_OBJECT(command_list_direct);
 	// Create copy command lists.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyNormalPriority(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_copy_normal_priority)));
+	ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyNormalPriority(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_copy_normal_priority)));
 	NAME_D3D12_OBJECT(command_list_copy_normal_priority);
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyHighPriority(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_copy_high_priority)));
+	ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, device_resources->GetCommandAllocatorCopyHighPriority(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_copy_high_priority)));
 	NAME_D3D12_OBJECT(command_list_copy_high_priority);
 	// Create compute command list.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, device_resources->GetCommandAllocatorCompute(), pipeline_state_radiance_temporal_clear.Get(), IID_PPV_ARGS(&command_list_compute)));
+	ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, device_resources->GetCommandAllocatorCompute(), pipeline_state_radiance_temporal_clear.Get(), IID_PPV_ARGS(&command_list_compute)));
 	NAME_D3D12_OBJECT(command_list_copy_normal_priority);
 	// Create a fences to go along with the copy command lists.
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_direct_progress)));
+	ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_direct_progress)));
 	NAME_D3D12_OBJECT(fence_command_list_direct_progress);
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_compute_progress)));
+	ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_compute_progress)));
 	NAME_D3D12_OBJECT(fence_command_list_compute_progress);
 	// This fence will be used to signal when a resource has been successfully uploaded to the gpu
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_copy_normal_priority_progress)));
+	ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_copy_normal_priority_progress)));
 	NAME_D3D12_OBJECT(fence_command_list_copy_normal_priority_progress);
-	ThrowIfFailed(device_resources->GetD3DDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_copy_high_priority_progress)));
+	ThrowIfFailed(d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_command_list_copy_high_priority_progress)));
 	NAME_D3D12_OBJECT(fence_command_list_copy_high_priority_progress);
 	for (int i = 0; i < c_frame_count; i++)
 	{
@@ -440,22 +442,22 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 
 	// Create shader resource views (SRV) of the constant buffers for the
 	// compute shader to read from.
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Buffer.NumElements = max_possible_number_of_voxels;
-	srvDesc.Buffer.StructureByteStride = sizeof(ShaderStructureCPUVoxelDebugData);
-	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+	D3D12_SHADER_RESOURCE_VIEW_DESC indirectCommandSRVDesc = {};
+	indirectCommandSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	indirectCommandSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	indirectCommandSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	indirectCommandSRVDesc.Buffer.NumElements = max_possible_number_of_voxels;
+	indirectCommandSRVDesc.Buffer.StructureByteStride = sizeof(ShaderStructureCPUVoxelDebugData);
+	indirectCommandSRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-	d3dDevice->CreateShaderResourceView(voxel_data_structured_buffer.Get(), &srvDesc, cbv_srv_uav_cpu_handle);
+	d3dDevice->CreateShaderResourceView(voxel_data_structured_buffer.Get(), &indirectCommandSRVDesc, cbv_srv_uav_cpu_handle);
 	cbv_srv_uav_cpu_handle.Offset(cbv_srv_uav_descriptor_size);
 	
 	// Create the indirect command signature
 	// Each command consists of a CBV update and a DrawInstanced call.
 	D3D12_INDIRECT_ARGUMENT_DESC argumentDescs[2] = {};
 	argumentDescs[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
-	argumentDescs[0].ConstantBufferView.RootParameterIndex = 0;
+	argumentDescs[0].ConstantBufferView.RootParameterIndex = 10;
 	argumentDescs[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
 
 
@@ -518,14 +520,14 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	command_list_direct->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
 	// Create SRVs for the command buffers.
-	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Buffer.NumElements = max_possible_number_of_voxels;
-	srvDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);
-	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+	indirectCommandSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	indirectCommandSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	indirectCommandSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	indirectCommandSRVDesc.Buffer.NumElements = max_possible_number_of_voxels;
+	indirectCommandSRVDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);
+	indirectCommandSRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-	d3dDevice->CreateShaderResourceView(indirect_command_buffer.Get(), &srvDesc, cbv_srv_uav_cpu_handle);
+	d3dDevice->CreateShaderResourceView(indirect_command_buffer.Get(), &indirectCommandSRVDesc, cbv_srv_uav_cpu_handle);
 	cbv_srv_uav_cpu_handle.Offset(cbv_srv_uav_descriptor_size);	
 
 	// Create the unordered access views (UAVs) that store the results of the compute work.
@@ -940,8 +942,8 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 
 				// Create vertex/index views
 				scene[i].vertex_buffer_view.BufferLocation = scene[i].vertex_buffer->GetGPUVirtualAddress();
-				scene[i].vertex_buffer_view.StrideInBytes = sizeof(ShaderStructureCPUVertexPositionNormalTexture);
-				scene[i].vertex_buffer_view.SizeInBytes = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTexture);
+				scene[i].vertex_buffer_view.StrideInBytes = sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
+				scene[i].vertex_buffer_view.SizeInBytes = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
 
 				scene[i].index_buffer_view.BufferLocation = scene[i].index_buffer->GetGPUVirtualAddress();
 				scene[i].index_buffer_view.SizeInBytes = scene[i].indices.size() * sizeof(uint16_t);
@@ -1053,7 +1055,7 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 				}
 				
 				// Upload the vertex buffer to the GPU.
-				const UINT vertexBufferSize = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTexture);
+				const UINT vertexBufferSize = scene[i].vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
 				CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 				CD3DX12_RESOURCE_DESC vertexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 				ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
@@ -1137,6 +1139,7 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 
 	command_list_direct->Close();
 	ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
+	device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
 	fence_command_list_direct_progress_latest_unused_value++;
@@ -1145,8 +1148,8 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 #pragma region Radiance Temporal Copy Clear Render Pass
 	ThrowIfFailed(command_list_compute->Reset(device_resources->GetCommandAllocatorCompute(), pipeline_state_radiance_temporal_clear.Get()));
 	command_list_compute->SetComputeRootSignature(root_signature.Get());
-	ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv_srv_uav.Get() };
-	command_list_compute->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+	ID3D12DescriptorHeap* ppHeapsRadianceTemporalCopyClearPass[] = { descriptor_heap_cbv_srv_uav.Get() };
+	command_list_compute->SetDescriptorHeaps(_countof(ppHeapsRadianceTemporalCopyClearPass), ppHeapsRadianceTemporalCopyClearPass);
 	AssignDescriptors(command_list_compute.Get(), true, currentFrameIndex);
 	if (voxelDebugVisualization == true)
 	{
@@ -1172,8 +1175,8 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_voxel_debug_visualization.Get()));
 		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
 
-		ID3D12DescriptorHeap* ppHeaps[] = { descriptor_heap_cbv_srv_uav.Get() };
-		command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		ID3D12DescriptorHeap* ppHeapsVoxelDebugViewPass[] = { descriptor_heap_cbv_srv_uav.Get() };
+		command_list_direct->SetDescriptorHeaps(_countof(ppHeapsVoxelDebugViewPass), ppHeapsVoxelDebugViewPass);
 		AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
 
 		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());

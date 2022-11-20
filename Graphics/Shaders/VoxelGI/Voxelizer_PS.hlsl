@@ -41,7 +41,7 @@ float4 DoSpotLight(float3 V, float3 P, float3 N)
 }
 */
 
-void main(GeometryShaderOutput input)
+void main(VoxelizerGeometryShaderOutput input)
 {
 	uint3 voxelIndex = (input.position_world_space - voxel_grid_data.bottom_left_point_world_space) * voxel_grid_data.voxel_extent_rcp;
 	float4 color = input.color;

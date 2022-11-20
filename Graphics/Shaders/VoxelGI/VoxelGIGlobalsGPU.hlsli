@@ -1,22 +1,46 @@
 #ifndef _VOXEL_GI_GLOBALS_
 #define _VOXEL_GI_GLOBALS_
 
-struct GeometryShaderInput
+struct VoxelizerVertexShaderInput
 {
 	float3 position : POSITION;
 	float3 normal : NORMAL;
-	float2 color : COLOR;
+	float2 tex_coord : TEXCOORD;
+	float3 color : COLOR;
+};
+
+struct VoxelizerVertexShaderOutput
+{
+	float4 position_voxel_grid_space : SV_POSITION;
+	centroid float3 position_world_space : POSITION1; // needs to be in world space so that we can convert it to a voxel grid index
+	centroid float3 position_view_space : POSITION2; // needs to be in view space so that lighting can be calculated
+	float3 normal : NORMAL;
+	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
+	float4 color : COLOR;
 };
 
 // Centroid interpolation is used to avoid floating voxels in some cases
-struct GeometryShaderOutput
+struct VoxelizerGeometryShaderOutput
+{
+	float4 position_voxel_grid_space : SV_POSITION;
+	centroid float3 position_world_space : POSITION1; // needs to be in world space so that we can convert it to a voxel grid index
+	centroid float3 position_view_space : POSITION2; // needs to be in view space so that lighting can be calculated
+	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
+	centroid float4 color : COLOR;
+};
+
+struct VoxelDebugViewVertexShaderInput
+{
+	float3 pos : POSITION;
+	float3 normal : NORMAL;
+	float2 tex_coord : TEXCOORD;
+	float3 color : COLOR;
+};
+
+struct VoxelDebugViewPixelShaderInput
 {
 	float4 position : SV_POSITION;
-	centroid float3 position_world_space : POSITION3D; // needs to be in world space so that we can convert it to a voxel grid index
-	centroid float3 position_view_space : POSITION; // needs to be in view space so that lighting can be calculated
-	centroid float4 color : COLOR;
-	centroid float3 normal_view_space : NORMAL; // needs to be in view space so that lighting can be calculated
-	
+	float4 color : COLOR;
 };
 
 struct VoxelType
@@ -41,7 +65,7 @@ struct ShaderStructureGPUVoxelGridData
 	bool secondary_bounce_enabled;
 	bool reflections_enabled;
 	bool center_changed_this_frame;
-	uint mips = 7;
+	uint mips;
 };
 
 struct ShaderStructureGPUSpotLight

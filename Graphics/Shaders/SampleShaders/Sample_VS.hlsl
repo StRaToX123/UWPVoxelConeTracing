@@ -7,6 +7,7 @@ struct VertexShaderInput
 	float3 pos : POSITION;
 	float3 nor : NORMAL;
 	float2 tex : TEXCOORD;
+	float3 col : COLOR;
 };
 
 struct PixelShaderInput
@@ -16,8 +17,8 @@ struct PixelShaderInput
 };
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
-ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b1);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b2);
+ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b3);
 
 PixelShaderInput main(VertexShaderInput input)
 {

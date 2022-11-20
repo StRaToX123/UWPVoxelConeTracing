@@ -2,13 +2,10 @@
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli"
 
 
-ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
-ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b3);
 
 [maxvertexcount(3)]
-void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometryShaderOutput> outputStream)
+void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<VoxelizerGeometryShaderOutput> outputStream)
 {
 	float3 faceNormal = abs(input[0].normal + input[1].normal + input[2].normal);
 	uint maxFaceNormalIndex = faceNormal[1] > faceNormal[0] ? 1 : 0;
@@ -16,30 +13,28 @@ void main(triangle GeometryShaderInput input[3], inout TriangleStream<GeometrySh
 
 	for (uint i = 0; i < 3; ++i)
 	{
-		GeometryShaderOutput output;
-		output.position = float4(input[i].position, 1.0f);
-		output.position = mul(output.position, transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model);
-		output.position_world_space = output.position.xyz;
-		output.position_view_space = mul(float4(output.position_world_space, 1.0f), view_projection_matrix_buffer.view).xyz;
-		// World space -> Voxel grid space:
-		output.position = (output.position.xyz - voxel_grid_data.center_world_space) * voxel_grid_data.voxel_half_extent_rcp;
+		VoxelizerGeometryShaderOutput output;
+		output.position_voxel_grid_space = input[i].position_voxel_grid_space;
+		
 		// Project onto dominant axis:
 		[flatten]
 		if (maxFaceNormalIndex == 0)
 		{
-			output.position.xyz = output.position.zyx;
+			output.position_voxel_grid_space.xyz = output.position_voxel_grid_space.zyx;
 		}
 		else if (maxFaceNormalIndex == 1)
 		{
-			output.position.xyz = output.position.xzy;
+			output.position_voxel_grid_space.xyz = output.position_voxel_grid_space.xzy;
 		}
 
 		// Voxel grid space -> Clip space
-		output.position.xy *= voxel_grid_data.res_rcp;
-		output.position.zw = 1;
-
+		output.position_voxel_grid_space.xy *= voxel_grid_data.res_rcp;
+		output.position_voxel_grid_space.zw = 1;
+		// Append the rest of the data
 		output.color = input[i].color;
-		output.normal_view_space = mul(float4(input[i].normal, 1.0f), transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].inverse_transpose_model_view).xyz;
+		output.normal_view_space = input[i].normal_view_space;
+		output.position_view_space = input[i].position_view_space;
+		output.position_world_space = input[i].position_world_space;
 
 		outputStream.Append(output);
 	}
