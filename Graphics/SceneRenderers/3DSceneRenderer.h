@@ -127,7 +127,6 @@ class SceneRenderer3D
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
 		struct IndirectCommand
 		{
-			D3D12_GPU_VIRTUAL_ADDRESS cbv;
 			D3D12_DRAW_ARGUMENTS draw_arguments;
 		};
 
@@ -152,8 +151,11 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_procesed_commands_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_procesed_commands_upload_buffer[c_frame_count];
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_processed_command_counter_reset_buffer;
-		UINT                                                   c_indirect_processed_command_counter_offset;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_upload_buffer[c_frame_count];
+		UINT                                                   indirect_processed_command_counter_offset;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;

@@ -17,7 +17,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
 	camera_controller_yaw(0.0f),
-	voxel_debug_visualization(false)
+	voxel_debug_visualization(true)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic

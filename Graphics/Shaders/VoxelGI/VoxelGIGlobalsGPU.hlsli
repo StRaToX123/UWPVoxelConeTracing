@@ -83,8 +83,10 @@ struct ShaderStructureGPUSpotLight
 
 struct IndirectCommandGPU
 {
-	uint2 cbv;
-	uint4 draw_command;
+	uint vertex_count_per_instance;
+	uint instance_count;
+	uint start_vertex_location;
+	uint start_instance_location;
 };
 
 struct ShaderStructureGPUVoxelDebugData

@@ -13,7 +13,6 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 	VoxelType voxel = input_output[dispatchThreadID.x];
 	const float4 color = UnpackVoxelColor(voxel.color);
 	const uint3 writecoord = UnFlatten1DTo3DIndex(dispatchThreadID.x, voxel_grid_data.res);
-
 	[branch]
 	if (color.a > 0)
 	{
