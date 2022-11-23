@@ -1,11 +1,12 @@
 #include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli"
 #include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\ShaderGlobalsGPU.hlsli"
 
-RWStructuredBuffer<VoxelType> input_output : register(u1);
-RWTexture3D<float4> output_emission : register(u2);
+RWStructuredBuffer<VoxelType> input_output : register(u2);
+RWTexture3D<float4> output_emission : register(u3);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
-StructuredBuffer<IndirectCommandGPU> input_commands : register(t2);
-AppendStructuredBuffer<IndirectCommandGPU> output_commands : register(u0);
+StructuredBuffer<ShaderStructureGPUVoxelDebugData> voxel_debug_data : register(t1);
+AppendStructuredBuffer<ShaderStructureGPUVoxelDebugData> voxel_debug_data_required_for_frame_draw : register(u0);
+globallycoherent RWStructuredBuffer<uint> voxel_debug_indirect_command: register(u1);
 
 [numthreads(256, 1, 1)]
 void main(uint dispatchThreadID : SV_DispatchThreadID)
@@ -19,9 +20,8 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 		// Blend voxels with the previous frame's data to avoid popping artifacts for dynamic objects:
 		// This operation requires Feature: Typed UAV additional format loads!
 		output_emission[writecoord] = lerp(output_emission[writecoord], float4(color.rgb, 1), 0.2f);
-		// Append an indirect command that can draw a debug cube in the place of this voxel
-		// These indirect commands are used by the voxel debug view 
-		output_commands.Append(input_commands[dispatchThreadID.x]);
+		voxel_debug_data_required_for_frame_draw.Append(voxel_debug_data[dispatchThreadID.x]);
+		InterlockedAdd(voxel_debug_indirect_command[1], 1); // the uint at index 1 coresponds to the instance_count member variable of the IndirectCommandGPU struct 
 	}
 	else
 	{

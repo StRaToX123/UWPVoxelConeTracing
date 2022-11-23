@@ -17,7 +17,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
 	camera_controller_yaw(0.0f),
-	voxel_debug_visualization(true)
+	show_voxel_debug_view(true)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -96,6 +96,7 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 {
 	core_window = coreWindow;
 	device_resources = deviceResources;
+
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera));
 	OnWindowSizeChanged();
@@ -388,18 +389,14 @@ void VoxelConeTracingMain::Update()
 
 void VoxelConeTracingMain::Render()
 {
+	// Render out the scene
+	ID3D12GraphicsCommandList* _commandList = scene_renderer->Render(scene, camera, show_voxel_debug_view);
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplUWP_NewFrame();
 		ImGui::NewFrame();
-	}
-
-	
-
-	ID3D12GraphicsCommandList* pCommandList = scene_renderer->Render(scene, camera, voxel_debug_visualization);
-	if (show_imGui == true)
-	{
+		
 		ImGui::ShowDemoWindow();
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -407,7 +404,7 @@ void VoxelConeTracingMain::Render()
 		ImGui::Text("ImGui Mouse Pos:");               
 		ImGui::InputFloat("MouseX", &io.MousePos.x);
 		ImGui::InputFloat("MouseY", &io.MousePos.y);
-		ImGui::Checkbox("Voxel Debug Visualization", &voxel_debug_visualization);
+		ImGui::Checkbox("Voxel Debug Visualization", &show_voxel_debug_view);
 		ImGui::End();
 
 		/*
@@ -421,20 +418,20 @@ void VoxelConeTracingMain::Render()
 
 		ImGui::Render();
 		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
-		pCommandList->SetDescriptorHeaps(1, imGuiHeaps);
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pCommandList);
+		_commandList->SetDescriptorHeaps(1, imGuiHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _commandList);
 	}
 
 	// Finish up the rendering 
 	// Indicate that the render target will now be used to present when the command list is done executing.
 	CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
 		CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	pCommandList->ResourceBarrier(1, &presentResourceBarrier);
+	_commandList->ResourceBarrier(1, &presentResourceBarrier);
 
-	ThrowIfFailed(pCommandList->Close());
+	ThrowIfFailed(_commandList->Close());
 
 	// Execute the command list.
-	ID3D12CommandList* ppCommandLists[] = { pCommandList };
+	ID3D12CommandList* ppCommandLists[] = { _commandList };
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 

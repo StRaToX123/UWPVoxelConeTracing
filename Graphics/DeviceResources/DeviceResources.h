@@ -8,6 +8,7 @@
 #include "Graphics\DeviceResources\DeviceResourcesCommon.h"
 #include "Utility/Time/HighResolutionClock.h"
 #include "Utility/Debugging/DebugMessage.h"
+#include "Scene/Mesh.h"
 #include <DirectXMath.h>
 #include <dxgi1_4.h>
 
@@ -56,7 +57,8 @@ class DeviceResources
 		ID3D12CommandAllocator*		GetCommandAllocatorDirect() const	{ return command_allocators_direct[current_back_buffer_index].Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyNormalPriority() const     { return command_allocator_copy_normal_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyHighPriority() const { return command_allocator_copy_high_priority.Get(); }
-		ID3D12CommandAllocator*     GetCommandAllocatorCompute() const  { return command_allocator_compute.Get(); }
+		ID3D12CommandAllocator*     GetCommandAllocatorCompute() const  { return command_allocator_compute[current_back_buffer_index].Get(); }
+		//ID3D12PipelineState*        GetDefaultPipelineState() const     { return pipeline_state_default.Get(); }
 
 		DXGI_FORMAT					GetBackBufferFormat() const			{ return m_backBufferFormat; }
 		DXGI_FORMAT					GetDepthBufferFormat() const		{ return m_depthBufferFormat; }
@@ -104,7 +106,8 @@ class DeviceResources
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocators_direct[c_frame_count];
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_high_priority;
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_compute;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_compute[c_frame_count];
+		//Microsoft::WRL::ComPtr<ID3D12PipelineState>     pipeline_state_default;
 		DXGI_FORMAT										m_backBufferFormat;
 		DXGI_FORMAT										m_depthBufferFormat;
 		D3D12_VIEWPORT									m_screenViewport;

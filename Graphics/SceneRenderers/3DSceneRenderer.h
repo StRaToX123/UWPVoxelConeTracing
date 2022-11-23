@@ -10,7 +10,7 @@
 #include "Utility/Debugging/DebugMessage.h"
 #include "Utility/Memory/Allocators/PreAllocator.h"
 #include "Scene/Camera.h"
-#include "Scene/Mesh.h"
+//#include "Scene/Mesh.h"
 #include "Scene/Light.h"
 
 
@@ -54,7 +54,7 @@ class SceneRenderer3D
 		// Direct3D resources for cube geometry.
 		std::shared_ptr<DeviceResources>                       device_resources;
 		UINT                                                   previous_frame_index;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>      command_list_direct;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_direct;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_copy_high_priority;
 		Microsoft::WRL::ComPtr<ID3D12Fence>				       fence_command_list_direct_progress;
@@ -72,7 +72,6 @@ class SceneRenderer3D
 		bool                                                   command_allocator_copy_high_priority_already_reset;
 		bool                                                   command_list_copy_high_priority_requires_reset;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			   root_signature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_default;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_cbv_srv_uav;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_sampler;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
@@ -143,6 +142,7 @@ class SceneRenderer3D
 		ShaderStructureCPUVoxelGridData*                       voxel_grid_data_constant_mapped_buffer;
 		UINT                                                   voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>      command_list_compute;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_default;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;

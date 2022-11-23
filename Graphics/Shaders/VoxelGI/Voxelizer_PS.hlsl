@@ -2,7 +2,7 @@
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli"
 
 
-RWStructuredBuffer<VoxelType> output : register(u1);
+RWStructuredBuffer<VoxelType> output : register(u2);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 //ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_data : register(b3);
 

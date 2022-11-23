@@ -62,5 +62,8 @@ class VoxelConeTracingMain
 		
 		ShaderStructureCPUSpotLight spot_light;
 
-		bool voxel_debug_visualization;
+		bool show_voxel_debug_view;
+
+		//Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list_direct;
+
 };
