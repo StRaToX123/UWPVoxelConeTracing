@@ -29,7 +29,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(8);
+	scene.reserve(1);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
 		scene.emplace_back(Mesh(true));
@@ -38,6 +38,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	// Initialize and setup the Cornell box
 	scene[0].InitializeAsPlane(2.0f, 2.0f);
 	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	/*
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
 	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 	scene[2].InitializeAsPlane(2.0f, 2.0f);
@@ -80,6 +81,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[7].world_position.x = 0.3f;
 	scene[7].world_position.y = 0.2f;
 	scene[7].world_position.z = -0.3f;
+	*/
 
 	// Setup the spot light
 	/*

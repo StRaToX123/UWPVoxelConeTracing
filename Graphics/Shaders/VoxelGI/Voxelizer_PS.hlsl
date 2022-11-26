@@ -43,7 +43,8 @@ float4 DoSpotLight(float3 V, float3 P, float3 N)
 
 void main(VoxelizerGeometryShaderOutput input)
 {
-	uint3 voxelIndex = (input.position_world_space - voxel_grid_data.bottom_left_point_world_space) * voxel_grid_data.voxel_extent_rcp;
+	float3 voxelGridBottomLeftPointWorldSpace = float3(voxel_grid_data.bottom_left_point_world_space_x, voxel_grid_data.bottom_left_point_world_space_y, voxel_grid_data.bottom_left_point_world_space_z);
+	uint3 voxelIndex = (input.position_world_space - voxelGridBottomLeftPointWorldSpace) * voxel_grid_data.voxel_extent_rcp;
 	float4 color = input.color;
 	//color.rgb *= DoSpotLight(normalize(-input.position_view_space), input.position_view_space, normalize(input.normal_view_space)) / PI;
 
@@ -53,6 +54,5 @@ void main(VoxelizerGeometryShaderOutput input)
 	// output:
 	uint id = Flatten3DIndex(voxelIndex, voxel_grid_data.res);
 	InterlockedMax(output[id].color, colorEncoded);
-	InterlockedMax(output[id].normal, colorEncoded);
-	
+	InterlockedMax(output[id].normal, normalEncoded);
 }

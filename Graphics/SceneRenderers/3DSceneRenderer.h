@@ -50,6 +50,7 @@ class SceneRenderer3D
 
 		// Constant buffers must be aligned to the D3D12_TEXTURE_DATA_PITCH_ALIGNMENT.
 		static const UINT c_aligned_view_projection_matrix_constant_buffer = (sizeof(ShaderStructureCPUViewProjectionBuffer) + 255) & ~255;
+		static const UINT c_aligned_transform_matrix_buffer = ((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) * TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES) + 255) & ~255;
 		
 		// Direct3D resources for cube geometry.
 		std::shared_ptr<DeviceResources>                       device_resources;
@@ -96,30 +97,33 @@ class SceneRenderer3D
 		{
 			ShaderStructureCPUVoxelGridData()
 			{
-				UpdateBottomLeftPointWorldSpace();
+				UpdateBottomLeftPointWorldSpaceAndGridHalfExtentRcp();
 			};
 
-			void UpdateBottomLeftPointWorldSpace()
+			void UpdateBottomLeftPointWorldSpaceAndGridHalfExtentRcp()
 			{
-				bottom_left_point_world_space.x = -(res * voxel_half_extent);
-				bottom_left_point_world_space.y = bottom_left_point_world_space.x;
-				bottom_left_point_world_space.z = bottom_left_point_world_space.x;
-			};
+				bottom_left_point_world_space_x = -((float)res * (voxel_extent / 2.0f));
+				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
+				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
+				grid_half_extent_rcp = 1.0f / (-bottom_left_point_world_space_x);
+			}
 
 			uint32_t res = 256;
-			float res_rcp = 1.0f / 256.0f;
 			float voxel_extent = 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
-			float voxel_half_extent = 0.0078125f / 2.0f;
-			float voxel_half_extent_rcp = 1.0f / (0.0078125f / 2.0f);
-			XMFLOAT3 bottom_left_point_world_space = XMFLOAT3(0, 0, 0);
-			XMFLOAT3 center_world_space = XMFLOAT3(0, 0, 0);
+			float grid_half_extent_rcp;
+			float bottom_left_point_world_space_x = 0.0f;
+			float bottom_left_point_world_space_y = 0.0f;
+			float bottom_left_point_world_space_z = 0.0f;
+			float center_world_space_x = 0.0f;
+			float center_world_space_y = 0.0f;
+			float center_world_space_z = 0.0f;
 			uint32_t num_cones = 2;
 			float ray_step_size = 0.0058593f;
 			float max_distance = 5.0f;
-			bool secondary_bounce_enabled = false;
-			bool reflections_enabled = true;
-			bool center_changed_this_frame = true;
+			uint32_t secondary_bounce_enabled = 1;
+			uint32_t reflections_enabled = 1;
+			uint32_t center_changed_this_frame = 0;
 			uint32_t mips = 7;
 		};
 
@@ -139,7 +143,7 @@ class SceneRenderer3D
 		ShaderStructureCPUVoxelGridData                        voxel_grid_data;
 		UINT                                                   voxel_grid_allowed_resolutions[4];
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_grid_data_constant_buffer;
-		ShaderStructureCPUVoxelGridData*                       voxel_grid_data_constant_mapped_buffer;
+		UINT8*                                                 voxel_grid_data_constant_mapped_buffer;
 		UINT                                                   voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>      command_list_compute;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_default;
