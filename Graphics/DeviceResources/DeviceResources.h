@@ -58,7 +58,6 @@ class DeviceResources
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyNormalPriority() const     { return command_allocator_copy_normal_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyHighPriority() const { return command_allocator_copy_high_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCompute() const  { return command_allocator_compute[current_back_buffer_index].Get(); }
-		//ID3D12PipelineState*        GetDefaultPipelineState() const     { return pipeline_state_default.Get(); }
 
 		DXGI_FORMAT					GetBackBufferFormat() const			{ return m_backBufferFormat; }
 		DXGI_FORMAT					GetDepthBufferFormat() const		{ return m_depthBufferFormat; }

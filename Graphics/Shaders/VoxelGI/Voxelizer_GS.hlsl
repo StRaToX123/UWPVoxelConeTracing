@@ -35,6 +35,8 @@ void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<Vo
 		output.normal_view_space = input[i].normal_view_space;
 		output.position_view_space = input[i].position_view_space;
 		output.position_world_space = input[i].position_world_space;
+		
+		output.tex_coord = input[i].tex_coord;
 
 		outputStream.Append(output);
 	}

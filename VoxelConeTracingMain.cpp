@@ -36,7 +36,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	}
 
 	// Initialize and setup the Cornell box
-	scene[0].InitializeAsPlane(2.0f, 2.0f);
+	scene[0].InitializeAsCube(1.0f);
 	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 	/*
 	scene[1].InitializeAsPlane(2.0f, 2.0f);

@@ -23,6 +23,7 @@ VoxelizerVertexShaderOutput main(VoxelizerVertexShaderInput input)
 	
 	output.normal = input.normal;
 	output.color = float4(input.color, 1.0f);
+	output.tex_coord = input.tex_coord;
 	
 	return output;
 }

@@ -17,6 +17,7 @@ struct VoxelizerVertexShaderOutput
 	float3 normal : NORMAL;
 	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
 	float4 color : COLOR;
+	float2 tex_coord : TEXCOORD;
 };
 
 // Centroid interpolation is used to avoid floating voxels in some cases
@@ -27,6 +28,7 @@ struct VoxelizerGeometryShaderOutput
 	centroid float3 position_view_space : POSITION2; // needs to be in view space so that lighting can be calculated
 	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
 	centroid float4 color : COLOR;
+	float2 tex_coord : TEXCOORD;
 };
 
 struct VoxelDebugDrawVertexShaderInput
@@ -53,9 +55,10 @@ struct VoxelType
 struct ShaderStructureGPUVoxelGridData
 {
 	uint res;
+	float grid_extent;
+	float grid_half_extent_rcp;
 	float voxel_extent;
 	float voxel_extent_rcp;
-	float grid_half_extent_rcp;
 	float bottom_left_point_world_space_x;
 	float bottom_left_point_world_space_y;
 	float bottom_left_point_world_space_z;
@@ -86,9 +89,10 @@ struct ShaderStructureGPUSpotLight
 
 struct IndirectCommandGPU
 {
-	uint vertex_count_per_instance;
+	uint index_count_per_instance;
 	uint instance_count;
-	uint start_vertex_location;
+	uint start_index_location;
+	int base_vertex_location;
 	uint start_instance_location;
 };
 

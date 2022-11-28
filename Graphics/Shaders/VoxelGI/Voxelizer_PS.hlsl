@@ -2,6 +2,8 @@
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli"
 
 
+Texture2D<float4> test_texture : register(t0);
+SamplerState samp : register(s0);
 RWStructuredBuffer<VoxelType> output : register(u2);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 //ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_data : register(b3);
@@ -48,7 +50,8 @@ void main(VoxelizerGeometryShaderOutput input)
 	float4 color = input.color;
 	//color.rgb *= DoSpotLight(normalize(-input.position_view_space), input.position_view_space, normalize(input.normal_view_space)) / PI;
 
-	uint colorEncoded = PackVoxelColor(color);
+	//uint colorEncoded = PackVoxelColor(color);
+	uint colorEncoded = PackVoxelColor(pow(abs(test_texture.Sample(samp, input.tex_coord)), 1.0f / 2.2f));
 	uint normalEncoded = PackUnitvector(input.normal_view_space);
 
 	// output:

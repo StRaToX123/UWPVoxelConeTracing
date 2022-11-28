@@ -95,23 +95,47 @@ class SceneRenderer3D
 		//////////////
 		struct ShaderStructureCPUVoxelGridData
 		{
-			ShaderStructureCPUVoxelGridData()
+			enum AllowedResolution
 			{
-				UpdateBottomLeftPointWorldSpaceAndGridHalfExtentRcp();
+				RES_16 = 16,
+				RES_32 = 32,
+				RES_64 = 64,
+				RES_128 = 128,
+				RES_256 = 256,
+				MAX_RES = 256
 			};
 
-			void UpdateBottomLeftPointWorldSpaceAndGridHalfExtentRcp()
+			ShaderStructureCPUVoxelGridData()
 			{
+				UpdateRes(AllowedResolution::MAX_RES);
+			};
+
+			
+
+			void UpdateRes(AllowedResolution newRes)
+			{
+				res = newRes;
+				voxel_extent = grid_extent / (float)res;
+				voxel_extent_rcp = 1.0f / voxel_extent;
 				bottom_left_point_world_space_x = -((float)res * (voxel_extent / 2.0f));
 				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
 				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
 				grid_half_extent_rcp = 1.0f / (-bottom_left_point_world_space_x);
-			}
+			};
+
+			void UpdateGirdExtent(float gridExtent)
+			{
+				grid_extent = gridExtent;
+				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
+				voxel_extent = grid_extent / (float)res;
+				voxel_extent_rcp = 1.0f / voxel_extent;
+			};
 
 			uint32_t res = 256;
+			float grid_extent = 2.0f;
+			float grid_half_extent_rcp = 1.0f;
 			float voxel_extent = 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
-			float grid_half_extent_rcp;
 			float bottom_left_point_world_space_x = 0.0f;
 			float bottom_left_point_world_space_y = 0.0f;
 			float bottom_left_point_world_space_z = 0.0f;
@@ -130,7 +154,7 @@ class SceneRenderer3D
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
 		struct IndirectCommand
 		{
-			D3D12_DRAW_ARGUMENTS draw_arguments;
+			D3D12_DRAW_INDEXED_ARGUMENTS draw_indexed_arguments;
 		};
 
 		struct ShaderStructureCPUVoxelDebugData
@@ -139,9 +163,10 @@ class SceneRenderer3D
 			XMFLOAT4X4 debug_cube_model_transform_matrix;
 		};
 
-		UINT64                                                 max_possible_number_of_voxels;
+		// This value is saved as a member variable so that we dont have to keep recalculating it every frame
+		// when we're trying to dispatch a compute shader with the number of thread equal to the number of voxels in the scene
+		UINT64                                                 number_of_voxels_in_grid;
 		ShaderStructureCPUVoxelGridData                        voxel_grid_data;
-		UINT                                                   voxel_grid_allowed_resolutions[4];
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_grid_data_constant_buffer;
 		UINT8*                                                 voxel_grid_data_constant_mapped_buffer;
 		UINT                                                   voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version;
@@ -154,12 +179,12 @@ class SceneRenderer3D
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_procesed_commands_buffer[c_frame_count];
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_procesed_commands_upload_buffer[c_frame_count];
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_processed_command_counter_reset_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_draw_required_voxel_debug_data_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_draw_required_voxel_debug_data_upload_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_voxel_debug_data_counter_reset_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_buffer[c_frame_count];
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_upload_buffer[c_frame_count];
-		UINT                                                   indirect_processed_command_counter_offset;
+		UINT                                                   indirect_draw_required_voxel_debug_data_counter_offset;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;

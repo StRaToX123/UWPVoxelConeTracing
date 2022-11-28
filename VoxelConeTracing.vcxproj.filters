@@ -428,5 +428,8 @@
     <Image Include="Assets\woah.jpg">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="Assets\me.jpg">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>
