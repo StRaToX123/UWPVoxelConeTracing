@@ -20,9 +20,12 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 		// Blend voxels with the previous frame's data to avoid popping artifacts for dynamic objects:
 		// This operation requires Feature: Typed UAV additional format loads!
 		//output_emission[writecoord] = lerp(output_emission[writecoord], float4(color.rgb, 1), 0.2f);
-		voxel_debug_data_required_for_frame_draw.Append(voxel_debug_data[dispatchThreadID.x]);
+		ShaderStructureGPUVoxelDebugData voxel = voxel_debug_data[dispatchThreadID.x];
+		voxel.color_r = color.r;
+		voxel.color_g = color.g;
+		voxel.color_b = color.b;
+		voxel_debug_data_required_for_frame_draw.Append(voxel);
 		InterlockedAdd(voxel_debug_indirect_command[0].instance_count, 1);
-
 	}
 	//else
 	//{
@@ -30,5 +33,5 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 	//}
 
 	// Delete emission data, but keep normals (no need to delete, we will only read normal values of filled voxels)
-	//input_output[dispatchThreadID.x].color = 0;
+	input_output[dispatchThreadID.x].color = 0;
 }

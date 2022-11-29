@@ -98,7 +98,9 @@ struct IndirectCommandGPU
 
 struct ShaderStructureGPUVoxelDebugData
 {
-	uint voxel_index;
+	float color_r;
+	float color_g;
+	float color_b;
 	matrix model;
 };
 

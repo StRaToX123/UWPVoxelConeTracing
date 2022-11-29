@@ -32,12 +32,13 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene.reserve(1);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
-		scene.emplace_back(Mesh(true));
+		scene.emplace_back(Mesh(false));
 	}
 
 	// Initialize and setup the Cornell box
 	scene[0].InitializeAsCube(1.0f);
-	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	//scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	scene[0].local_rotation.y = 0.0f;
 	/*
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
 	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
@@ -53,6 +54,8 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[6].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 	scene[7].InitializeAsSphere(0.4f);
 	scene[7].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+
+	scene[0].world_position.y = -1.0f;
 
 	scene[1].world_position.x = 1.0f;
 	scene[1].world_position.y = 1.0f;
@@ -74,15 +77,14 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[5].local_rotation.x = 180.0f;
 
 	scene[6].world_position.x = -0.3f;
-	scene[6].world_position.y = 0.25f;
+	scene[6].world_position.y = -0.75f;
 	scene[6].world_position.z = 0.3f;
 
 
 	scene[7].world_position.x = 0.3f;
-	scene[7].world_position.y = 0.2f;
+	scene[7].world_position.y = -0.8f;
 	scene[7].world_position.z = -0.3f;
 	*/
-
 	// Setup the spot light
 	/*
 	spot_light.world_position.y = 1.99f;
@@ -335,7 +337,7 @@ void VoxelConeTracingMain::Update()
 	}
 	else
 	{
-		// Keyboard and mouse controlls
+		// Keyboard and mouse controlls (SPACE key cannot be handled by the HandleKeyboardInput callback, so we will have to check for it each frame, here in the update function)
 		if (show_imGui == false)
 		{
 			camera_controller_rotation_multiplier = 0.03f;
@@ -371,12 +373,23 @@ void VoxelConeTracingMain::Update()
 		}
 	}
 #pragma endregion
-
+	static float angle = 0.0f;
+	static float offset = 0.6f;
+	static float convToRad = 3.14f / 180.0f;
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{	
-			
+			angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+			if (angle >= 360.0f)
+			{
+				angle -= 360.0f;
+			}
+
+			scene[0].world_position.z = offset * cos(angle * convToRad);
+		//scene[0].is_static = false;
 		//scene[0].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+		//scene[7].is_static = false;
+		//scene[7].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
 			/*
 		if (scene[1].is_static == false)
 		{

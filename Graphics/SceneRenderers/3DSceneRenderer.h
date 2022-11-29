@@ -159,7 +159,9 @@ class SceneRenderer3D
 
 		struct ShaderStructureCPUVoxelDebugData
 		{
-			UINT voxel_index;
+			float color_r;
+			float color_g;
+			float color_b;
 			XMFLOAT4X4 debug_cube_model_transform_matrix;
 		};
 

@@ -47,15 +47,28 @@ void main(VoxelizerGeometryShaderOutput input)
 {
 	float3 voxelGridBottomLeftPointWorldSpace = float3(voxel_grid_data.bottom_left_point_world_space_x, voxel_grid_data.bottom_left_point_world_space_y, voxel_grid_data.bottom_left_point_world_space_z);
 	uint3 voxelIndex = (input.position_world_space - voxelGridBottomLeftPointWorldSpace) * voxel_grid_data.voxel_extent_rcp;
+	
 	float4 color = input.color;
 	//color.rgb *= DoSpotLight(normalize(-input.position_view_space), input.position_view_space, normalize(input.normal_view_space)) / PI;
 
 	//uint colorEncoded = PackVoxelColor(color);
 	uint colorEncoded = PackVoxelColor(pow(abs(test_texture.Sample(samp, input.tex_coord)), 1.0f / 2.2f));
 	uint normalEncoded = PackUnitvector(input.normal_view_space);
-
+	
 	// output:
 	uint id = Flatten3DIndex(voxelIndex, voxel_grid_data.res);
-	InterlockedMax(output[id].color, colorEncoded);
-	InterlockedMax(output[id].normal, normalEncoded);
+	// The way the voxelIndex is calculated, it doesn't take into account what happens when the input.position_world_space
+	// is out of bounds of the grid (we don't want to render those voxels). If an index goes out of bounds by being negative, that is anywhere left of the bottom left point
+	// of the grid what happens is that negative value gets clamped to 0 since the voxelIndex variable is a uint.
+	// If the index goes out of bounds by being positive however, that means that that large index which is now > voxel_grid_data.res
+	// will wrap around when flattened in the Flatten3DIndex call and end up drawing a voxel on the other side of the axis.
+	// In order to stop this we will draw only voxels whose axis index returns a negative value when subtracted by the grid res.
+	// In other words if an axis index hasn't gone out of bounds then it is < grid res, hence it's sign of this subtraction will be negative.
+	// We do this for each axis and add those values together, if the result is -3 then no axis index went out of bounds on the positive direction.
+	int isVoxelIndexOutOfBounds = sign((int) voxelIndex.x - (int) voxel_grid_data.res) + sign((int) voxelIndex.y - (int) voxel_grid_data.res) + sign((int) voxelIndex.z - (int)voxel_grid_data.res);
+	if(isVoxelIndexOutOfBounds == -3) // -3 means it is not out of bounds
+	{
+		InterlockedMax(output[id].color, colorEncoded);
+		InterlockedMax(output[id].normal, normalEncoded);
+	}
 }
