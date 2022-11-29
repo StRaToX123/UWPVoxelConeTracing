@@ -7,7 +7,7 @@ ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 [maxvertexcount(3)]
 void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<VoxelizerGeometryShaderOutput> outputStream)
 {
-	float3 faceNormal = abs(input[0].normal + input[1].normal + input[2].normal);
+	float3 faceNormal = abs(input[0].normal_world_space + input[1].normal_world_space + input[2].normal_world_space);
 	uint maxFaceNormalIndex = faceNormal[1] > faceNormal[0] ? 1 : 0;
 	maxFaceNormalIndex = faceNormal[2] > faceNormal[maxFaceNormalIndex] ? 2 : maxFaceNormalIndex;
 

@@ -343,8 +343,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	// Create and upload the test texture
 	TexMetadata metadata;
 	ScratchImage scratchImage;
-	ThrowIfFailed(LoadFromWICFile((wStringInstallPath + L"\\Assets\\woah.jpg").c_str(), WIC_FLAGS::WIC_FLAGS_NONE, &metadata, scratchImage));
-	//ThrowIfFailed(LoadFromWICFile((wStringInstallPath + L"\\Assets\\me.jpg").c_str(), WIC_FLAGS::WIC_FLAGS_NONE, &metadata, scratchImage));
+	//ThrowIfFailed(LoadFromWICFile((wStringInstallPath + L"\\Assets\\woah.jpg").c_str(), WIC_FLAGS::WIC_FLAGS_NONE, &metadata, scratchImage));
+	ThrowIfFailed(LoadFromWICFile((wStringInstallPath + L"\\Assets\\me.jpg").c_str(), WIC_FLAGS::WIC_FLAGS_NONE, &metadata, scratchImage));
 	D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		metadata.format,
 		static_cast<UINT64>(metadata.width),
@@ -845,7 +845,6 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(c_aligned_transform_matrix_buffer),
-		//&CD3DX12_RESOURCE_DESC::Buffer((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) + 255) & ~255),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&transform_matrix_upload_buffers[0])));
@@ -855,7 +854,6 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
 	cbvDesc.BufferLocation = transform_matrix_upload_buffers[0]->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = c_aligned_transform_matrix_buffer;
-	//cbvDesc.SizeInBytes = (sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) + 255) & ~255;
 	d3dDevice->CreateConstantBufferView(&cbvDesc, cbv_srv_uav_cpu_handle);
 	cbv_srv_uav_cpu_handle.Offset(cbv_srv_uav_descriptor_size);
 
@@ -1141,7 +1139,6 @@ ID3D12GraphicsCommandList* SceneRenderer3D::Render(vector<Mesh>& scene, Camera& 
 				// this would have been it's one and only model transform update.
 				// After this it won't be updated anymore
 				scene[i].is_static = scene[i].initialized_as_static;
-				//scene[i].initialized_as_static = false;
 			}
 			else
 			{
