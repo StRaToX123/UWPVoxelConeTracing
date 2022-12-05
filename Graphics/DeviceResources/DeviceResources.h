@@ -62,6 +62,8 @@ class DeviceResources
 		DXGI_FORMAT					GetBackBufferFormat() const			{ return m_backBufferFormat; }
 		DXGI_FORMAT					GetDepthBufferFormat() const		{ return m_depthBufferFormat; }
 		D3D12_VIEWPORT				GetScreenViewport() const			{ return m_screenViewport; }
+		D3D12_RECT                  GetDefaultScissorRect() const       { return scissor_rect_default; }
+
 		DirectX::XMFLOAT4X4			GetOrientationTransform3D() const	{ return m_orientationTransform3D; }
 		UINT						GetCurrentFrameIndex() const		{ return current_back_buffer_index; }
 
@@ -94,7 +96,9 @@ class DeviceResources
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			m_dxgiFactory;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>			m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			m_renderTargets[c_frame_count];
-		int                                             current_back_buffer_index;
+		UINT                                            current_back_buffer_index;
+		UINT                                            previous_back_buffer_index;
+		UINT                                            next_back_buffer_index;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			m_depthStencil;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_rtvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_dsvHeap;
@@ -106,10 +110,10 @@ class DeviceResources
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_copy_high_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	command_allocator_compute[c_frame_count];
-		//Microsoft::WRL::ComPtr<ID3D12PipelineState>     pipeline_state_default;
 		DXGI_FORMAT										m_backBufferFormat;
 		DXGI_FORMAT										m_depthBufferFormat;
 		D3D12_VIEWPORT									m_screenViewport;
+		D3D12_RECT									    scissor_rect_default;
 		UINT											m_rtvDescriptorSize;
 		bool											m_deviceRemoved;
 

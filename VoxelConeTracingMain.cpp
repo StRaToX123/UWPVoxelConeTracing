@@ -29,52 +29,61 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(1);
+	scene.reserve(8);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
-		scene.emplace_back(Mesh(false));
+		scene.emplace_back(Mesh(true));
 	}
 
 	// Initialize and setup the Cornell box
-	scene[0].InitializeAsTorus();
-	//scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
-	scene[0].local_rotation.y = 0.0f;
+	scene[0].InitializeAsPlane(2.0f, 2.0f);
+	scene[0].name = "Plane 01";
+	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 	
-	//scene[1].InitializeAsPlane(2.0f, 2.0f);
-	//scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	/*
+	scene[1].InitializeAsPlane(2.0f, 2.0f);
+	scene[1].name = "Plane 02";
+	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+
 	scene[2].InitializeAsPlane(2.0f, 2.0f);
+	scene[2].name = "Plane 03";
 	scene[2].SetColor(XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f));
+
 	scene[3].InitializeAsPlane(2.0f, 2.0f);
+	scene[3].name = "Plane 04";
 	scene[3].SetColor(XMVectorSet(1.0f, 1.0f, 0.0f, 1.0f));
+
 	scene[4].InitializeAsPlane(2.0f, 2.0f);
+	scene[4].name = "Plane 05";
 	scene[4].SetColor(XMVectorSet(0.0f, 1.0f, 1.0f, 1.0f));
+
 	scene[5].InitializeAsPlane(2.0f, 2.0f);
+	scene[5].name = "Plane 06";
 	scene[5].SetColor(XMVectorSet(1.0f, 0.0f, 1.0f, 1.0f));
+
 	scene[6].InitializeAsCube(0.5f);
+	scene[6].name = "Cube 01";
 	scene[6].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+
 	scene[7].InitializeAsSphere(0.4f);
+	scene[7].name = "Sphere 01";
 	scene[7].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 
-	scene[0].world_position.y = -1.0f;
 
-	scene[1].world_position.x = 1.0f;
-	scene[1].world_position.y = 1.0f;
+	scene[0].world_position.y = -0.990f;
+
+	scene[1].world_position.x = 0.99f;
 	scene[1].local_rotation.z = 90.0f;
 
-	scene[2].world_position.x = -1.0f;
-	scene[2].world_position.y = 1.0f;
+	scene[2].world_position.x = -0.99f;
 	scene[2].local_rotation.z = -90.0f;
 
-	scene[3].world_position.z = 1.0f;
-	scene[3].world_position.y = 1.0f;
+	scene[3].world_position.z = 0.99f;
 	scene[3].local_rotation.x = -90.0f;
 
-	scene[4].world_position.z = -1.0f;
-	scene[4].world_position.y = 1.0f;
+	scene[4].world_position.z = -0.99f;
 	scene[4].local_rotation.x = 90.0f;
 
-	scene[5].world_position.y = 2.0f;
+	scene[5].world_position.y = 0.99f;
 	scene[5].local_rotation.x = 180.0f;
 
 	scene[6].world_position.x = -0.3f;
@@ -85,7 +94,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	scene[7].world_position.x = 0.3f;
 	scene[7].world_position.y = -0.8f;
 	scene[7].world_position.z = -0.3f;
-	*/
+
 	// Setup the spot light
 	/*
 	spot_light.world_position.y = 1.99f;
@@ -103,7 +112,76 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 	device_resources = deviceResources;
 
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
-	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera));
+	imgui_voxel_grid_selected_allowed_resolution_current_index = 3;
+	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
+	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
+	imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+#pragma region Root Signature
+	CD3DX12_DESCRIPTOR_RANGE rangeCBV;
+
+	CD3DX12_ROOT_PARAMETER parameterMVP;
+
+	rangeCBV.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+
+	parameterMVP.InitAsDescriptorTable(1, &rangeCBV, D3D12_SHADER_VISIBILITY_VERTEX);
+
+	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // Only the input assembler stage needs access to the constant buffer.
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+
+	CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
+
+	CD3DX12_ROOT_PARAMETER parameterArray[1] = {
+		parameterMVP
+	};
+
+	descRootSignature.Init(1, parameterArray, 0, nullptr, rootSignatureFlags);
+
+	ComPtr<ID3DBlob> pSignature;
+	ComPtr<ID3DBlob> pError;
+	ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf()));
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
+	root_signature->SetName(L"VoxelConeTracingMain root_signature");
+#pragma endregion
+
+#pragma region Default Pipeline
+	char* pVertexShaderByteCode;
+	int vertexShaderByteCodeLength;
+	char* pPixelShaderByteCode;
+	int pixelShaderByteCodeLength;
+	wstring wStringInstallPath(Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
+	string standardStringInstallPath(wStringInstallPath.begin(), wStringInstallPath.end());
+	LoadShaderByteCode((standardStringInstallPath + "\\Sample_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\Sample_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
+
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	state.pRootSignature = root_signature.Get();
+	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	state.SampleMask = UINT_MAX;
+	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	state.NumRenderTargets = 1;
+	state.RTVFormats[0] = device_resources->GetBackBufferFormat();
+	state.DSVFormat = device_resources->GetDepthBufferFormat();
+	state.SampleDesc.Count = 1;
+
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_default)));
+#pragma endregion
+
+	// Create command list
+	// Create direct command list
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_direct)));
+	command_list_direct->SetName(L"VoxelConeTracing command_list_direct");
+	ThrowIfFailed(command_list_direct->Close());
+
+
 	OnWindowSizeChanged();
 }
 
@@ -380,6 +458,7 @@ void VoxelConeTracingMain::Update()
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{	
+			/*
 			angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
 			if (angle >= 360.0f)
 			{
@@ -388,6 +467,7 @@ void VoxelConeTracingMain::Update()
 
 			scene[0].world_position.x = offset * cos(angle * convToRad);
 		scene[0].local_rotation.z += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+		*/
 		//scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
 		//scene[7].is_static = false;
 		//scene[7].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
@@ -405,49 +485,118 @@ void VoxelConeTracingMain::Update()
 
 void VoxelConeTracingMain::Render()
 {
+	// Transition the back buffer from present to render target
+	ThrowIfFailed(device_resources->GetCommandAllocatorDirect()->Reset());
+	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(),
+											D3D12_RESOURCE_STATE_PRESENT,
+												D3D12_RESOURCE_STATE_RENDER_TARGET);
+	command_list_direct->ResourceBarrier(1, &barrier);
+	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+	command_list_direct->ClearRenderTargetView(renderTargetView, DirectX::Colors::CornflowerBlue, 0, nullptr);
+	command_list_direct->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	
+	ThrowIfFailed(command_list_direct->Close());
+	ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
+	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
 	// Render out the scene
-	ID3D12GraphicsCommandList* _commandList = scene_renderer->Render(scene, camera, show_voxel_debug_view);
+	// If the voxel grid resolution changed, we will have to update the voxel grid data structure and all of the voxelizer buffers
+	bool updateVoxelizerBuffers = false;
+	if (imgui_voxel_grid_selected_allowed_resolution_current_index != imgui_voxel_grid_selected_allowed_resolution_previous_index)
+	{
+		updateVoxelizerBuffers = true;
+		imgui_voxel_grid_selected_allowed_resolution_previous_index = imgui_voxel_grid_selected_allowed_resolution_current_index;
+		scene_renderer->voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+		imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+	}
+
+	// If the voxel grid extent changed, we will have to call the grid's UpdateGirdExtent function 
+	// and also update the voxel grid data buffer
+	bool updateVoxelGridDataBuffers = false;
+	if (scene_renderer->voxel_grid_data.grid_extent != imgui_voxel_grid_data.grid_extent)
+	{
+		updateVoxelGridDataBuffers = true;
+		scene_renderer->voxel_grid_data.UpdateGirdExtent(imgui_voxel_grid_data.grid_extent);
+		imgui_voxel_grid_data.UpdateGirdExtent(imgui_voxel_grid_data.grid_extent);
+	}
+	
+	// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer
+	if (memcmp(&scene_renderer->voxel_grid_data, &imgui_voxel_grid_data, sizeof(SceneRenderer3D::ShaderStructureCPUVoxelGridData)) != 0)
+	{
+		updateVoxelGridDataBuffers = true;
+	}
+
+	scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
+	scene_renderer->Render(scene, camera, show_voxel_debug_view);
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplUWP_NewFrame();
 		ImGui::NewFrame();
-		
+
 		ImGui::ShowDemoWindow();
-		ImGuiIO& io = ImGui::GetIO();
 
-		ImGui::Begin("Hello, world!");                          
-		ImGui::Text("ImGui Mouse Pos:");               
-		ImGui::InputFloat("MouseX", &io.MousePos.x);
-		ImGui::InputFloat("MouseY", &io.MousePos.y);
-		ImGui::Checkbox("Voxel Debug Visualization", &show_voxel_debug_view);
+		// Scene controls
+		ImGui::SetNextWindowSize(ImVec2(400, 220), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Scene");
+		for (int i = 0; i < scene.size(); i++)
+		{
+			if (ImGui::CollapsingHeader(scene[i].name.c_str()))
+			{
+				string iAsString = to_string(i);
+				ImGui::Checkbox((string("Is Static##") + iAsString).c_str(), &scene[i].is_static);
+				ImGui::SliderFloat3((string("World Position##") + iAsString).c_str(), &scene[i].world_position.x, -5.0f, 5.0f);
+				ImGui::SliderFloat3((string("Local Rotation##") + iAsString).c_str(), &scene[i].local_rotation.x, 0.0f, 360.0f);
+			}
+		}
+
 		ImGui::End();
 
-		/*
-		ImGui::Begin("Hello, world!");                         
-		ImGui::Text("Screen mouse pos:");               
-		ImGui::InputFloat("MouseX", &camera_controller_mouse_position_x);
-		ImGui::InputFloat("MouseY", &camera_controller_mouse_position_y);
+		// Render controlls
+		ImGui::SetNextWindowPos(ImVec2(80, 380), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(400, 150), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Render Controls");
+		if (ImGui::CollapsingHeader("Voxelizer Pass"))
+		{
+			ImGui::Checkbox("Show", &show_voxel_debug_view);
+			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
+			ImGui::SliderFloat("Grid Extent", &imgui_voxel_grid_data.grid_extent, 0.5f, 10.0f);
+			ImGui::SliderInt("Number of Cones", &imgui_voxel_grid_data.num_cones, 2, 10);
+			ImGui::SliderFloat("Ray Step Size", &imgui_voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
+			ImGui::SliderFloat("Max Distance", &imgui_voxel_grid_data.max_distance, 0.5f, 10.0f);
+			ImGui::SliderInt("Enable Secondary Bounce", &imgui_voxel_grid_data.secondary_bounce_enabled, 0, 1);
+		}
+
 		ImGui::End();
-		*/
 
 
+		
 		ImGui::Render();
+		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
+		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
+		command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
+		// Bind the render target and depth buffer
+		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
+		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+		command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
 		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
-		_commandList->SetDescriptorHeaps(1, imGuiHeaps);
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _commandList);
+		command_list_direct->SetDescriptorHeaps(1, imGuiHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list_direct.Get());
+	}
+	else
+	{
+		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
 	}
 
 	// Finish up the rendering 
 	// Indicate that the render target will now be used to present when the command list is done executing.
-	CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
-		CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	_commandList->ResourceBarrier(1, &presentResourceBarrier);
-
-	ThrowIfFailed(_commandList->Close());
-
-	// Execute the command list.
-	ID3D12CommandList* ppCommandLists[] = { _commandList };
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), 
+											D3D12_RESOURCE_STATE_RENDER_TARGET, 
+												D3D12_RESOURCE_STATE_PRESENT);
+	command_list_direct->ResourceBarrier(1, &barrier);
+	ThrowIfFailed(command_list_direct->Close());
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 

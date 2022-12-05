@@ -57,7 +57,7 @@ struct ShaderStructureGPUVoxelGridData
 	uint res;
 	float grid_extent;
 	float grid_half_extent_rcp;
-	float voxel_extent;
+	float voxel_half_extent;
 	float voxel_extent_rcp;
 	float bottom_left_point_world_space_x;
 	float bottom_left_point_world_space_y;
@@ -65,10 +65,10 @@ struct ShaderStructureGPUVoxelGridData
 	float center_world_space_x;
 	float center_world_space_y;
 	float center_world_space_z;
-	uint num_cones;
+	int num_cones;
 	float ray_step_size;
 	float max_distance;
-	uint secondary_bounce_enabled;
+	int secondary_bounce_enabled;
 	uint reflections_enabled;
 	uint center_changed_this_frame;
 	uint mips;
@@ -98,10 +98,12 @@ struct IndirectCommandGPU
 
 struct ShaderStructureGPUVoxelDebugData
 {
+	uint index_x;
+	uint index_y;
+	uint index_z;
 	float color_r;
 	float color_g;
 	float color_b;
-	matrix model;
 };
 
 inline bool IsSaturated(float value)

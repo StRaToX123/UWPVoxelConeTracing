@@ -147,6 +147,7 @@ bool    ImGui_ImplUWP_Init(/*void* hwnd*/)
     
 #ifndef IMGUI_IMPL_UWP_DISABLE_GAMEPAD
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    
     /*
     LPCWSTR* xinput_dll_names[] =
     {
@@ -402,7 +403,6 @@ void ImGui_ImplUWP_UpdateGamepads_Callback(const Windows::Gaming::Input::Gamepad
         return;
     io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
     */
-
 
     io.AddKeyEvent(ImGuiKey_GamepadStart, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu));
     io.AddKeyEvent(ImGuiKey_GamepadBack, static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::View));
@@ -692,70 +692,15 @@ void ImGui_ImplUWP_PointerExited_Callback()
     io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
 }
 
-void ImGui_ImplUWP_PointerPressed_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties)
+
+void ImGui_ImplUWP_PointerButton_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties)
 {
-    int button = 0;
-    if (pointerPointProterties->IsRightButtonPressed)
-    {
-        button = 1;
-    }
-    else
-    {
-        if (pointerPointProterties->IsMiddleButtonPressed)
-        {
-            button = 2;
-        }
-        else
-        {
-            if (pointerPointProterties->IsXButton1Pressed)
-            {
-                button = 3;
-            }
-            else
-            {
-                if (pointerPointProterties->IsXButton2Pressed)
-                {
-                    button = 4;
-                }
-            }
-        }
-    }
-
     ImGuiIO& io = ImGui::GetIO();
-    io.AddMouseButtonEvent(button, true);
-}
-
-void ImGui_ImplUWP_PointerReleased_Callback(Windows::UI::Input::PointerPointProperties^ pointerPointProterties)
-{
-    int button = 0;
-    if (pointerPointProterties->IsRightButtonPressed)
-    {
-        button = 1;
-    }
-    else
-    {
-        if (pointerPointProterties->IsMiddleButtonPressed)
-        {
-            button = 2;
-        }
-        else
-        {
-            if (pointerPointProterties->IsXButton1Pressed)
-            {
-                button = 3;
-            }
-            else
-            {
-                if (pointerPointProterties->IsXButton2Pressed)
-                {
-                    button = 4;
-                }
-            }
-        }
-    }
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.AddMouseButtonEvent(button, false);
+    io.AddMouseButtonEvent(0, pointerPointProterties->IsLeftButtonPressed);
+    io.AddMouseButtonEvent(1, pointerPointProterties->IsRightButtonPressed);
+    io.AddMouseButtonEvent(2, pointerPointProterties->IsMiddleButtonPressed);
+    io.AddMouseButtonEvent(3, pointerPointProterties->IsXButton1Pressed);
+    io.AddMouseButtonEvent(4, pointerPointProterties->IsXButton2Pressed);   
 }
 
 void ImGui_ImplUWP_PointerWheelChanged_Callback(int wheelDelta)
@@ -770,6 +715,94 @@ void ImGui_ImplUWP_KeyEvent_Callback(int vk, bool down)
     const ImGuiKey key = ImGui_ImplUWP_VirtualKeyToImGuiKey(vk);
     if (key != ImGuiKey_None)
     {
+        // AddInputCharacter needs to be called in order to input text into the imgui input fields
+        // This if guards from input spam
+        if (IsVkDown(vk) == false)
+        {
+            // Do not input arrow keys as text, so that we can navigate inside of the input fields
+            if ((vk < 37) || (vk > 40))
+            {
+                unsigned int characterCode = vk;
+                switch (characterCode)
+                {
+                    case 190: // period (.)
+                    {
+                        characterCode = 46;
+                        break;
+                    }
+
+                    case 96: // num pad 0
+                    {
+                        characterCode = 48;
+                        break;
+                    }
+
+                    case 97 : // num pad 1
+                    {
+                        characterCode = 49;
+                        break;
+                    }
+
+                    case 98: // num pad 2
+                    {
+                        characterCode = 50;
+                        break;
+                    }
+
+                    case 99: // num pad 3
+                    {
+                        characterCode = 51;
+                        break;
+                    }
+
+                    case 100: // num pad 4
+                    {
+                        characterCode = 52;
+                        break;
+                    }
+
+                    case 101: // num pad 5
+                    {
+                        characterCode = 53;
+                        break;
+                    }
+
+                    case 102: // num pad 6
+                    {
+                        characterCode = 54;
+                        break;
+                    }
+
+                    case 103: // num pad 7
+                    {
+                        characterCode = 55;
+                        break;
+                    }
+
+                    case 104: // num pad 8
+                    {
+                        characterCode = 56;
+                        break;
+                    }
+
+                    case 105: // num pad 9
+                    {
+                        characterCode = 57;
+                        break;
+                    }
+
+                    default:
+                    {
+                        break;
+
+                    }
+                    
+                }
+
+                io.AddInputCharacter(characterCode);
+            }
+        }
+
         io.AddKeyEvent(key, down);
     }  
 }

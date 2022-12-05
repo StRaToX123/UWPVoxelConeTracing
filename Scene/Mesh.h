@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <string>
 #include <DirectXMath.h>
 #include <d3d12.h>
 #include <vector>
@@ -85,20 +86,19 @@ class Mesh
         void InitializeAsPlane(float width = 1, float height = 1);
         void SetColor(FXMVECTOR& color);
         static void ReverseWinding(vector<uint16_t>& indices, vector<ShaderStructureCPUVertexPositionNormalTextureColor>& vertices);
-
         void SetIsStatic(bool isStatic);
 
+        string name;
         vector<ShaderStructureCPUVertexPositionNormalTextureColor> vertices;
         vector<uint16_t> indices;
-
         XMFLOAT3 world_position;
         XMFLOAT3 local_rotation;
-        
         bool is_static;
 
     private:
         Mesh();
         friend class SceneRenderer3D;
+        
         XMMATRIX transform_matrix;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;

@@ -57,6 +57,8 @@ namespace ScreenRotation
 // Constructor for DeviceResources.
 DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat) :
 	current_back_buffer_index(0),
+	previous_back_buffer_index(c_frame_count - 1),
+	next_back_buffer_index(1),
 	m_screenViewport(),
 	m_rtvDescriptorSize(0),
 	event_wait_for_gpu(NULL),
@@ -353,6 +355,7 @@ void DeviceResources::CreateWindowSizeDependentResources()
 
 	// Set the 3D rendering viewport to target the entire window.
 	m_screenViewport = { 0.0f, 0.0f, m_d3dRenderTargetSize.Width, m_d3dRenderTargetSize.Height, 0.0f, 1.0f };
+	scissor_rect_default = { 0, 0, static_cast<LONG>(m_screenViewport.Width), static_cast<LONG>(m_screenViewport.Height) };
 }
 
 // Determine the dimensions of the render target and whether it will be scaled down.

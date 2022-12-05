@@ -71,15 +71,6 @@
     <Filter Include="Graphics\SceneRenderers\Source">
       <UniqueIdentifier>{fd9e492b-d264-4fb6-89d2-1392f7f82917}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Shaders\SampleShaders">
-      <UniqueIdentifier>{5efdde17-ca5b-4cc2-96f0-733441c3136b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Shaders\SampleShaders\VS">
-      <UniqueIdentifier>{80d76ace-c319-4625-b2fa-a99a3841b7d9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Shaders\SampleShaders\PS">
-      <UniqueIdentifier>{2f86de55-a3aa-482e-83d5-a4ad9ee282d1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Utility\Time\StepTimer">
       <UniqueIdentifier>{8b609859-e9de-4b7e-a404-4b044c4ef829}</UniqueIdentifier>
     </Filter>
@@ -130,6 +121,27 @@
     </Filter>
     <Filter Include="Graphics\Shaders\VoxelGI\CS">
       <UniqueIdentifier>{47f6574f-d1d9-402c-9b54-5cfe64f62f7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\VoxelGI\Voxelizer">
+      <UniqueIdentifier>{b197ece4-2399-4c54-a5a5-ddd37277d5eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\Unlit">
+      <UniqueIdentifier>{06a76166-4fb8-4e37-ba34-03059921853b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\Unlit\PS">
+      <UniqueIdentifier>{8ebdae4f-36a3-4ec5-9bb7-a5c5edbabb6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\Unlit\VS">
+      <UniqueIdentifier>{e273349e-0e75-4295-8f32-040500aad4ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShader">
+      <UniqueIdentifier>{e777215a-76ea-4ca7-a84c-526762946bec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShader\PS">
+      <UniqueIdentifier>{76a5a002-0f73-43f2-b9b9-4aa4001eca7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Shaders\SampleShader\VS">
+      <UniqueIdentifier>{95248ea9-76f3-4430-acb4-011e812c7305}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -309,6 +321,9 @@
     <ClInclude Include="Scene\Light.h">
       <Filter>Scene\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Shaders\ShaderGlobalsCPU.h">
+      <Filter>Graphics\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -396,12 +411,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Graphics\Shaders\SampleShaders\Sample_VS.hlsl">
-      <Filter>Graphics\Shaders\SampleShaders\VS</Filter>
-    </FxCompile>
-    <FxCompile Include="Graphics\Shaders\SampleShaders\Sample_PS.hlsl">
-      <Filter>Graphics\Shaders\SampleShaders\PS</Filter>
-    </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\GS</Filter>
     </FxCompile>
@@ -419,6 +428,18 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_VS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\Unlit\Unlit_VS.hlsl">
+      <Filter>Graphics\Shaders\Unlit\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\Unlit\Unlit_PS.hlsl">
+      <Filter>Graphics\Shaders\Unlit\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\SampleShader\Sample_VS.hlsl">
+      <Filter>Graphics\Shaders\SampleShader\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\SampleShader\Sample_PS.hlsl">
+      <Filter>Graphics\Shaders\SampleShader\PS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

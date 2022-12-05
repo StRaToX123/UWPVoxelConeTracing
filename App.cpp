@@ -240,12 +240,12 @@ void App::OnPointerExited(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 
 void App::OnPointerPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplUWP_PointerPressed_Callback(args->CurrentPoint->Properties);
+	ImGui_ImplUWP_PointerButton_Callback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	ImGui_ImplUWP_PointerReleased_Callback(args->CurrentPoint->Properties);
+	ImGui_ImplUWP_PointerButton_Callback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
