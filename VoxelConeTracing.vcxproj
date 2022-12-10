@@ -348,15 +348,17 @@
     <ClCompile Include="ImGUI\imgui_tables.cpp" />
     <ClCompile Include="ImGUI\imgui_widgets.cpp" />
     <ClCompile Include="Scene\Camera.cpp" />
+    <ClCompile Include="Scene\Light.cpp" />
     <ClCompile Include="Scene\Mesh.cpp" />
     <ClCompile Include="Utility\Time\HighResolutionClock.cpp" />
     <ClCompile Include="VoxelConeTracingMain.cpp" />
     <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli" />
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
-    <None Include="Graphics\Shaders\VoxelGI\globals.hlsli" />
-    <None Include="Graphics\Shaders\VoxelGI\objectHF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_HF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli" />
-    <None Include="Graphics\Shaders\VoxelGI\voxelHF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\Voxelizer_HF.hlsli" />
     <None Include="packages.config" />
     <None Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -390,6 +392,12 @@
     <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceTemporalCopyClear_CS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -403,6 +411,12 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>

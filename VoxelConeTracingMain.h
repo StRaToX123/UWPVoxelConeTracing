@@ -20,7 +20,7 @@ class VoxelConeTracingMain
 	private:
 		friend ref class App;
 		VoxelConeTracingMain();
-		void CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DeviceResources>& deviceResources);
+		void Initialize(CoreWindow^ coreWindow, const std::shared_ptr<DeviceResources>& deviceResources);
 		void Update();
 		void Render();
 		void OnWindowSizeChanged();
@@ -58,7 +58,9 @@ class VoxelConeTracingMain
 		float camera_controller_pitch_limit;
 		float camera_controller_yaw;
 		
-		ShaderStructureCPUSpotLight spot_light;
+		SpotLight spot_light;
+		ShaderStructureCPUSpotLight imgui_spot_light_data;
+		XMFLOAT4 imgui_spot_light_default_color;
 
 		bool show_voxel_debug_view;
 		SceneRenderer3D::ShaderStructureCPUVoxelGridData imgui_voxel_grid_data;

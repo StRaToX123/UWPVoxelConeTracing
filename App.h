@@ -65,9 +65,10 @@ ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
+		~App();
 		Windows::Devices::Input::MouseDevice^ mouse;
 		// Private accessor for m_deviceResources, protects against device removed errors.
-		std::shared_ptr<DeviceResources> GetDeviceResources();
+		//std::shared_ptr<DeviceResources> GetDeviceResources();
 		std::shared_ptr<DeviceResources> m_deviceResources;
 		std::unique_ptr<VoxelConeTracingMain> m_main;
 		bool m_windowClosed;

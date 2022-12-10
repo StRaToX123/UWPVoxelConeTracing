@@ -35,7 +35,7 @@ class SceneRenderer3D
 		~SceneRenderer3D();
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources(Camera& camera);
-		void Render(vector<Mesh>& scene, Camera& camera, bool showVoxelDebugView);
+		void Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& camera, bool showVoxelDebugView);
 		void SaveState();
 		void LoadState();
 		static inline UINT AlignForUavCounter(UINT bufferSize)
@@ -44,15 +44,19 @@ class SceneRenderer3D
 		};
 
 		void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, bool isComputeCommandList, UINT currentFrameIndex);
+		// All the update buffers were put into a single function call so that they can all get batched into one Execute call
 		void UpdateBuffers(bool updateVoxelizerBuffers, bool updateVoxelGridDataBuffers);
+		void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
 		
 
 		// Constant buffers must be aligned to the D3D12_TEXTURE_DATA_PITCH_ALIGNMENT.
-		static const UINT c_aligned_view_projection_matrix_constant_buffer = (sizeof(ShaderStructureCPUViewProjectionBuffer) + 255) & ~255;
 		static const UINT c_aligned_transform_matrix_buffer = ((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) * TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES) + 255) & ~255;
 		
 		// Direct3D resources for cube geometry.
 		std::shared_ptr<DeviceResources>                       device_resources;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	       render_target_heap;
 		UINT                                                   previous_frame_index;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_direct;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_copy_normal_priority;
@@ -72,15 +76,8 @@ class SceneRenderer3D
 		bool                                                   command_allocator_copy_high_priority_already_reset;
 		bool                                                   command_list_copy_high_priority_requires_reset;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			   root_signature;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_cbv_srv_uav;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		   descriptor_heap_sampler;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
-		UINT										   	       cbv_srv_uav_descriptor_size;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			   	   test_texture;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				   test_texture_upload;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				   camera_view_projection_constant_buffer;
-		ShaderStructureCPUViewProjectionBuffer		           camera_view_projection_constant_buffer_data;
-		UINT8*												   camera_view_projection_constant_mapped_buffer;
 		vector<Microsoft::WRL::ComPtr<ID3D12Resource>>         transform_matrix_upload_buffers;
 		vector<ShaderStructureCPUModelAndInverseTransposeModelView*> transform_matrix_mapped_upload_buffers;
 		vector<vector<UINT>>                                   transform_matrix_buffer_free_slots;
@@ -123,7 +120,7 @@ class SceneRenderer3D
 			};
 
 			uint32_t res = 256;
-			float grid_extent = 2.0f;
+			float grid_extent = 2.04f;
 			float grid_half_extent_rcp = 1.0f;
 			float voxel_half_extent = 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
@@ -170,6 +167,8 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
@@ -185,7 +184,6 @@ class SceneRenderer3D
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_radiance_texture_3d[c_frame_count];
-
 	private:
 		void UpdateVoxelizerBuffers();
 		void UpdateVoxelGridDataBuffer();

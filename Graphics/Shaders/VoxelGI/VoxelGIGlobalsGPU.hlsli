@@ -1,50 +1,7 @@
 #ifndef _VOXEL_GI_GLOBALS_
 #define _VOXEL_GI_GLOBALS_
 
-struct VoxelizerVertexShaderInput
-{
-	float3 position : POSITION;
-	float3 normal : NORMAL;
-	float2 tex_coord : TEXCOORD;
-	float3 color : COLOR;
-};
 
-struct VoxelizerVertexShaderOutput
-{
-	float4 position_voxel_grid_space : SV_POSITION;
-	centroid float3 position_world_space : POSITION1; // needs to be in world space so that we can convert it to a voxel grid index
-	centroid float3 position_view_space : POSITION2; // needs to be in view space so that lighting can be calculated
-	float3 normal_world_space : NORMAL;
-	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
-	float4 color : COLOR;
-	float2 tex_coord : TEXCOORD;
-};
-
-// Centroid interpolation is used to avoid floating voxels in some cases
-struct VoxelizerGeometryShaderOutput
-{
-	float4 position_voxel_grid_space : SV_POSITION;
-	centroid float3 position_world_space : POSITION1; // needs to be in world space so that we can convert it to a voxel grid index
-	centroid float3 position_view_space : POSITION2; // needs to be in view space so that lighting can be calculated
-	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
-	centroid float4 color : COLOR;
-	float2 tex_coord : TEXCOORD;
-};
-
-struct VoxelDebugDrawVertexShaderInput
-{
-	float3 pos : POSITION;
-	float3 normal : NORMAL;
-	float2 tex_coord : TEXCOORD;
-	float3 color : COLOR;
-	uint instance_id : SV_InstanceID;
-};
-
-struct VoxelDebugDrawPixelShaderInput
-{
-	float4 position : SV_POSITION;
-	float4 color : COLOR;
-};
 
 struct VoxelType
 {
@@ -79,11 +36,13 @@ struct ShaderStructureGPUSpotLight
     float4 position_world_space;
     float4 position_view_space;
     float4 direction_world_space;
-    float4 direction_view_space;
+	float4 direction_view_space;
     float4 color;
 	float intensity;
-	float spot_angle;
+	float spot_angle_degrees;
 	float attenuation;
+	matrix spotlight_view_matrix;
+	matrix spotlight_projection_matrix;
 	float padding;
 };
 

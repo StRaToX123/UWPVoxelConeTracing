@@ -25,6 +25,13 @@ App::App() :
 
 }
 
+App::~App()
+{
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplUWP_Shutdown();
+	ImGui::DestroyContext();
+}
+
 
 // The first method called when the IFrameworkView is being created.
 void App::Initialize(CoreApplicationView^ applicationView)
@@ -95,7 +102,6 @@ void App::SetWindow(CoreWindow^ window)
 
 	Windows::Gaming::Input::Gamepad::GamepadRemoved += 
 		ref new Windows::Foundation::EventHandler<Windows::Gaming::Input::Gamepad^>(this, &App::OnGamepadRemoved);
-
 	
 	mouse = Windows::Devices::Input::MouseDevice::GetForCurrentView();
 	mouse->MouseMoved += ref new Windows::Foundation::TypedEventHandler<Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^>(this, &App::OnMouseMoved);
@@ -110,6 +116,9 @@ void App::Load(Platform::String^ entryPoint)
 	if (m_main == nullptr)
 	{
 		m_main = std::unique_ptr<VoxelConeTracingMain>(new VoxelConeTracingMain());
+		m_deviceResources = std::make_shared<DeviceResources>();
+		m_deviceResources->SetWindow(CoreWindow::GetForCurrentThread());
+		m_main->Initialize(CoreWindow::GetForCurrentThread(), m_deviceResources);
 		/*
 		#ifdef _DEBUG
 			HMODULE hModule = LoadPackagedLibrary(L"WinPixGpuCapturer.dll", NULL);
@@ -126,7 +135,6 @@ void App::Load(Platform::String^ entryPoint)
 // This method is called after the window becomes active.
 void App::Run()
 {
-	GetDeviceResources();
 	while (!m_windowClosed)
 	{
 		//if (first_tick == true)
@@ -140,7 +148,7 @@ void App::Run()
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 			m_main->Update();
 			m_main->Render();
-			GetDeviceResources()->Present();
+			m_deviceResources->Present();
 		}
 		else
 		{
@@ -154,9 +162,7 @@ void App::Run()
 // class is torn down while the app is in the foreground.
 void App::Uninitialize()
 {
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplUWP_Shutdown();
-	ImGui::DestroyContext();
+	
 }
 
 // Application lifecycle event handlers.
@@ -191,10 +197,9 @@ void App::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 }
 
 // Window event handlers.
-
 void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
 {
-	GetDeviceResources()->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
+	m_deviceResources->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
 	m_main->OnWindowSizeChanged();
 }
 
@@ -290,21 +295,22 @@ void App::OnDpiChanged(DisplayInformation^ sender, Object^ args)
 	// if it is being scaled for high resolution devices. Once the DPI is set on DeviceResources,
 	// you should always retrieve it using the GetDpi method.
 	// See DeviceResources.cpp for more details.
-	GetDeviceResources()->SetDpi(sender->LogicalDpi);
+	m_deviceResources->SetDpi(sender->LogicalDpi);
 	m_main->OnWindowSizeChanged();
 }
 
 void App::OnOrientationChanged(DisplayInformation^ sender, Object^ args)
 {
-	GetDeviceResources()->SetCurrentOrientation(sender->CurrentOrientation);
+	m_deviceResources->SetCurrentOrientation(sender->CurrentOrientation);
 	m_main->OnWindowSizeChanged();
 }
 
 void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 {
-	GetDeviceResources()->ValidateDevice();
+	m_deviceResources->ValidateDevice();
 }
 
+/*
 std::shared_ptr<DeviceResources> App::GetDeviceResources()
 {
 	if (m_deviceResources != nullptr && m_deviceResources->IsDeviceRemoved())
@@ -332,3 +338,4 @@ std::shared_ptr<DeviceResources> App::GetDeviceResources()
 	}
 	return m_deviceResources;
 }
+*/

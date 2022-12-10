@@ -3,6 +3,14 @@
 
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli"
 
+struct VertexShaderInputDefault
+{
+	float3 position : POSITION;
+	float3 normal : NORMAL;
+	float2 tex_coord : TEXCOORD;
+	float3 color : COLOR;
+};
+
 struct ShaderStructureGPURootConstants
 {
 	uint transform_matrix_buffer_index;

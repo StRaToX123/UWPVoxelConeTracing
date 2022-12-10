@@ -23,90 +23,12 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	// example for 60 FPS fixed timestep update logic
 	step_timer.SetFixedTimeStep(true);
 	step_timer.SetTargetElapsedSeconds(1.0 / 60);
-
-	// Setup the camera
-	camera.SetFoV(camera_default_fov_degrees);
-	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
-
-	// Create the scene geometry
-	scene.reserve(8);
-	for (int i = 0; i < scene.capacity(); i++)
-	{
-		scene.emplace_back(Mesh(true));
-	}
-
-	// Initialize and setup the Cornell box
-	scene[0].InitializeAsPlane(2.0f, 2.0f);
-	scene[0].name = "Plane 01";
-	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
-	
-	scene[1].InitializeAsPlane(2.0f, 2.0f);
-	scene[1].name = "Plane 02";
-	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-
-	scene[2].InitializeAsPlane(2.0f, 2.0f);
-	scene[2].name = "Plane 03";
-	scene[2].SetColor(XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f));
-
-	scene[3].InitializeAsPlane(2.0f, 2.0f);
-	scene[3].name = "Plane 04";
-	scene[3].SetColor(XMVectorSet(1.0f, 1.0f, 0.0f, 1.0f));
-
-	scene[4].InitializeAsPlane(2.0f, 2.0f);
-	scene[4].name = "Plane 05";
-	scene[4].SetColor(XMVectorSet(0.0f, 1.0f, 1.0f, 1.0f));
-
-	scene[5].InitializeAsPlane(2.0f, 2.0f);
-	scene[5].name = "Plane 06";
-	scene[5].SetColor(XMVectorSet(1.0f, 0.0f, 1.0f, 1.0f));
-
-	scene[6].InitializeAsCube(0.5f);
-	scene[6].name = "Cube 01";
-	scene[6].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
-
-	scene[7].InitializeAsSphere(0.4f);
-	scene[7].name = "Sphere 01";
-	scene[7].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-
-
-	scene[0].world_position.y = -0.990f;
-
-	scene[1].world_position.x = 0.99f;
-	scene[1].local_rotation.z = 90.0f;
-
-	scene[2].world_position.x = -0.99f;
-	scene[2].local_rotation.z = -90.0f;
-
-	scene[3].world_position.z = 0.99f;
-	scene[3].local_rotation.x = -90.0f;
-
-	scene[4].world_position.z = -0.99f;
-	scene[4].local_rotation.x = 90.0f;
-
-	scene[5].world_position.y = 0.99f;
-	scene[5].local_rotation.x = 180.0f;
-
-	scene[6].world_position.x = -0.3f;
-	scene[6].world_position.y = -0.75f;
-	scene[6].world_position.z = 0.3f;
-
-
-	scene[7].world_position.x = 0.3f;
-	scene[7].world_position.y = -0.8f;
-	scene[7].world_position.z = -0.3f;
-
-	// Setup the spot light
-	/*
-	spot_light.world_position.y = 1.99f;
-	spot_light.direction_world_space.z = 0.0f;
-	spot_light.direction_world_space.y = -1.0f;
-	*/
 }
 
 
 
 // Creates and initializes the renderers.
-void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::shared_ptr<DeviceResources>& deviceResources)
+void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_ptr<DeviceResources>& deviceResources)
 {
 	core_window = coreWindow;
 	device_resources = deviceResources;
@@ -180,6 +102,92 @@ void VoxelConeTracingMain::CreateRenderers(CoreWindow^ coreWindow, const std::sh
 	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get(), IID_PPV_ARGS(&command_list_direct)));
 	command_list_direct->SetName(L"VoxelConeTracing command_list_direct");
 	ThrowIfFailed(command_list_direct->Close());
+
+	// Initialize the rest of the class
+	// We have to do it here since this is when we get a reference to the device_resources
+	// Setup the camera
+	camera.Initialize(device_resources);
+	camera.SetFoV(camera_default_fov_degrees);
+	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
+
+	// Create the scene geometry
+	scene.reserve(8);
+	for (int i = 0; i < scene.capacity(); i++)
+	{
+		scene.emplace_back(Mesh(true));
+	}
+
+	// Initialize and setup the Cornell box
+	scene[0].InitializeAsPlane(2.0f, 2.0f);
+	scene[0].name = "Plane 01";
+	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+
+	scene[1].InitializeAsPlane(2.0f, 2.0f);
+	scene[1].name = "Plane 02";
+	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+
+	scene[2].InitializeAsPlane(2.0f, 2.0f);
+	scene[2].name = "Plane 03";
+	scene[2].SetColor(XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f));
+
+	scene[3].InitializeAsPlane(2.0f, 2.0f);
+	scene[3].name = "Plane 04";
+	scene[3].SetColor(XMVectorSet(1.0f, 1.0f, 0.0f, 1.0f));
+
+	scene[4].InitializeAsPlane(2.0f, 2.0f);
+	scene[4].name = "Plane 05";
+	scene[4].SetColor(XMVectorSet(0.0f, 1.0f, 1.0f, 1.0f));
+
+	scene[5].InitializeAsPlane(2.0f, 2.0f);
+	scene[5].name = "Plane 06";
+	scene[5].SetColor(XMVectorSet(1.0f, 0.0f, 1.0f, 1.0f));
+
+	scene[6].InitializeAsCube(0.5f);
+	scene[6].name = "Cube 01";
+	scene[6].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+
+	scene[7].InitializeAsSphere(0.4f);
+	scene[7].name = "Sphere 01";
+	scene[7].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+
+
+	scene[0].world_position.y = -0.990f;
+
+	scene[1].world_position.x = 0.99f;
+	scene[1].local_rotation.z = 90.0f;
+
+	scene[2].world_position.x = -0.99f;
+	scene[2].local_rotation.z = -90.0f;
+
+	scene[3].world_position.z = 0.99f;
+	scene[3].local_rotation.x = -90.0f;
+
+	scene[4].world_position.z = -0.99f;
+	scene[4].local_rotation.x = 90.0f;
+
+	scene[5].world_position.y = 0.99f;
+	scene[5].local_rotation.x = 180.0f;
+
+	scene[6].world_position.x = -0.3f;
+	scene[6].world_position.y = -0.75f;
+	scene[6].world_position.z = 0.3f;
+
+
+	scene[7].world_position.x = 0.3f;
+	scene[7].world_position.y = -0.8f;
+	scene[7].world_position.z = -0.3f;
+
+	// Setup the spot light
+	spot_light.Initialize(L"SpotLight01", scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res, device_resources);
+	spot_light.constant_buffer_data.position_world_space.y = 0.8f;
+	spot_light.constant_buffer_data.position_world_space.z = 0.0f;
+	spot_light.constant_buffer_data.direction_world_space.y = -1.0f;
+	XMStoreFloat4(&imgui_spot_light_default_color, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+	spot_light.constant_buffer_data.color = imgui_spot_light_default_color;
+	spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
+	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
+	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix(0.01f, 10.0f);
+	imgui_spot_light_data = spot_light.constant_buffer_data;
 
 
 	OnWindowSizeChanged();
@@ -325,6 +333,7 @@ void VoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDeltaX, 
 // Updates the application state once per frame.
 void VoxelConeTracingMain::Update()
 {
+
 #pragma region UpdateTheCamera
 	// Update the camera
 	// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
@@ -451,33 +460,26 @@ void VoxelConeTracingMain::Update()
 			camera.Translate(cameraTranslate, Space::Local);
 		}
 	}
+
+	camera.UpdateGPUBuffers();
 #pragma endregion
+
 	static float angle = 0.0f;
 	static float offset = 0.6f;
 	static float convToRad = 3.14f / 180.0f;
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{	
-			/*
-			angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-			if (angle >= 360.0f)
-			{
-				angle -= 360.0f;
-			}
-
-			scene[0].world_position.x = offset * cos(angle * convToRad);
-		scene[0].local_rotation.z += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-		*/
-		//scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-		//scene[7].is_static = false;
-		//scene[7].local_rotation.y += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-			/*
-		if (scene[1].is_static == false)
+		/*
+		angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+		if (angle >= 360.0f)
 		{
-			scene[1].local_rotation.y -= static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-
+			angle -= 360.0f;
 		}
+
+		scene[0].world_position.x = offset * cos(angle * convToRad);
 		*/
+		
 		
 	});
 }
@@ -502,34 +504,7 @@ void VoxelConeTracingMain::Render()
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Render out the scene
-	// If the voxel grid resolution changed, we will have to update the voxel grid data structure and all of the voxelizer buffers
-	bool updateVoxelizerBuffers = false;
-	if (imgui_voxel_grid_selected_allowed_resolution_current_index != imgui_voxel_grid_selected_allowed_resolution_previous_index)
-	{
-		updateVoxelizerBuffers = true;
-		imgui_voxel_grid_selected_allowed_resolution_previous_index = imgui_voxel_grid_selected_allowed_resolution_current_index;
-		scene_renderer->voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
-		imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
-	}
-
-	// If the voxel grid extent changed, we will have to call the grid's UpdateGirdExtent function 
-	// and also update the voxel grid data buffer
-	bool updateVoxelGridDataBuffers = false;
-	if (scene_renderer->voxel_grid_data.grid_extent != imgui_voxel_grid_data.grid_extent)
-	{
-		updateVoxelGridDataBuffers = true;
-		scene_renderer->voxel_grid_data.UpdateGirdExtent(imgui_voxel_grid_data.grid_extent);
-		imgui_voxel_grid_data.UpdateGirdExtent(imgui_voxel_grid_data.grid_extent);
-	}
-	
-	// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer
-	if (memcmp(&scene_renderer->voxel_grid_data, &imgui_voxel_grid_data, sizeof(SceneRenderer3D::ShaderStructureCPUVoxelGridData)) != 0)
-	{
-		updateVoxelGridDataBuffers = true;
-	}
-
-	scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
-	scene_renderer->Render(scene, camera, show_voxel_debug_view);
+	scene_renderer->Render(scene, spot_light, camera, show_voxel_debug_view);
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -541,6 +516,16 @@ void VoxelConeTracingMain::Render()
 		// Scene controls
 		ImGui::SetNextWindowSize(ImVec2(400, 220), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Scene");
+		if (ImGui::CollapsingHeader("SpotLight01"))
+		{
+			ImGui::SliderFloat3("World Position", &spot_light.constant_buffer_data.position_world_space.x, -5.0f, 5.0f);
+			ImGui::SliderFloat3("Direction", &spot_light.constant_buffer_data.direction_world_space.x, -1.0f, 1.0f);
+			ImGui::ColorPicker4("Color", &spot_light.constant_buffer_data.color.x, 0, &imgui_spot_light_default_color.x);
+			ImGui::SliderFloat("Intensity", &spot_light.constant_buffer_data.intensity, 1.0f, 5.0f);
+			ImGui::SliderFloat("Angle", &spot_light.constant_buffer_data.spot_angle_degrees, 0.0f, 170.0f);
+			ImGui::SliderFloat("Attenuation", &spot_light.constant_buffer_data.attenuation, 0.0f, 1.0f);
+		}
+
 		for (int i = 0; i < scene.size(); i++)
 		{
 			if (ImGui::CollapsingHeader(scene[i].name.c_str()))
@@ -562,16 +547,77 @@ void VoxelConeTracingMain::Render()
 		{
 			ImGui::Checkbox("Show", &show_voxel_debug_view);
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
-			ImGui::SliderFloat("Grid Extent", &imgui_voxel_grid_data.grid_extent, 0.5f, 10.0f);
-			ImGui::SliderInt("Number of Cones", &imgui_voxel_grid_data.num_cones, 2, 10);
-			ImGui::SliderFloat("Ray Step Size", &imgui_voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
-			ImGui::SliderFloat("Max Distance", &imgui_voxel_grid_data.max_distance, 0.5f, 10.0f);
-			ImGui::SliderInt("Enable Secondary Bounce", &imgui_voxel_grid_data.secondary_bounce_enabled, 0, 1);
+			ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
+			ImGui::SliderInt("Number of Cones", &scene_renderer->voxel_grid_data.num_cones, 2, 10);
+			ImGui::SliderFloat("Ray Step Size", &scene_renderer->voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
+			ImGui::SliderFloat("Max Distance", &scene_renderer->voxel_grid_data.max_distance, 0.5f, 10.0f);
+			ImGui::SliderInt("Enable Secondary Bounce", &scene_renderer->voxel_grid_data.secondary_bounce_enabled, 0, 1);
 		}
 
 		ImGui::End();
 
+#pragma region Voxelizer Pass Callbacks
+		// If the voxel grid resolution changed, we will have to update the voxel grid data structure and all of the voxelizer buffers
+		bool updateVoxelizerBuffers = false;
+		if (imgui_voxel_grid_selected_allowed_resolution_current_index != imgui_voxel_grid_selected_allowed_resolution_previous_index)
+		{
+			updateVoxelizerBuffers = true;
+			imgui_voxel_grid_selected_allowed_resolution_previous_index = imgui_voxel_grid_selected_allowed_resolution_current_index;
+			scene_renderer->voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+			imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+			// !!!!!!!!!!!!!!!!! ALSO UPDATE THE SHADOW MAP TEXTURE OF THE SPOT LIGHT !!!!!!!!!!!!!!!!!
+			spot_light.UpdateShadowMapTexture(scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res);
+		}
 
+		// If the voxel grid extent changed, we will have to call the grid's UpdateGirdExtent function 
+		// and also update the voxel grid data buffer
+		bool updateVoxelGridDataBuffers = false;
+		if (scene_renderer->voxel_grid_data.grid_extent != imgui_voxel_grid_data.grid_extent)
+		{
+			updateVoxelGridDataBuffers = true;
+			scene_renderer->voxel_grid_data.UpdateGirdExtent(scene_renderer->voxel_grid_data.grid_extent);
+			imgui_voxel_grid_data.UpdateGirdExtent(scene_renderer->voxel_grid_data.grid_extent);
+		}
+
+		// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer
+		if (memcmp(&scene_renderer->voxel_grid_data, &imgui_voxel_grid_data, sizeof(SceneRenderer3D::ShaderStructureCPUVoxelGridData)) != 0)
+		{
+			updateVoxelGridDataBuffers = true;
+			imgui_voxel_grid_data = scene_renderer->voxel_grid_data;
+		}
+
+		scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
+#pragma endregion
+
+#pragma region Spot Light Callbacks
+		bool updateSpotLightBuffer = false;
+		if (memcmp(&imgui_spot_light_data.position_world_space.x, &spot_light.constant_buffer_data.position_world_space.x, sizeof(float) * 4))
+		{
+			updateSpotLightBuffer = true;
+			spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
+			imgui_spot_light_data.position_world_space = spot_light.constant_buffer_data.position_world_space;
+			imgui_spot_light_data.position_view_space = spot_light.constant_buffer_data.position_view_space;
+		}
+
+		if (memcmp(&imgui_spot_light_data.direction_world_space.x, &spot_light.constant_buffer_data.direction_world_space.x, sizeof(float) * 4))
+		{
+			updateSpotLightBuffer = true;
+			spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
+			imgui_spot_light_data.direction_world_space = spot_light.constant_buffer_data.direction_world_space;
+			imgui_spot_light_data.direction_view_space = spot_light.constant_buffer_data.direction_view_space;
+		}
+
+		if (memcmp(&imgui_spot_light_data , &spot_light.constant_buffer_data, sizeof(ShaderStructureCPUSpotLight) - sizeof(float)))
+		{
+			updateSpotLightBuffer = true;
+			imgui_spot_light_data = spot_light.constant_buffer_data;
+		}
+
+		if (updateSpotLightBuffer == true)
+		{
+			spot_light.UpdateConstantBuffer();
+		}
+#pragma endregion
 		
 		ImGui::Render();
 		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
@@ -617,6 +663,11 @@ void VoxelConeTracingMain::OnWindowSizeChanged()
 	}
 
 	camera.SetProjection(camera.GetFoV(), aspectRatio, 0.01f, 100.0f);
+
+	XMFLOAT4X4 orientation = device_resources->GetOrientationTransform3D();
+	XMMATRIX orientationMatrix = DirectX::XMLoadFloat4x4(&orientation);
+	DirectX::XMStoreFloat4x4(&camera.view_projection_constant_buffer_data.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
+
 	scene_renderer->CreateWindowSizeDependentResources(camera);
 }
 

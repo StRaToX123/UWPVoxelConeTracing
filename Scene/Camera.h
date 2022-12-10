@@ -1,9 +1,6 @@
 #pragma once
-#include <DirectXMath.h>
 
-using namespace DirectX;
-
-
+#include "Graphics/DeviceResources/DeviceResources.h"
 
 
 
@@ -25,10 +22,10 @@ enum class Space
 class Camera
 {
     public:
-
         Camera();
         ~Camera();
 
+        void Initialize(const std::shared_ptr<DeviceResources>& deviceResources);
         void XM_CALLCONV SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up );
         XMMATRIX GetViewMatrix();
         /*
@@ -60,7 +57,12 @@ class Camera
         void XM_CALLCONV Translate(FXMVECTOR translation, Space space = Space::Local );
         void Rotate(FXMVECTOR quaternion );
 
+        void UpdateGPUBuffers();
+        void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
+
+        ShaderStructureCPUViewProjectionBuffer view_projection_constant_buffer_data;
     private:
+        bool is_initialized;
         // This data must be aligned otherwise the SSE intrinsics fail
         // and throw exceptions.
         __declspec(align(16)) struct AlignedData
@@ -87,5 +89,9 @@ class Camera
         // True if the projection matrix needs to be updated.
         bool is_dirty_projection_matrix;
 
-
+        std::shared_ptr<DeviceResources> device_resources;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_uav;
+        Microsoft::WRL::ComPtr<ID3D12Resource> view_projection_constant_buffer;
+        static const UINT c_aligned_view_projection_matrix_constant_buffer = (sizeof(ShaderStructureCPUViewProjectionBuffer) + 255) & ~255;
+        UINT8* view_projection_constant_mapped_buffer;
 };

@@ -57,10 +57,8 @@ namespace ScreenRotation
 // Constructor for DeviceResources.
 DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat) :
 	current_back_buffer_index(0),
-	previous_back_buffer_index(c_frame_count - 1),
-	next_back_buffer_index(1),
 	m_screenViewport(),
-	m_rtvDescriptorSize(0),
+	descriptor_size_descriptor_heap_rtv(0),
 	event_wait_for_gpu(NULL),
 	m_backBufferFormat(backBufferFormat),
 	m_depthBufferFormat(depthBufferFormat),
@@ -162,22 +160,24 @@ void DeviceResources::CreateDeviceResources()
 	ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue_compute)));
 	NAME_D3D12_OBJECT(command_queue_compute);
 
-	// Create descriptor heaps for render target views and depth stencil views.
+	// Create descriptor heaps for render target views
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.NumDescriptors = c_frame_count;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
-	NAME_D3D12_OBJECT(m_rtvHeap);
+	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&descriptor_heap_rtv)));
+	NAME_D3D12_OBJECT(descriptor_heap_rtv);
 
-	m_rtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	descriptor_size_descriptor_heap_rtv = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
 	dsvHeapDesc.NumDescriptors = 1;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
-	NAME_D3D12_OBJECT(m_dsvHeap);
+	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&descriptor_heap_dsv)));
+	NAME_D3D12_OBJECT(descriptor_heap_dsv);
+
+	descriptor_size_descriptor_heap_dsv = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 	for (UINT i = 0; i < c_frame_count; i++)
 	{
@@ -197,6 +197,17 @@ void DeviceResources::CreateDeviceResources()
 	{
 		ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 	}
+
+	// Create a descriptor heap to house EVERYTHING!!!
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.NumDescriptors = 100;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav)));
+	NAME_D3D12_OBJECT(descriptor_heap_cbv_srv_uav);
+
+	descriptor_size_descriptor_heap_cbv_srv_uav = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -310,12 +321,12 @@ void DeviceResources::CreateWindowSizeDependentResources()
 	// Create render target views of the swap chain back buffer.
 	{
 		current_back_buffer_index = m_swapChain->GetCurrentBackBufferIndex();
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(descriptor_heap_rtv->GetCPUDescriptorHandleForHeapStart());
 		for (UINT n = 0; n < c_frame_count; n++)
 		{
 			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
 			m_d3dDevice->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvDescriptor);
-			rtvDescriptor.Offset(m_rtvDescriptorSize);
+			rtvDescriptor.Offset(descriptor_size_descriptor_heap_rtv);
 
 			WCHAR name[25];
 			if (swprintf_s(name, L"m_renderTargets[%u]", n) > 0)
@@ -350,7 +361,7 @@ void DeviceResources::CreateWindowSizeDependentResources()
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-		m_d3dDevice->CreateDepthStencilView(m_depthStencil.Get(), &dsvDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+		m_d3dDevice->CreateDepthStencilView(m_depthStencil.Get(), &dsvDesc, descriptor_heap_dsv->GetCPUDescriptorHandleForHeapStart());
 	}
 
 	// Set the 3D rendering viewport to target the entire window.

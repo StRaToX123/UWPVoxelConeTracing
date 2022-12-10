@@ -122,9 +122,6 @@
     <Filter Include="Graphics\Shaders\VoxelGI\CS">
       <UniqueIdentifier>{47f6574f-d1d9-402c-9b54-5cfe64f62f7f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Shaders\VoxelGI\Voxelizer">
-      <UniqueIdentifier>{b197ece4-2399-4c54-a5a5-ddd37277d5eb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Shaders\Unlit">
       <UniqueIdentifier>{06a76166-4fb8-4e37-ba34-03059921853b}</UniqueIdentifier>
     </Filter>
@@ -181,6 +178,9 @@
       <Filter>Scene\Source</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Camera.cpp">
+      <Filter>Scene\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Light.cpp">
       <Filter>Scene\Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -394,20 +394,23 @@
     <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
       <Filter>Graphics\Shaders</Filter>
     </None>
-    <None Include="Graphics\Shaders\VoxelGI\globals.hlsli">
-      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
-    </None>
-    <None Include="Graphics\Shaders\VoxelGI\objectHF.hlsli">
-      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
-    </None>
-    <None Include="Graphics\Shaders\VoxelGI\voxelHF.hlsli">
-      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
-    </None>
     <None Include="Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli">
       <Filter>Graphics\Shaders\VoxelGI</Filter>
     </None>
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli">
       <Filter>Graphics\Shaders</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_HF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_HF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\Voxelizer_HF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -440,6 +443,18 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\SampleShader\Sample_PS.hlsl">
       <Filter>Graphics\Shaders\SampleShader\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_VS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_PS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_PS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_VS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

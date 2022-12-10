@@ -1,4 +1,5 @@
 #include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli"
+#include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\Voxelizer_HF.hlsli"
 #include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\ShaderGlobalsGPU.hlsli"
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
@@ -6,7 +7,7 @@ ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
 ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b3);
 
-VoxelizerVertexShaderOutput main(VoxelizerVertexShaderInput input)
+VoxelizerVertexShaderOutput main(VertexShaderInputDefault input)
 {
 	VoxelizerVertexShaderOutput output;
 	matrix modelTransformMatrix = transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model;

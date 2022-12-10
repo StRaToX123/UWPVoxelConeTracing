@@ -48,14 +48,14 @@ class DeviceResources
 		// D3D Accessors.
 		ID3D12Device*				GetD3DDevice() const				{ return m_d3dDevice.Get(); }
 		IDXGISwapChain3*			GetSwapChain() const				{ return m_swapChain.Get(); }
-		ID3D12Resource*				GetRenderTarget() const				{ return m_renderTargets[current_back_buffer_index].Get(); }
+		ID3D12Resource*             GetRenderTarget() const             { return m_renderTargets[current_back_buffer_index].Get(); }
 		ID3D12Resource*				GetDepthStencil() const				{ return m_depthStencil.Get(); }
 		ID3D12CommandQueue*			GetCommandQueueDirect() const	    { return command_queue_direct.Get(); }
 		ID3D12CommandQueue*         GetCommandQueueCopyNormalPriority() const { return command_queue_copy_normal_priority.Get(); }
 		ID3D12CommandQueue*         GetCommandQueueCopyHighPriority() const { return command_queue_copy_high_priority.Get(); }
 		ID3D12CommandQueue*         GetCommandQueueCompute() const      { return command_queue_compute.Get(); }
 		ID3D12CommandAllocator*		GetCommandAllocatorDirect() const	{ return command_allocators_direct[current_back_buffer_index].Get(); }
-		ID3D12CommandAllocator*     GetCommandAllocatorCopyNormalPriority() const     { return command_allocator_copy_normal_priority.Get(); }
+		ID3D12CommandAllocator*     GetCommandAllocatorCopyNormalPriority() const { return command_allocator_copy_normal_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCopyHighPriority() const { return command_allocator_copy_high_priority.Get(); }
 		ID3D12CommandAllocator*     GetCommandAllocatorCompute() const  { return command_allocator_compute[current_back_buffer_index].Get(); }
 
@@ -66,15 +66,18 @@ class DeviceResources
 
 		DirectX::XMFLOAT4X4			GetOrientationTransform3D() const	{ return m_orientationTransform3D; }
 		UINT						GetCurrentFrameIndex() const		{ return current_back_buffer_index; }
-
+		ID3D12DescriptorHeap*       GetDescriptorHeapCbvSrvUav() const  { return descriptor_heap_cbv_srv_uav.Get(); }
+		UINT                        GetDescriptorSizeDescriptorHeapCbvSrvUav() const { return descriptor_size_descriptor_heap_cbv_srv_uav; }
+		UINT                        GetDescriptorSizeDescriptorHeapRtv() const { return descriptor_size_descriptor_heap_rtv; }
+		UINT                        GetDescriptorSizeDescriptorHeapDsv() const { return descriptor_size_descriptor_heap_dsv; }
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
 		{
-			return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), current_back_buffer_index, m_rtvDescriptorSize);
+			return CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_heap_rtv->GetCPUDescriptorHandleForHeapStart(), current_back_buffer_index, descriptor_size_descriptor_heap_rtv);
 		}
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const
 		{
-			return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+			return CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_heap_dsv->GetCPUDescriptorHandleForHeapStart());
 		}
 
 		
@@ -97,11 +100,9 @@ class DeviceResources
 		Microsoft::WRL::ComPtr<IDXGISwapChain3>			m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			m_renderTargets[c_frame_count];
 		UINT                                            current_back_buffer_index;
-		UINT                                            previous_back_buffer_index;
-		UINT                                            next_back_buffer_index;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			m_depthStencil;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_rtvHeap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_dsvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	descriptor_heap_rtv;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	descriptor_heap_dsv;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_direct;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_copy_normal_priority;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		command_queue_copy_high_priority;
@@ -114,7 +115,8 @@ class DeviceResources
 		DXGI_FORMAT										m_depthBufferFormat;
 		D3D12_VIEWPORT									m_screenViewport;
 		D3D12_RECT									    scissor_rect_default;
-		UINT											m_rtvDescriptorSize;
+		UINT											descriptor_size_descriptor_heap_rtv;
+		UINT											descriptor_size_descriptor_heap_dsv;
 		bool											m_deviceRemoved;
 
 
@@ -142,4 +144,7 @@ class DeviceResources
 
 		// Transforms used for display orientation.
 		DirectX::XMFLOAT4X4								m_orientationTransform3D;
+
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	descriptor_heap_cbv_srv_uav;
+		UINT										   	descriptor_size_descriptor_heap_cbv_srv_uav;
 };
