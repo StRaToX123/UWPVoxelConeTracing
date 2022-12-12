@@ -89,9 +89,12 @@ void Camera::CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& de
 
 void Camera::UpdateGPUBuffers()
 {
-    // Update the view matrix
-    DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.view, XMMatrixTranspose(GetViewMatrix()));
     // Update the mapped viewProjection constant buffer
+    if (is_dirty_view_matrix)
+    {
+        UpdateViewMatrix();
+    }
+
     UINT8* _destination = view_projection_constant_mapped_buffer + (device_resources->GetCurrentFrameIndex() * c_aligned_view_projection_matrix_constant_buffer);
     std::memcpy(_destination, &view_projection_constant_buffer_data, sizeof(ShaderStructureCPUViewProjectionBuffer));
 }
@@ -204,6 +207,7 @@ void Camera::UpdateViewMatrix()
     XMMATRIX translationMatrix = XMMatrixTranslationFromVector(-(p_data->translation));
 
     p_data->view_matrix = translationMatrix * rotationMatrix;
+    DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.view, XMMatrixTranspose(p_data->view_matrix));
     is_dirty_view_matrix = false;
 }
 

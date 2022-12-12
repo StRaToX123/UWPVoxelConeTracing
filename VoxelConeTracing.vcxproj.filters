@@ -140,6 +140,9 @@
     <Filter Include="Graphics\Shaders\SampleShader\VS">
       <UniqueIdentifier>{95248ea9-76f3-4430-acb4-011e812c7305}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utility\Math">
+      <UniqueIdentifier>{88255386-b7a3-4f02-849d-0e1534672f2f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -324,6 +327,9 @@
     <ClInclude Include="Graphics\Shaders\ShaderGlobalsCPU.h">
       <Filter>Graphics\Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\Math\Matrix.h">
+      <Filter>Utility\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -455,6 +461,12 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_VS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\SampleShader\FullScreenTextureVisualization_VS.hlsl">
+      <Filter>Graphics\Shaders\SampleShader\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\SampleShader\FullScreenTextureVisualization_PS.hlsl">
+      <Filter>Graphics\Shaders\SampleShader\PS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

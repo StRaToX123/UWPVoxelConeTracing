@@ -5,7 +5,7 @@
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b3);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b4);
 
 VoxelizerVertexShaderOutput main(VertexShaderInputDefault input)
 {

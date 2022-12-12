@@ -84,6 +84,8 @@ class Mesh
         void InitializeAsCone(float diameter = 1, float height = 1, size_t tessellation = 32);
         void InitializeAsTorus(float diameter = 1, float thickness = 0.333f, size_t tessellation = 32);
         void InitializeAsPlane(float width = 1, float height = 1);
+        // Used for full screen quad rendering
+        void InitializeAsVerticalPlane(float width = 1, float height = 1);
         void SetColor(FXMVECTOR& color);
         static void ReverseWinding(vector<uint16_t>& indices, vector<ShaderStructureCPUVertexPositionNormalTextureColor>& vertices);
         void SetIsStatic(bool isStatic);

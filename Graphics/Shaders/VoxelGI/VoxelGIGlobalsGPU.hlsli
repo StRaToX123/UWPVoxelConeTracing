@@ -43,7 +43,6 @@ struct ShaderStructureGPUSpotLight
 	float attenuation;
 	matrix spotlight_view_matrix;
 	matrix spotlight_projection_matrix;
-	float padding;
 };
 
 struct IndirectCommandGPU

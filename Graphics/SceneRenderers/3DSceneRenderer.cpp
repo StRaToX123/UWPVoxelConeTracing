@@ -22,7 +22,7 @@ SceneRenderer3D::SceneRenderer3D(const std::shared_ptr<DeviceResources>& deviceR
 	previous_frame_index(c_frame_count - 1)
 {
 	voxel_grid_data.UpdateRes(voxelGridResolution);
-	
+
 
 	LoadState();
 
@@ -55,7 +55,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	CD3DX12_DESCRIPTOR_RANGE rangeCBVTransformMatrix;
 	
 	rangeCBVviewProjectionMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
-	rangeCBVspotLightData.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 4);
+	rangeCBVspotLightData.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3);
 	rangeSRVspotLighShadowMapAndDepthBuffer.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 2);
 	rangeCBVVoxelGridData.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 	rangeSRVVoxelDebugData.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
@@ -64,7 +64,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	rangeUAVRadianceTexture3D.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3);
 	rangeSRVTestTexture.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	rangeUAVIndirectCommand.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
-	rangeCBVTransformMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3);
+	rangeCBVTransformMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 4);
 
 	CD3DX12_ROOT_PARAMETER parameterRootConstants; // contains transformMatrixBufferIndex, transformMatrixBufferInternalIndex
 	CD3DX12_ROOT_PARAMETER parameterGeometryVisibleDescriptorTableViewProjectionMatrixBuffer;
@@ -277,50 +277,74 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 
 #pragma region Spot Light Write Only Depth Pipeline State
 	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightWriteOnlyDepth_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
-	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightWriteOnlyDepth_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
-	state.pRootSignature = root_signature.Get();
-	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
-	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	state.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;
-	state.RasterizerState.SlopeScaledDepthBias = 0.1f;
-	state.RasterizerState.DepthBiasClamp = 0.1f;
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	state.SampleMask = UINT_MAX;
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	state.NumRenderTargets = 1;
-	state.RTVFormats[0] = device_resources->GetBackBufferFormat();
-	state.DSVFormat = device_resources->GetDepthBufferFormat();
-	state.SampleDesc.Count = 1;
+	//LoadShaderByteCode((standardStringInstallPath + "\\SpotLightWriteOnlyDepth_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC stateSpotLightWriteOnlyDepth = {};
+	stateSpotLightWriteOnlyDepth.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	stateSpotLightWriteOnlyDepth.pRootSignature = root_signature.Get();
+	stateSpotLightWriteOnlyDepth.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	//stateSpotLightWriteOnlyDepth.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	stateSpotLightWriteOnlyDepth.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	//stateSpotLightWriteOnlyDepth.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;
+	//stateSpotLightWriteOnlyDepth.RasterizerState.SlopeScaledDepthBias = 0.1f;
+	//stateSpotLightWriteOnlyDepth.RasterizerState.DepthBiasClamp = 0.1f;
+	stateSpotLightWriteOnlyDepth.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	stateSpotLightWriteOnlyDepth.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	stateSpotLightWriteOnlyDepth.SampleMask = UINT_MAX;
+	stateSpotLightWriteOnlyDepth.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	stateSpotLightWriteOnlyDepth.NumRenderTargets = 0;
+	//stateSpotLightWriteOnlyDepth.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	stateSpotLightWriteOnlyDepth.DSVFormat = device_resources->GetDepthBufferFormat();
+	stateSpotLightWriteOnlyDepth.SampleDesc.Count = 1;
 
-	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_spot_light_write_only_depth)));
+	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateSpotLightWriteOnlyDepth, IID_PPV_ARGS(&pipeline_state_spot_light_write_only_depth)));
 #pragma endregion
 
 #pragma region Spot Light Shadow Pass Pipeline State
+	/*
 	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightShadowMap_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
 	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightShadowMap_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
-	state.pRootSignature = root_signature.Get();
-	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
-	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	state.SampleMask = UINT_MAX;
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	state.NumRenderTargets = 1;
-	state.RTVFormats[0] = device_resources->GetBackBufferFormat();
-	state.DSVFormat = device_resources->GetDepthBufferFormat();
-	state.SampleDesc.Count = 1;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC stateSpotLightShadowPass = {};
+	stateSpotLightShadowPass.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	stateSpotLightShadowPass.pRootSignature = root_signature.Get();
+	stateSpotLightShadowPass.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	stateSpotLightShadowPass.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	stateSpotLightShadowPass.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	stateSpotLightShadowPass.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	stateSpotLightShadowPass.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	stateSpotLightShadowPass.SampleMask = UINT_MAX;
+	stateSpotLightShadowPass.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	stateSpotLightShadowPass.NumRenderTargets = 1;
+	stateSpotLightShadowPass.RTVFormats[0] = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	stateSpotLightShadowPass.DSVFormat = device_resources->GetDepthBufferFormat();
+	stateSpotLightShadowPass.SampleDesc.Count = 1;
 
-	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_spot_light_shadow_pass)));
+	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateSpotLightShadowPass, IID_PPV_ARGS(&pipeline_state_spot_light_shadow_pass)));
+	*/
 #pragma endregion
 
+#pragma region Full Screen Texture Visualization Pipeline Pass
+	LoadShaderByteCode((standardStringInstallPath + "\\FullScreenTextureVisualization_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\FullScreenTextureVisualization_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
+
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC stateFullScreenTextureVisualization = {};
+	stateFullScreenTextureVisualization.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	stateFullScreenTextureVisualization.pRootSignature = root_signature.Get();
+	stateFullScreenTextureVisualization.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	stateFullScreenTextureVisualization.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	stateFullScreenTextureVisualization.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	stateFullScreenTextureVisualization.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	stateFullScreenTextureVisualization.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	stateFullScreenTextureVisualization.SampleMask = UINT_MAX;
+	stateFullScreenTextureVisualization.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	stateFullScreenTextureVisualization.NumRenderTargets = 1;
+	stateFullScreenTextureVisualization.RTVFormats[0] = device_resources->GetBackBufferFormat();
+	stateFullScreenTextureVisualization.DSVFormat = device_resources->GetDepthBufferFormat();
+	stateFullScreenTextureVisualization.SampleDesc.Count = 1;
+
+	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateFullScreenTextureVisualization, IID_PPV_ARGS(&pipeline_state_full_screen_texture_visualization)));
+#pragma endregion
 
 
 	// Create direct command list
@@ -1002,7 +1026,7 @@ void SceneRenderer3D::AssignDescriptors(ID3D12GraphicsCommandList* _commandList,
 		// Spot Light CBV
 		_commandList->SetGraphicsRootDescriptorTable(2, gpuHandle);
 		gpuHandle.Offset(cbvSrvUavDescriptorSize);
-		// Spot Light Shadow Map SRV
+		// Spot Light Shadow Map SRV And Depth Buffer SRV
 		_commandList->SetGraphicsRootDescriptorTable(3, gpuHandle);
 		gpuHandle.Offset((cbvSrvUavDescriptorSize * 2) + (voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version * cbvSrvUavDescriptorSize));
 		// Voxel Grid Data CBV
@@ -1286,236 +1310,102 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		}
 	}
 
-	// Populate the device_resource shader visible descriptor heap
-	auto d3dDevice = device_resources->GetD3DDevice();
-	CD3DX12_CPU_DESCRIPTOR_HANDLE deviceResourcesDescriptorHeap(device_resources->GetDescriptorHeapCbvSrvUav()->GetCPUDescriptorHandleForHeapStart());
-	camera.CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap);
-	spotLight.CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap, true, true);
-	CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap);
 
-	ID3D12DescriptorHeap* _pHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
-#pragma region Spot Light Write Only Depth Pass
-	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_spot_light_write_only_depth.Get()));
-	command_list_direct->SetGraphicsRootSignature(root_signature.Get());
-	command_list_direct->SetDescriptorHeaps(_countof(_pHeaps), _pHeaps);
-	AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
-	command_list_direct->RSSetViewports(1, &spotLight.GetViewport());
-	command_list_direct->RSSetScissorRects(1, &spotLight.GetScissorRect());
-	// Bind the render target and depth buffer
-	command_list_direct->OMSetRenderTargets(1, &spotLight.GetShadowMapRenderTargetView(), false, &spotLight.GetShadowMapDepthStencilView());
-	command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
+	if (scene_object_indexes_that_require_rendering.size() != 0)
 	{
-		// Set the transform matrix buffer indexes
-		command_list_direct->SetGraphicsRoot32BitConstants(0,
-			2,
-			scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
-			0);
+		// Populate the device_resource shader visible descriptor heap
+		auto d3dDevice = device_resources->GetD3DDevice();
+		CD3DX12_CPU_DESCRIPTOR_HANDLE deviceResourcesDescriptorHeap(device_resources->GetDescriptorHeapCbvSrvUav()->GetCPUDescriptorHandleForHeapStart());
+		camera.CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap);
+		spotLight.CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap, true, true);
+		CopyDescriptorsIntoDescriptorHeap(deviceResourcesDescriptorHeap);
 
-		// Bind the vertex and index buffer views
-		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
-		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
-		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
-	}
+		ID3D12DescriptorHeap* _pHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
+		ID3D12CommandList* _pCommandListsDirect[] = { command_list_direct.Get() };
+		/*
+#pragma region Spot Light Write Only Depth Pass
+		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_spot_light_write_only_depth.Get()));
+		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
+		command_list_direct->SetDescriptorHeaps(_countof(_pHeaps), _pHeaps);
+		AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
+		command_list_direct->RSSetViewports(1, &spotLight.GetViewport());
+		command_list_direct->RSSetScissorRects(1, &spotLight.GetScissorRect());
+		// Bind the render target and depth buffer
+		command_list_direct->ClearDepthStencilView(spotLight.GetShadowMapDepthStencilView(), D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
+		//command_list_direct->OMSetRenderTargets(1, &spotLight.GetShadowMapRenderTargetView(), false, &spotLight.GetShadowMapDepthStencilView());
+		command_list_direct->OMSetRenderTargets(0, nullptr, false, &spotLight.GetShadowMapDepthStencilView());
+		command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		for (UINT i = 1; i < scene_object_indexes_that_require_rendering.size(); i++)
+		{
+			// Set the transform matrix buffer indexes
+			command_list_direct->SetGraphicsRoot32BitConstants(0,
+				2,
+				scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
+				0);
+
+			// Bind the vertex and index buffer views
+			command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
+			command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
+			command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
+		}
 #pragma endregion
 
 #pragma region Spot Light Shadow Map Pass
-	command_list_direct->SetPipelineState(pipeline_state_spot_light_shadow_pass.Get());
-	// Bind the render target and depth buffer
-	command_list_direct->OMSetRenderTargets(1, &device_resources->GetRenderTargetView(), false, &device_resources->GetDepthStencilView());
-	for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
-	{
-		// Set the transform matrix buffer indexes
-		command_list_direct->SetGraphicsRoot32BitConstants(0,
-			2,
-			scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
-			0);
+		command_list_direct->SetPipelineState(pipeline_state_full_screen_texture_visualization.Get());
+		// Bind the render target and depth buffer
+		command_list_direct->OMSetRenderTargets(1, &device_resources->GetRenderTargetView(), false, &device_resources->GetDepthStencilView());
+		//CD3DX12_RESOURCE_BARRIER spotLightShadowMapPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(spotLight.GetShadowMapDepthBuffer(),
+		//	D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		// Bind the vertex and index buffer views
-		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
-		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
-		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
-	}
-#pragma endregion
-	/*
-#pragma region Voxelizer Render Pass
-	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_voxelizer.Get()));
-	command_list_direct->SetGraphicsRootSignature(root_signature.Get());
-	ID3D12DescriptorHeap* ppHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
-	command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-	AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
-	command_list_direct->RSSetViewports(1, &viewport_voxelizer);
-	command_list_direct->RSSetScissorRects(1, &scissor_rect_voxelizer);
-	command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// Indicate this resource will be in use as a render target.
-
-	CD3DX12_RESOURCE_BARRIER voxelizaerRenderPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
-		D3D12_RESOURCE_STATE_COMMON,
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-
-	command_list_direct->ResourceBarrier(1, &voxelizaerRenderPassBarrier);
-	for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
-	{
-		// Set the transform matrix buffer indexes
-		command_list_direct->SetGraphicsRoot32BitConstants(0,
-			2,
-			scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
-			0);
-
-		// Bind the vertex and index buffer views
-		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
-		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
-		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
-	}
-
-	voxelizaerRenderPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-		D3D12_RESOURCE_STATE_COMMON);
-	command_list_direct->ResourceBarrier(1, &voxelizaerRenderPassBarrier);
-	command_list_direct->Close();
-	ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
-	//device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
-	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-	device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
-	fence_command_list_direct_progress_latest_unused_value++;
-#pragma endregion
-
-#pragma region Radiance Temporal Copy Clear Render Pass
-	ThrowIfFailed(device_resources->GetCommandAllocatorCompute()->Reset());
-	ThrowIfFailed(command_list_compute->Reset(device_resources->GetCommandAllocatorCompute(), pipeline_state_radiance_temporal_clear.Get()));
-	command_list_compute->SetComputeRootSignature(root_signature.Get());
-	ID3D12DescriptorHeap* ppHeapsRadianceTemporalCopyClearPass[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
-	command_list_compute->SetDescriptorHeaps(_countof(ppHeapsRadianceTemporalCopyClearPass), ppHeapsRadianceTemporalCopyClearPass);
-	AssignDescriptors(command_list_compute.Get(), true, currentFrameIndex);
-
-	D3D12_RESOURCE_BARRIER perFrameIndirectProcesedCommandsBufferBarriers[3] = {
-		CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
-												D3D12_RESOURCE_STATE_COMMON,
-													D3D12_RESOURCE_STATE_COPY_DEST),
-		CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-												D3D12_RESOURCE_STATE_COMMON,
-													D3D12_RESOURCE_STATE_COPY_DEST),
-		CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
-												D3D12_RESOURCE_STATE_COMMON,
-													D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
-	};
-
-	command_list_compute->ResourceBarrier(_countof(perFrameIndirectProcesedCommandsBufferBarriers), perFrameIndirectProcesedCommandsBufferBarriers);
-
-	command_list_compute->CopyBufferRegion(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(), indirect_draw_required_voxel_debug_data_counter_offset, indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
-	command_list_compute->CopyBufferRegion(per_frame_indirect_command_buffer[currentFrameIndex].Get(), sizeof(UINT), indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
-
-	perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-	command_list_compute->ResourceBarrier(2, perFrameIndirectProcesedCommandsBufferBarriers);
-
-	command_list_compute->Dispatch((number_of_voxels_in_grid / 256), 1, 1);
-
-	perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-		D3D12_RESOURCE_STATE_COMMON);
-	perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-		D3D12_RESOURCE_STATE_COMMON);
-
-	perFrameIndirectProcesedCommandsBufferBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-		D3D12_RESOURCE_STATE_COMMON);
-
-	command_list_compute->ResourceBarrier(_countof(perFrameIndirectProcesedCommandsBufferBarriers), perFrameIndirectProcesedCommandsBufferBarriers);
-	command_list_compute->Close();
-
-	ID3D12CommandList* ppCommandListsCompute[] = { command_list_compute.Get() };
-	device_resources->GetCommandQueueCompute()->Wait(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value - 1);
-	device_resources->GetCommandQueueCompute()->ExecuteCommandLists(_countof(ppCommandListsCompute), ppCommandListsCompute);
-	device_resources->GetCommandQueueCompute()->Signal(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value);
-	fence_command_list_compute_progress_latest_unused_value++;
-#pragma endregion
-
-	if (showVoxelDebugView == true)
-	{
-
-#pragma region Voxel Debug Visualization Pass
-		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_voxel_debug_visualization.Get()));
-		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
-		ID3D12DescriptorHeap* ppHeapsVoxelDebugViewPass[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
-		command_list_direct->SetDescriptorHeaps(_countof(ppHeapsVoxelDebugViewPass), ppHeapsVoxelDebugViewPass);
-		AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
+		//command_list_direct->ResourceBarrier(1, &spotLightShadowMapPassBarrier);
 		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
 		command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
-		// Bind the render target and depth buffer
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
-		command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
-		command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		command_list_direct->IASetVertexBuffers(0, 1, &voxel_debug_cube.vertex_buffer_view);
-		command_list_direct->IASetIndexBuffer(&voxel_debug_cube.index_buffer_view);
+		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[0]].vertex_buffer_view);
+		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[0]].index_buffer_view);
+		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[0]].indices.size(), 1, 0, 0, 0);
+		//spotLightShadowMapPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(spotLight.GetShadowMapDepthBuffer(),
+		//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		//	D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
+		//command_list_direct->ResourceBarrier(1, &spotLightShadowMapPassBarrier);
+		ThrowIfFailed(command_list_direct->Close());
+		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
+		*/
+		/*
+		for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
+		{
+			// Set the transform matrix buffer indexes
+			command_list_direct->SetGraphicsRoot32BitConstants(0,
+				2,
+				scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
+				0);
 
-		// Indicate that the command buffer will be used for indirect drawing
-		// and that the back buffer will be used as a render target.
-		D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[2] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(
-				per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
-				D3D12_RESOURCE_STATE_COMMON,
-				D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-			CD3DX12_RESOURCE_BARRIER::Transition(
-				per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-				D3D12_RESOURCE_STATE_COMMON,
-				D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
-		};
-
-		command_list_direct->ResourceBarrier(_countof(voxelDebugVisualizationPassBarriers), voxelDebugVisualizationPassBarriers);
-
-		command_list_direct->ExecuteIndirect(
-			voxel_debug_command_signature.Get(),
-			1,
-			per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-			0,
-			nullptr,
-			0);
-
-		voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-			D3D12_RESOURCE_STATE_COMMON);
-		voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
-			D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
-			D3D12_RESOURCE_STATE_COMMON);
-
-
-		command_list_direct->ResourceBarrier(2, voxelDebugVisualizationPassBarriers);
-		command_list_direct->Close();
-		ID3D12CommandList* ppCommandListsIndirectExecute[] = { command_list_direct.Get() };
-		device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
-		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandListsIndirectExecute), ppCommandListsIndirectExecute);
-		device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
-		fence_command_list_direct_progress_latest_unused_value++;
+			// Bind the vertex and index buffer views
+			command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
+			command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
+			command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
+		}
+		*/
 #pragma endregion
-
-		goto LABEL_END_OF_RENDER_PASSES;
-	}
-	else
-	{
-		//Default Render Pass
-
-#pragma region Default Render Pass
-		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_unlit.Get()));
+		
+	#pragma region Voxelizer Render Pass
+		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_voxelizer.Get()));
 		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
 		ID3D12DescriptorHeap* ppHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
 		command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
-		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
-		command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
+		command_list_direct->RSSetViewports(1, &viewport_voxelizer);
+		command_list_direct->RSSetScissorRects(1, &scissor_rect_voxelizer);
 		command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
-		command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
+		// Indicate this resource will be in use as a render target.
+
+		CD3DX12_RESOURCE_BARRIER voxelizaerRenderPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
+			D3D12_RESOURCE_STATE_COMMON,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+
+		command_list_direct->ResourceBarrier(1, &voxelizaerRenderPassBarrier);
 		for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
 		{
 			// Set the transform matrix buffer indexes
@@ -1530,13 +1420,174 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
 		}
 
+		voxelizaerRenderPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON);
+		command_list_direct->ResourceBarrier(1, &voxelizaerRenderPassBarrier);
 		command_list_direct->Close();
 		ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
+		//device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
 		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-#pragma endregion
+		device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
+		fence_command_list_direct_progress_latest_unused_value++;
+	#pragma endregion
 
+	#pragma region Radiance Temporal Copy Clear Render Pass
+		ThrowIfFailed(device_resources->GetCommandAllocatorCompute()->Reset());
+		ThrowIfFailed(command_list_compute->Reset(device_resources->GetCommandAllocatorCompute(), pipeline_state_radiance_temporal_clear.Get()));
+		command_list_compute->SetComputeRootSignature(root_signature.Get());
+		ID3D12DescriptorHeap* ppHeapsRadianceTemporalCopyClearPass[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
+		command_list_compute->SetDescriptorHeaps(_countof(ppHeapsRadianceTemporalCopyClearPass), ppHeapsRadianceTemporalCopyClearPass);
+		AssignDescriptors(command_list_compute.Get(), true, currentFrameIndex);
+
+		D3D12_RESOURCE_BARRIER perFrameIndirectProcesedCommandsBufferBarriers[3] = {
+			CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
+													D3D12_RESOURCE_STATE_COMMON,
+														D3D12_RESOURCE_STATE_COPY_DEST),
+			CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+													D3D12_RESOURCE_STATE_COMMON,
+														D3D12_RESOURCE_STATE_COPY_DEST),
+			CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
+													D3D12_RESOURCE_STATE_COMMON,
+														D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+		};
+
+		command_list_compute->ResourceBarrier(_countof(perFrameIndirectProcesedCommandsBufferBarriers), perFrameIndirectProcesedCommandsBufferBarriers);
+
+		command_list_compute->CopyBufferRegion(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(), indirect_draw_required_voxel_debug_data_counter_offset, indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
+		command_list_compute->CopyBufferRegion(per_frame_indirect_command_buffer[currentFrameIndex].Get(), sizeof(UINT), indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
+
+		perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+		command_list_compute->ResourceBarrier(2, perFrameIndirectProcesedCommandsBufferBarriers);
+
+		command_list_compute->Dispatch((number_of_voxels_in_grid / 256), 1, 1);
+
+		perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON);
+		perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON);
+
+		perFrameIndirectProcesedCommandsBufferBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON);
+
+		command_list_compute->ResourceBarrier(_countof(perFrameIndirectProcesedCommandsBufferBarriers), perFrameIndirectProcesedCommandsBufferBarriers);
+		command_list_compute->Close();
+
+		ID3D12CommandList* ppCommandListsCompute[] = { command_list_compute.Get() };
+		device_resources->GetCommandQueueCompute()->Wait(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value - 1);
+		device_resources->GetCommandQueueCompute()->ExecuteCommandLists(_countof(ppCommandListsCompute), ppCommandListsCompute);
+		device_resources->GetCommandQueueCompute()->Signal(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value);
+		fence_command_list_compute_progress_latest_unused_value++;
+	#pragma endregion
+
+		if (showVoxelDebugView == true)
+		{
+
+	#pragma region Voxel Debug Visualization Pass
+			ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_voxel_debug_visualization.Get()));
+			command_list_direct->SetGraphicsRootSignature(root_signature.Get());
+			ID3D12DescriptorHeap* ppHeapsVoxelDebugViewPass[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
+			command_list_direct->SetDescriptorHeaps(_countof(ppHeapsVoxelDebugViewPass), ppHeapsVoxelDebugViewPass);
+			AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
+			command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
+			command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
+			// Bind the render target and depth buffer
+			D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
+			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+			command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
+			command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			command_list_direct->IASetVertexBuffers(0, 1, &voxel_debug_cube.vertex_buffer_view);
+			command_list_direct->IASetIndexBuffer(&voxel_debug_cube.index_buffer_view);
+
+
+			// Indicate that the command buffer will be used for indirect drawing
+			// and that the back buffer will be used as a render target.
+			D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[2] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(
+					per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
+					D3D12_RESOURCE_STATE_COMMON,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+				CD3DX12_RESOURCE_BARRIER::Transition(
+					per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+					D3D12_RESOURCE_STATE_COMMON,
+					D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT)
+			};
+
+			command_list_direct->ResourceBarrier(_countof(voxelDebugVisualizationPassBarriers), voxelDebugVisualizationPassBarriers);
+
+			command_list_direct->ExecuteIndirect(
+				voxel_debug_command_signature.Get(),
+				1,
+				per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+				0,
+				nullptr,
+				0);
+
+			voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_draw_required_voxel_debug_data_buffer[currentFrameIndex].Get(),
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_COMMON);
+			voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(per_frame_indirect_command_buffer[currentFrameIndex].Get(),
+				D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
+				D3D12_RESOURCE_STATE_COMMON);
+
+
+			command_list_direct->ResourceBarrier(2, voxelDebugVisualizationPassBarriers);
+			command_list_direct->Close();
+			ID3D12CommandList* ppCommandListsIndirectExecute[] = { command_list_direct.Get() };
+			device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
+			device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandListsIndirectExecute), ppCommandListsIndirectExecute);
+			device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
+			fence_command_list_direct_progress_latest_unused_value++;
+	#pragma endregion
+
+			goto LABEL_END_OF_RENDER_PASSES;
+		}
+		else
+		{
+			//Default Render Pass
+	#pragma region Default Render Pass
+			ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_unlit.Get()));
+			command_list_direct->SetGraphicsRootSignature(root_signature.Get());
+			ID3D12DescriptorHeap* ppHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
+			command_list_direct->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			AssignDescriptors(command_list_direct.Get(), false, currentFrameIndex);
+			command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
+			command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
+			command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
+			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+			command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
+			for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
+			{
+				// Set the transform matrix buffer indexes
+				command_list_direct->SetGraphicsRoot32BitConstants(0,
+					2,
+					scene[scene_object_indexes_that_require_rendering[i]].per_frame_transform_matrix_buffer_indexes[scene[scene_object_indexes_that_require_rendering[i]].current_frame_index_containing_most_updated_transform_matrix],
+					0);
+
+				// Bind the vertex and index buffer views
+				command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[i]].vertex_buffer_view);
+				command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
+				command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
+			}
+
+			command_list_direct->Close();
+			ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
+			device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	#pragma endregion
+
+		}
 	}
-	*/
+	
 
 	
 	LABEL_END_OF_RENDER_PASSES:

@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Graphics/DeviceResources/DeviceResources.h"
+#include "Utility/Math/Matrix.h"
 #include "Scene/Camera.h"
 
 
 using namespace DirectX;
+
+
 
 struct ShaderStructureCPUSpotLight
 {
@@ -34,14 +37,15 @@ struct ShaderStructureCPUSpotLight
 
     void UpdateSpotLightViewMatrix()
     {
-        XMStoreFloat4x4(&spotlight_view_matrix, XMMatrixLookAtLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 1.0f), XMVectorSet(position_world_space.x + direction_world_space.x, position_world_space.y + direction_world_space.y, position_world_space.z + direction_world_space.z, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f)));
+        XMMATRIX rotationMatrix = XMMatrixTranspose(XMMatrixLookAtLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 1.0f), XMVector4Normalize(XMVectorSet(position_world_space.x + direction_world_space.x, position_world_space.y + direction_world_space.y, position_world_space.z + direction_world_space.z, 1.0f)), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f)));
+        XMMATRIX translationMatrix = XMMatrixTranslation(-position_world_space.x, -position_world_space.y, -position_world_space.z);
+        DirectX::XMStoreFloat4x4(&spotlight_view_matrix, XMMatrixTranspose(translationMatrix * rotationMatrix));
     }
 
     void UpdateSpotLightProjectionMatrix(float zNear, float zFar)
     {
-        XMStoreFloat4x4(&spotlight_projection_matrix, XMMatrixPerspectiveFovLH(XMConvertToRadians(spot_angle_degrees), 1.0f, zNear, zFar));
+        XMStoreFloat4x4(&spotlight_projection_matrix, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XMConvertToRadians(spot_angle_degrees), 1.0f, zNear, zFar)));
     }
-
 
     XMFLOAT4    position_world_space;
     XMFLOAT4    position_view_space;
@@ -54,6 +58,14 @@ struct ShaderStructureCPUSpotLight
     XMFLOAT4X4  spotlight_view_matrix;
     XMFLOAT4X4  spotlight_projection_matrix;
 };
+
+/*
+struct ShaderStructureCPUSpotLightMatrices
+{
+    XMFLOAT4X4  spotlight_view_matrix;
+    XMFLOAT4X4  spotlight_projection_matrix;
+};
+*/
 
 class SpotLight
 {
@@ -68,9 +80,10 @@ class SpotLight
         void UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeight);
         D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMapRenderTargetView(); 
         D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMapDepthStencilView();
-        ID3D12Resource* GetShadowMapDpethBuffer() const { return texture_shadow_map[device_resources->GetCurrentFrameIndex()].Get(); };
+        ID3D12Resource* GetShadowMapDepthBuffer() const { return texture_shadow_map[device_resources->GetCurrentFrameIndex()].Get(); };
         D3D12_VIEWPORT GetViewport() const { return viewport; };
         D3D12_RECT GetScissorRect() const { return scissor_rect; };
+        
 
         const WCHAR* pName;
         ShaderStructureCPUSpotLight constant_buffer_data;
@@ -80,11 +93,18 @@ class SpotLight
         bool is_initialized;
         std::shared_ptr<DeviceResources> device_resources;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_uav;
-        Microsoft::WRL::ComPtr<ID3D12Resource> constant_buffer;
-        static const UINT c_aligned_constant_buffer = (sizeof(ShaderStructureCPUSpotLight) + 255) & ~255;
         
-        UINT8* constant_mapped_buffer;
-        UINT most_updated_constant_buffer_index;
+        static const UINT c_aligned_constant_buffer_data = (sizeof(ShaderStructureCPUSpotLight) + 255) & ~255;
+        //static const UINT c_aligned_constant_buffer_matrices = (sizeof(ShaderStructureCPUSpotLightMatrices) + 255) & ~255;
+        
+        Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_data;
+        UINT8* constant_mapped_buffer_data;
+        UINT most_updated_constant_buffer_data_index;
+        //Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_matrices;
+        //ShaderStructureCPUSpotLightMatrices constant_buffer_matrices;
+        //UINT8* constant_mapped_buffer_matrices;
+        //UINT most_updated_constant_buffer_matrices_index;
+
         Microsoft::WRL::ComPtr<ID3D12Resource> texture_shadow_map[c_frame_count];
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
         Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer_shadow_map[c_frame_count];

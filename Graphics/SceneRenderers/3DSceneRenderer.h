@@ -169,6 +169,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_full_screen_texture_visualization;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
@@ -184,6 +185,7 @@ class SceneRenderer3D
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_radiance_texture_3d[c_frame_count];
+
 	private:
 		void UpdateVoxelizerBuffers();
 		void UpdateVoxelGridDataBuffer();

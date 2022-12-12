@@ -111,21 +111,23 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	camera.SetTranslation(XMVectorSet(0.0f, 0.0f, -2.0f, 1.0f));
 
 	// Create the scene geometry
-	scene.reserve(8);
+	scene.reserve(2);
 	for (int i = 0; i < scene.capacity(); i++)
 	{
 		scene.emplace_back(Mesh(true));
 	}
 
 	// Initialize and setup the Cornell box
-	scene[0].InitializeAsPlane(2.0f, 2.0f);
+	//scene[0].InitializeAsPlane(2.0f, 2.0f);
+	scene[0].InitializeAsVerticalPlane(2.0f, 2.0f);
 	scene[0].name = "Plane 01";
-	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	//scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
 	scene[1].name = "Plane 02";
 	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 
+	/*
 	scene[2].InitializeAsPlane(2.0f, 2.0f);
 	scene[2].name = "Plane 03";
 	scene[2].SetColor(XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f));
@@ -176,19 +178,22 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	scene[7].world_position.x = 0.3f;
 	scene[7].world_position.y = -0.8f;
 	scene[7].world_position.z = -0.3f;
+	*/
 
 	// Setup the spot light
 	spot_light.Initialize(L"SpotLight01", scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res, device_resources);
 	spot_light.constant_buffer_data.position_world_space.y = 0.8f;
 	spot_light.constant_buffer_data.position_world_space.z = 0.0f;
 	spot_light.constant_buffer_data.direction_world_space.y = -1.0f;
+	spot_light.constant_buffer_data.direction_world_space.z = 0.0f;
 	XMStoreFloat4(&imgui_spot_light_default_color, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
 	spot_light.constant_buffer_data.color = imgui_spot_light_default_color;
 	spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
-	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix(0.01f, 10.0f);
+	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
+	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix(0.01f, 1.0f);
 	imgui_spot_light_data = spot_light.constant_buffer_data;
-
+	spot_light.UpdateConstantBuffers();
 
 	OnWindowSizeChanged();
 }
@@ -566,7 +571,7 @@ void VoxelConeTracingMain::Render()
 			scene_renderer->voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
 			imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
 			// !!!!!!!!!!!!!!!!! ALSO UPDATE THE SHADOW MAP TEXTURE OF THE SPOT LIGHT !!!!!!!!!!!!!!!!!
-			spot_light.UpdateShadowMapTexture(scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res);
+			//spot_light.UpdateShadowMapTexture(scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res);
 		}
 
 		// If the voxel grid extent changed, we will have to call the grid's UpdateGirdExtent function 
@@ -607,7 +612,7 @@ void VoxelConeTracingMain::Render()
 			imgui_spot_light_data.direction_view_space = spot_light.constant_buffer_data.direction_view_space;
 		}
 
-		if (memcmp(&imgui_spot_light_data , &spot_light.constant_buffer_data, sizeof(ShaderStructureCPUSpotLight) - sizeof(float)))
+		if (memcmp(&imgui_spot_light_data , &spot_light.constant_buffer_data, sizeof(ShaderStructureCPUSpotLight)))
 		{
 			updateSpotLightBuffer = true;
 			imgui_spot_light_data = spot_light.constant_buffer_data;
@@ -615,7 +620,7 @@ void VoxelConeTracingMain::Render()
 
 		if (updateSpotLightBuffer == true)
 		{
-			spot_light.UpdateConstantBuffer();
+			spot_light.UpdateConstantBuffers();
 		}
 #pragma endregion
 		
