@@ -284,9 +284,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateSpotLightWriteOnlyDepth.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
 	//stateSpotLightWriteOnlyDepth.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
 	stateSpotLightWriteOnlyDepth.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	//stateSpotLightWriteOnlyDepth.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;
-	//stateSpotLightWriteOnlyDepth.RasterizerState.SlopeScaledDepthBias = 0.1f;
-	//stateSpotLightWriteOnlyDepth.RasterizerState.DepthBiasClamp = 0.1f;
+	stateSpotLightWriteOnlyDepth.RasterizerState.CullMode = D3D12_CULL_MODE::D3D12_CULL_MODE_FRONT;
+	stateSpotLightWriteOnlyDepth.RasterizerState.SlopeScaledDepthBias = 0.1f;
+	stateSpotLightWriteOnlyDepth.RasterizerState.DepthBiasClamp = 0.1f;
 	stateSpotLightWriteOnlyDepth.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	stateSpotLightWriteOnlyDepth.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	stateSpotLightWriteOnlyDepth.SampleMask = UINT_MAX;
@@ -300,7 +300,6 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 #pragma endregion
 
 #pragma region Spot Light Shadow Pass Pipeline State
-	/*
 	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightShadowMap_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
 	LoadShaderByteCode((standardStringInstallPath + "\\SpotLightShadowMap_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
@@ -320,7 +319,6 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateSpotLightShadowPass.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateSpotLightShadowPass, IID_PPV_ARGS(&pipeline_state_spot_light_shadow_pass)));
-	*/
 #pragma endregion
 
 #pragma region Full Screen Texture Visualization Pipeline Pass
@@ -1021,11 +1019,12 @@ void SceneRenderer3D::AssignDescriptors(ID3D12GraphicsCommandList* _commandList,
 	if (isComputeCommandList == false)
 	{
 		// View Projection CBV
+		gpuHandle.Offset(currentFrameIndex * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 		_commandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
-		gpuHandle.Offset(cbvSrvUavDescriptorSize);
+		gpuHandle.Offset(((c_frame_count - currentFrameIndex) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()) + (currentFrameIndex * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()));
 		// Spot Light CBV
 		_commandList->SetGraphicsRootDescriptorTable(2, gpuHandle);
-		gpuHandle.Offset(cbvSrvUavDescriptorSize);
+		gpuHandle.Offset((c_frame_count - currentFrameIndex) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 		// Spot Light Shadow Map SRV And Depth Buffer SRV
 		_commandList->SetGraphicsRootDescriptorTable(3, gpuHandle);
 		gpuHandle.Offset((cbvSrvUavDescriptorSize * 2) + (voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version * cbvSrvUavDescriptorSize));
@@ -1056,12 +1055,13 @@ void SceneRenderer3D::AssignDescriptors(ID3D12GraphicsCommandList* _commandList,
 	else
 	{
 		// View Projection CBV
+		gpuHandle.Offset(currentFrameIndex * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 		_commandList->SetComputeRootDescriptorTable(1, gpuHandle);
-		gpuHandle.Offset(cbvSrvUavDescriptorSize);
+		gpuHandle.Offset(((c_frame_count - currentFrameIndex) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()) + (currentFrameIndex * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()));
 		// Spot Light CBV
 		_commandList->SetComputeRootDescriptorTable(2, gpuHandle);
-		gpuHandle.Offset(cbvSrvUavDescriptorSize);
-		// Spot Light Shadow Map SRV
+		gpuHandle.Offset((c_frame_count - currentFrameIndex) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+		// Spot Light Shadow Map SRV And Depth Buffer SRV
 		_commandList->SetComputeRootDescriptorTable(3, gpuHandle);
 		gpuHandle.Offset((cbvSrvUavDescriptorSize * 2) + (voxel_grid_data_constant_buffer_frame_index_containing_most_updated_version * cbvSrvUavDescriptorSize));
 		// Voxel Grid Data CBV
@@ -1322,7 +1322,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 
 		ID3D12DescriptorHeap* _pHeaps[] = { device_resources->GetDescriptorHeapCbvSrvUav() };
 		ID3D12CommandList* _pCommandListsDirect[] = { command_list_direct.Get() };
-		/*
+		
 #pragma region Spot Light Write Only Depth Pass
 		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_spot_light_write_only_depth.Get()));
 		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
@@ -1332,7 +1332,6 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		command_list_direct->RSSetScissorRects(1, &spotLight.GetScissorRect());
 		// Bind the render target and depth buffer
 		command_list_direct->ClearDepthStencilView(spotLight.GetShadowMapDepthStencilView(), D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
-		//command_list_direct->OMSetRenderTargets(1, &spotLight.GetShadowMapRenderTargetView(), false, &spotLight.GetShadowMapDepthStencilView());
 		command_list_direct->OMSetRenderTargets(0, nullptr, false, &spotLight.GetShadowMapDepthStencilView());
 		command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		for (UINT i = 1; i < scene_object_indexes_that_require_rendering.size(); i++)
@@ -1351,29 +1350,26 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 #pragma endregion
 
 #pragma region Spot Light Shadow Map Pass
-		command_list_direct->SetPipelineState(pipeline_state_full_screen_texture_visualization.Get());
+		command_list_direct->SetPipelineState(pipeline_state_spot_light_shadow_pass.Get());
 		// Bind the render target and depth buffer
-		command_list_direct->OMSetRenderTargets(1, &device_resources->GetRenderTargetView(), false, &device_resources->GetDepthStencilView());
+		command_list_direct->ClearRenderTargetView(spotLight.GetShadowMapRenderTargetView(), DirectX::Colors::Black, 0, nullptr);
+		command_list_direct->OMSetRenderTargets(1, &spotLight.GetShadowMapRenderTargetView(), false, &device_resources->GetDepthStencilView());
 		//CD3DX12_RESOURCE_BARRIER spotLightShadowMapPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(spotLight.GetShadowMapDepthBuffer(),
 		//	D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
+		
 		//command_list_direct->ResourceBarrier(1, &spotLightShadowMapPassBarrier);
-		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
-		command_list_direct->RSSetScissorRects(1, &device_resources->GetDefaultScissorRect());
-		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[0]].vertex_buffer_view);
-		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[0]].index_buffer_view);
-		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[0]].indices.size(), 1, 0, 0, 0);
-		//spotLightShadowMapPassBarrier = CD3DX12_RESOURCE_BARRIER::Transition(spotLight.GetShadowMapDepthBuffer(),
-		//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		//	D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-		//command_list_direct->ResourceBarrier(1, &spotLightShadowMapPassBarrier);
-		ThrowIfFailed(command_list_direct->Close());
-		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
-		*/
-		/*
-		for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
+		//command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[0]].vertex_buffer_view);
+		//command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[0]].index_buffer_view);
+		//command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[0]].indices.size(), 1, 0, 0, 0);
+		CD3DX12_RESOURCE_BARRIER spotLightShadowMapPassBarriers[2];
+		spotLightShadowMapPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapDepthBuffer(),
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		
+		command_list_direct->ResourceBarrier(1, spotLightShadowMapPassBarriers);
+		for (UINT i = 1; i < scene_object_indexes_that_require_rendering.size(); i++)
 		{
 			// Set the transform matrix buffer indexes
 			command_list_direct->SetGraphicsRoot32BitConstants(0,
@@ -1386,9 +1382,41 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
 			command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
 		}
-		*/
+
 #pragma endregion
-		
+
+#pragma region Full Screen Visualization
+		command_list_direct->SetPipelineState(pipeline_state_full_screen_texture_visualization.Get());
+		// Bind the render target and depth buffer
+		command_list_direct->ClearDepthStencilView(device_resources->GetDepthStencilView(), D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
+		command_list_direct->OMSetRenderTargets(1, &device_resources->GetRenderTargetView(), false, &device_resources->GetDepthStencilView());
+		spotLightShadowMapPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapDepthBuffer(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		spotLightShadowMapPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapBuffer(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		command_list_direct->ResourceBarrier(2, spotLightShadowMapPassBarriers);
+		command_list_direct->IASetVertexBuffers(0, 1, &scene[scene_object_indexes_that_require_rendering[0]].vertex_buffer_view);
+		command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[0]].index_buffer_view);
+		command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[0]].indices.size(), 1, 0, 0, 0);
+		spotLightShadowMapPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapBuffer(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		command_list_direct->ResourceBarrier(1, spotLightShadowMapPassBarriers);
+		ThrowIfFailed(command_list_direct->Close());
+		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
+#pragma endregion
+
+
+
+
+		/*
 	#pragma region Voxelizer Render Pass
 		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_voxelizer.Get()));
 		command_list_direct->SetGraphicsRootSignature(root_signature.Get());
@@ -1488,10 +1516,10 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		device_resources->GetCommandQueueCompute()->Signal(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value);
 		fence_command_list_compute_progress_latest_unused_value++;
 	#pragma endregion
-
+	*/
 		if (showVoxelDebugView == true)
 		{
-
+		/*
 	#pragma region Voxel Debug Visualization Pass
 			ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_voxel_debug_visualization.Get()));
 			command_list_direct->SetGraphicsRootSignature(root_signature.Get());
@@ -1550,6 +1578,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 	#pragma endregion
 
 			goto LABEL_END_OF_RENDER_PASSES;
+			*/
 		}
 		else
 		{
@@ -1565,6 +1594,8 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
 			D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+			command_list_direct->ClearRenderTargetView(renderTargetView, DirectX::Colors::CornflowerBlue, 0, nullptr);
+			command_list_direct->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
 			command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
 			for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
 			{

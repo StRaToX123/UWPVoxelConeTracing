@@ -181,7 +181,9 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	*/
 
 	// Setup the spot light
-	spot_light.Initialize(L"SpotLight01", scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res, device_resources);
+	
+	//spot_light.Initialize(L"SpotLight01", scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res, device_resources);
+	spot_light.Initialize(L"SpotLight01", device_resources->GetOutputSize().Width, device_resources->GetOutputSize().Height, device_resources);
 	spot_light.constant_buffer_data.position_world_space.y = 0.8f;
 	spot_light.constant_buffer_data.position_world_space.z = 0.0f;
 	spot_light.constant_buffer_data.direction_world_space.y = -1.0f;
@@ -191,9 +193,11 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
-	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix(0.01f, 1.0f);
+	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix();
 	imgui_spot_light_data = spot_light.constant_buffer_data;
 	spot_light.UpdateConstantBuffers();
+
+	DisplayDebugMessage("@@@@@@@@@@@@@@\n size of : %d\n@@@@@@@@@@@@@@@\n", sizeof(ShaderStructureCPUSpotLight));
 
 	OnWindowSizeChanged();
 }
@@ -487,6 +491,8 @@ void VoxelConeTracingMain::Update()
 		
 		
 	});
+
+	//spot_light.camera.UpdateGPUBuffers();
 }
 
 
@@ -562,10 +568,12 @@ void VoxelConeTracingMain::Render()
 		ImGui::End();
 
 #pragma region Voxelizer Pass Callbacks
+		bool callUpdateBuffers = false;
 		// If the voxel grid resolution changed, we will have to update the voxel grid data structure and all of the voxelizer buffers
 		bool updateVoxelizerBuffers = false;
 		if (imgui_voxel_grid_selected_allowed_resolution_current_index != imgui_voxel_grid_selected_allowed_resolution_previous_index)
 		{
+			callUpdateBuffers = true;
 			updateVoxelizerBuffers = true;
 			imgui_voxel_grid_selected_allowed_resolution_previous_index = imgui_voxel_grid_selected_allowed_resolution_current_index;
 			scene_renderer->voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
@@ -579,6 +587,7 @@ void VoxelConeTracingMain::Render()
 		bool updateVoxelGridDataBuffers = false;
 		if (scene_renderer->voxel_grid_data.grid_extent != imgui_voxel_grid_data.grid_extent)
 		{
+			callUpdateBuffers = true;
 			updateVoxelGridDataBuffers = true;
 			scene_renderer->voxel_grid_data.UpdateGirdExtent(scene_renderer->voxel_grid_data.grid_extent);
 			imgui_voxel_grid_data.UpdateGirdExtent(scene_renderer->voxel_grid_data.grid_extent);
@@ -587,11 +596,15 @@ void VoxelConeTracingMain::Render()
 		// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer
 		if (memcmp(&scene_renderer->voxel_grid_data, &imgui_voxel_grid_data, sizeof(SceneRenderer3D::ShaderStructureCPUVoxelGridData)) != 0)
 		{
+			callUpdateBuffers = true;
 			updateVoxelGridDataBuffers = true;
 			imgui_voxel_grid_data = scene_renderer->voxel_grid_data;
 		}
 
-		scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
+		if (callUpdateBuffers == true)
+		{
+			scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
+		}
 #pragma endregion
 
 #pragma region Spot Light Callbacks
@@ -669,9 +682,9 @@ void VoxelConeTracingMain::OnWindowSizeChanged()
 
 	camera.SetProjection(camera.GetFoV(), aspectRatio, 0.01f, 100.0f);
 
-	XMFLOAT4X4 orientation = device_resources->GetOrientationTransform3D();
-	XMMATRIX orientationMatrix = DirectX::XMLoadFloat4x4(&orientation);
-	DirectX::XMStoreFloat4x4(&camera.view_projection_constant_buffer_data.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
+	//XMFLOAT4X4 orientation = device_resources->GetOrientationTransform3D();
+	//XMMATRIX orientationMatrix = DirectX::XMLoadFloat4x4(&orientation);
+	//DirectX::XMStoreFloat4x4(&camera.view_projection_constant_buffer_data.projection, XMMatrixTranspose(camera.GetProjectionMatrix() * orientationMatrix));
 
 	scene_renderer->CreateWindowSizeDependentResources(camera);
 }

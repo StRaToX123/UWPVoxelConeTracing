@@ -23,7 +23,7 @@ void SpotLight::Initialize(const WCHAR* name, UINT64 shadowMapWidth, UINT shadow
     auto d3dDevice = device_resources->GetD3DDevice();
     // Create this light descriptor heap
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    heapDesc.NumDescriptors = (c_frame_count * 3); // each constant buffer, shadow map texture and depth buffer have a per frame descriptor
+    heapDesc.NumDescriptors = c_frame_count + 2; // each constant buffer, shadow map texture and depth buffer have a per frame descriptor
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav)));
@@ -34,7 +34,7 @@ void SpotLight::Initialize(const WCHAR* name, UINT64 shadowMapWidth, UINT shadow
 
     // Create descriptor heaps for render target views, this heap will hold the shadow map rtvs
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-    rtvHeapDesc.NumDescriptors = c_frame_count;
+    rtvHeapDesc.NumDescriptors = 1;
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtv_heap)));
@@ -42,7 +42,7 @@ void SpotLight::Initialize(const WCHAR* name, UINT64 shadowMapWidth, UINT shadow
 
     // Create a depth stencil heap to hold all the depth buffers
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-    dsvHeapDesc.NumDescriptors = c_frame_count;
+    dsvHeapDesc.NumDescriptors = 1;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsv_heap)));
@@ -88,23 +88,46 @@ void SpotLight::Initialize(const WCHAR* name, UINT64 shadowMapWidth, UINT shadow
     // We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
     ThrowIfFailed(resource_constant_buffer_data->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&constant_mapped_buffer_data)));
     std::ZeroMemory(constant_mapped_buffer_data, c_frame_count * c_aligned_constant_buffer_data);
-    UpdateConstantBuffers();
 #pragma endregion
 
     UpdateShadowMapBuffers(shadowMapWidth, shadowMapHeight);
-    for (int i = 0; i < c_frame_count; i++)
-    {
-        texture_shadow_map[i]->SetName((wstring(L"SpotLight ") + wstring(name) + wstring(L"texture_shadow_map[") + to_wstring(i) + wstring(L"]")).c_str());
-        texture_shadow_map[i]->SetName((wstring(L"SpotLight ") + wstring(name) + wstring(L"depth_buffer_shadow_map[") + to_wstring(i) + wstring(L"]")).c_str());
-    }
+    texture_shadow_map->SetName((wstring(L"SpotLight ") + wstring(name) + wstring(L"texture_shadow_map")).c_str());
+    depth_buffer_shadow_map->SetName((wstring(L"SpotLight ") + wstring(name) + wstring(L"depth_buffer_shadow_map")).c_str());
 
+    /*
+    camera.Initialize(device_resources);
+    camera.SetFoV(90.0f);
+    camera.SetLookAt(XMVectorSet(constant_buffer_data.position_world_space.x, 
+        constant_buffer_data.position_world_space.y, 
+        constant_buffer_data.position_world_space.z, 
+        1.0f), 
+            XMVectorSet(constant_buffer_data.position_world_space.x + constant_buffer_data.direction_world_space.x, 
+                constant_buffer_data.position_world_space.y + constant_buffer_data.direction_world_space.y,
+                constant_buffer_data.position_world_space.z + constant_buffer_data.direction_world_space.z,
+                1.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+        */
+    /*
+    camera.SetLookAt(XMVectorSet(0.0f,
+        0.8f,
+        0.0f,
+        1.0f),
+        XMVectorSet(0.0f,
+            -0.2f,
+            0.0f,
+            1.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+        */
+
+    //camera.SetRotation(camera.GetRotationQuaternion());
+    //camera.UpdateGPUBuffers();
+   
     is_initialized = true;
 }
 
 void SpotLight::UpdateConstantBuffers()
 {
-    most_updated_constant_buffer_data_index = device_resources->GetCurrentFrameIndex();
-    UINT8* _destination = constant_mapped_buffer_data + (most_updated_constant_buffer_data_index * c_aligned_constant_buffer_data);
+    UINT8* _destination = constant_mapped_buffer_data + (device_resources->GetCurrentFrameIndex() * c_aligned_constant_buffer_data);
     std::memcpy(_destination, &constant_buffer_data, sizeof(ShaderStructureCPUSpotLight));
 }
 
@@ -118,6 +141,7 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     rtvDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -125,31 +149,30 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
-    for (int i = 0; i < c_frame_count; i++)
-    {
-        D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-            DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT,
-            shadowMapWidth,
-            shadowMapHeight,
-            1);
-        textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    
+    D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+        DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT,
+        shadowMapWidth,
+        shadowMapHeight,
+        1);
+    textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-        ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
-            &textureDesc,
-            D3D12_RESOURCE_STATE_RENDER_TARGET,
-            nullptr,
-            IID_PPV_ARGS(&texture_shadow_map[i])));
+    ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE,
+        &textureDesc,
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        &CD3DX12_CLEAR_VALUE(DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT, clearColor),
+        IID_PPV_ARGS(&texture_shadow_map)));
         
-        // RTV
-        d3dDevice->CreateRenderTargetView(texture_shadow_map[i].Get(), &rtvDesc, rtvHeapCpuHandle);
-        rtvHeapCpuHandle.Offset(d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+    // RTV
+    d3dDevice->CreateRenderTargetView(texture_shadow_map.Get(), &rtvDesc, rtvHeapCpuHandle);
+    rtvHeapCpuHandle.Offset(d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
-        // SRV
-        device_resources->GetD3DDevice()->CreateShaderResourceView(texture_shadow_map[i].Get(), &srvDesc, cbvSrvUavCpuHandle);
-        cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    }
+    // SRV
+    device_resources->GetD3DDevice()->CreateShaderResourceView(texture_shadow_map.Get(), &srvDesc, cbvSrvUavCpuHandle);
+    cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+    
 #pragma endregion
 
 #pragma region Depth Buffer Shadow Map
@@ -165,53 +188,51 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     srvDescDepthBuffer.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDescDepthBuffer.Texture2D.MipLevels = 1;
     srvDescDepthBuffer.Texture2D.MostDetailedMip = 0;
-    Windows::Foundation::Size backBufferDimensions = device_resources->GetOutputSize();
-    for (int i = 0; i < c_frame_count; i++)
-    {
-        D3D12_RESOURCE_DESC depthResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, 
-            backBufferDimensions.Width, 
-            backBufferDimensions.Height, 
-            1, 
-            1);
-        depthResourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        CD3DX12_CLEAR_VALUE depthOptimizedClearValue(device_resources->GetDepthBufferFormat(), 1.0f, 0);
+    
+    D3D12_RESOURCE_DESC depthResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, 
+        shadowMapWidth, 
+        shadowMapHeight, 
+        1, 
+        1);
+    depthResourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    CD3DX12_CLEAR_VALUE depthOptimizedClearValue(device_resources->GetDepthBufferFormat(), 1.0f, 0);
 
-        ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
-            &depthResourceDesc,
-            D3D12_RESOURCE_STATE_DEPTH_WRITE,
-            &depthOptimizedClearValue,
-            IID_PPV_ARGS(&depth_buffer_shadow_map[i])
-        ));
+    ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE,
+        &depthResourceDesc,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        &depthOptimizedClearValue,
+        IID_PPV_ARGS(&depth_buffer_shadow_map)
+    ));
 
-        // Create a dsv for the shadow pass depth buffer
-        d3dDevice->CreateDepthStencilView(depth_buffer_shadow_map[i].Get(), &dsvDesc, dsvHeapCpuHandle);
-        dsvHeapCpuHandle.Offset(d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV));
+    // Create a dsv for the shadow pass depth buffer
+    d3dDevice->CreateDepthStencilView(depth_buffer_shadow_map.Get(), &dsvDesc, dsvHeapCpuHandle);
+    dsvHeapCpuHandle.Offset(d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV));
 
-        // Create a srv for the depth buffer, so we may read it in the shadow map shader
-        device_resources->GetD3DDevice()->CreateShaderResourceView(depth_buffer_shadow_map[i].Get(), &srvDescDepthBuffer, cbvSrvUavCpuHandle);
-        cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    }
+    // Create a srv for the depth buffer, so we may read it in the shadow map shader
+    device_resources->GetD3DDevice()->CreateShaderResourceView(depth_buffer_shadow_map.Get(), &srvDescDepthBuffer, cbvSrvUavCpuHandle);
+    cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 #pragma endregion
 
 }
 
 void SpotLight::CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle, bool copyShadowMapSRV, bool copyDepthBufferSRV)
 {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), most_updated_constant_buffer_data_index * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    device_resources->GetD3DDevice()->CopyDescriptorsSimple(1, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    destinationDescriptorHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), 0);
+    device_resources->GetD3DDevice()->CopyDescriptorsSimple(c_frame_count, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    //camera.CopyDescriptorsIntoDescriptorHeap(destinationDescriptorHandle);
+    destinationDescriptorHandle.Offset(c_frame_count * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
     if (copyShadowMapSRV == true)
     {
-        cpuHandle.Offset(((c_frame_count - most_updated_constant_buffer_data_index) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()) + (device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()));
+        cpuHandle.Offset(c_frame_count * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
         device_resources->GetD3DDevice()->CopyDescriptorsSimple(1, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         destinationDescriptorHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
     }
     
     if (copyDepthBufferSRV == true)
     {
-        cpuHandle.Offset(((c_frame_count - device_resources->GetCurrentFrameIndex()) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()) + (device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()));
+        cpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
         device_resources->GetD3DDevice()->CopyDescriptorsSimple(1, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
         destinationDescriptorHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
     }

@@ -3,6 +3,7 @@
 #include "Graphics/DeviceResources/DeviceResources.h"
 #include "Utility/Math/Matrix.h"
 #include "Scene/Camera.h"
+#include <DirectXColors.h>
 
 
 using namespace DirectX;
@@ -18,7 +19,7 @@ struct ShaderStructureCPUSpotLight
         direction_view_space(0.0f, 0.0f, 1.0f, 1.0f),
         color(1.0f, 1.0f, 1.0f, 1.0f),
         intensity(1.0f),
-        spot_angle_degrees(XM_PIDIV2),
+        spot_angle_degrees(90.0f),
         attenuation(0.0f)
     {
 
@@ -32,19 +33,22 @@ struct ShaderStructureCPUSpotLight
 
     void UpdateDirectionViewSpace(Camera& camera)
     {
-        XMStoreFloat4(&direction_view_space, XMVector4Transform(XMVectorSet(direction_world_space.x, direction_world_space.y, direction_world_space.z, 1.0f), XMMatrixTranspose(XMMatrixRotationQuaternion(camera.GetRotationQuaternion()))));
+        XMStoreFloat4(&direction_view_space, XMVector4Transform(XMVectorSet(direction_world_space.x, direction_world_space.y, direction_world_space.z, 1.0f), DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(camera.GetRotationQuaternion()))));
     };
 
     void UpdateSpotLightViewMatrix()
     {
-        XMMATRIX rotationMatrix = XMMatrixTranspose(XMMatrixLookAtLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 1.0f), XMVector4Normalize(XMVectorSet(position_world_space.x + direction_world_space.x, position_world_space.y + direction_world_space.y, position_world_space.z + direction_world_space.z, 1.0f)), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f)));
-        XMMATRIX translationMatrix = XMMatrixTranslation(-position_world_space.x, -position_world_space.y, -position_world_space.z);
-        DirectX::XMStoreFloat4x4(&spotlight_view_matrix, XMMatrixTranspose(translationMatrix * rotationMatrix));
+        //XMMATRIX rotationMatrix = XMMatrixTranspose(XMMatrixLookAtLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 1.0f), XMVectorSet(direction_world_space.x, direction_world_space.y, direction_world_space.z, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f)));
+        XMMATRIX translationMatrix = DirectX::XMMatrixTranslation(-position_world_space.x, -position_world_space.y, -position_world_space.z);
+        XMVECTOR rotationQuaternion = XMQuaternionRotationMatrix(DirectX::XMMatrixTranspose(DirectX::XMMatrixLookAtLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 0.0f), XMVectorSet(position_world_space.x + direction_world_space.x, position_world_space.y +  direction_world_space.y, position_world_space.z + direction_world_space.z, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))));
+        XMMATRIX rotationMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(rotationQuaternion));
+        DirectX::XMStoreFloat4x4(&spotlight_view_matrix, DirectX::XMMatrixTranspose(translationMatrix * rotationMatrix));
+        //DirectX::XMStoreFloat4x4(&spotlight_view_matrix, DirectX::XMMatrixTranspose(DirectX::XMMatrixLookToLH(XMVectorSet(position_world_space.x, position_world_space.y, position_world_space.z, 1.0f), XMVectorSet(direction_world_space.x, direction_world_space.y, direction_world_space.z, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f))));
     }
 
-    void UpdateSpotLightProjectionMatrix(float zNear, float zFar)
+    void UpdateSpotLightProjectionMatrix()
     {
-        XMStoreFloat4x4(&spotlight_projection_matrix, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XMConvertToRadians(spot_angle_degrees), 1.0f, zNear, zFar)));
+        XMStoreFloat4x4(&spotlight_projection_matrix, DirectX::XMMatrixTranspose(DirectX::XMMatrixPerspectiveFovLH(XMConvertToRadians(spot_angle_degrees), 1.0f, 0.1f, 100.0f)));
     }
 
     XMFLOAT4    position_world_space;
@@ -55,6 +59,7 @@ struct ShaderStructureCPUSpotLight
     float       intensity;
     float       spot_angle_degrees;
     float       attenuation;
+    float       padding;
     XMFLOAT4X4  spotlight_view_matrix;
     XMFLOAT4X4  spotlight_projection_matrix;
 };
@@ -80,13 +85,15 @@ class SpotLight
         void UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeight);
         D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMapRenderTargetView(); 
         D3D12_CPU_DESCRIPTOR_HANDLE GetShadowMapDepthStencilView();
-        ID3D12Resource* GetShadowMapDepthBuffer() const { return texture_shadow_map[device_resources->GetCurrentFrameIndex()].Get(); };
+        ID3D12Resource* GetShadowMapDepthBuffer() const { return depth_buffer_shadow_map.Get(); };
+        ID3D12Resource* GetShadowMapBuffer() const { return texture_shadow_map.Get(); };
         D3D12_VIEWPORT GetViewport() const { return viewport; };
         D3D12_RECT GetScissorRect() const { return scissor_rect; };
         
 
         const WCHAR* pName;
         ShaderStructureCPUSpotLight constant_buffer_data;
+        Camera camera;
     private:
         
 
@@ -99,18 +106,18 @@ class SpotLight
         
         Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_data;
         UINT8* constant_mapped_buffer_data;
-        UINT most_updated_constant_buffer_data_index;
         //Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_matrices;
         //ShaderStructureCPUSpotLightMatrices constant_buffer_matrices;
         //UINT8* constant_mapped_buffer_matrices;
         //UINT most_updated_constant_buffer_matrices_index;
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> texture_shadow_map[c_frame_count];
+        Microsoft::WRL::ComPtr<ID3D12Resource> texture_shadow_map;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
-        Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer_shadow_map[c_frame_count];
+        Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer_shadow_map;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsv_heap;
         D3D12_VIEWPORT viewport;
         D3D12_RECT scissor_rect;
+        
 };
 
 struct ShaderStructureDirectionalLight

@@ -357,6 +357,7 @@
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\VoxelGIGlobalsGPU.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\Voxelizer_HF.hlsli" />

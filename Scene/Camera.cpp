@@ -82,17 +82,22 @@ void Camera::Initialize(const std::shared_ptr<DeviceResources>& deviceResources)
 
 void Camera::CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle)
 {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    device_resources->GetD3DDevice()->CopyDescriptorsSimple(1, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), 0);
+    device_resources->GetD3DDevice()->CopyDescriptorsSimple(c_frame_count, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     destinationDescriptorHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 }
 
 void Camera::UpdateGPUBuffers()
 {
     // Update the mapped viewProjection constant buffer
-    if (is_dirty_view_matrix)
+    if (is_dirty_view_matrix == true)
     {
         UpdateViewMatrix();
+    }
+
+    if (is_dirty_projection_matrix == true)
+    {
+        UpdateProjectionMatrix();
     }
 
     UINT8* _destination = view_projection_constant_mapped_buffer + (device_resources->GetCurrentFrameIndex() * c_aligned_view_projection_matrix_constant_buffer);
@@ -104,7 +109,6 @@ void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up
     p_data->view_matrix = XMMatrixLookAtLH(eye, target, up);
     p_data->translation = eye;
     p_data->rotation_quaternion = XMQuaternionRotationMatrix(XMMatrixTranspose(p_data->view_matrix));
-
     is_dirty_view_matrix = false;
 }
 
@@ -214,5 +218,6 @@ void Camera::UpdateViewMatrix()
 void Camera::UpdateProjectionMatrix()
 {
     p_data->projection_matrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(vertical_fov_degrees), aspect_ratio, z_near, z_far);
+    DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.projection, XMMatrixTranspose(p_data->projection_matrix));
     is_dirty_projection_matrix = false;
 }

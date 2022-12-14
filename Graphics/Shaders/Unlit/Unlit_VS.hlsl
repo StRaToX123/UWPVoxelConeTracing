@@ -11,8 +11,7 @@ struct VertexShaderOutputUnlit
 };
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
-//ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
-ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_data : register(b3);
+ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
 ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b4);
 
 VertexShaderOutputUnlit main(VertexShaderInputDefault input)
@@ -20,10 +19,8 @@ VertexShaderOutputUnlit main(VertexShaderInputDefault input)
 	VertexShaderOutputUnlit output;
 	float4 pos = float4(input.position, 1.0f);
 	pos = mul(pos, transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model);
-	//pos = mul(pos, view_projection_matrix_buffer.view);
-	//pos = mul(pos, view_projection_matrix_buffer.projection);
-	pos = mul(pos, spot_light_data.spotlight_view_matrix);
-	pos = mul(pos, spot_light_data.spotlight_projection_matrix);
+	pos = mul(pos, view_projection_matrix_buffer.view);
+	pos = mul(pos, view_projection_matrix_buffer.projection);
 	output.pos = pos;
 	
 	output.tex = input.tex_coord;

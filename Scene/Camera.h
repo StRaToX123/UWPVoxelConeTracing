@@ -94,4 +94,6 @@ class Camera
         Microsoft::WRL::ComPtr<ID3D12Resource> view_projection_constant_buffer;
         static const UINT c_aligned_view_projection_matrix_constant_buffer = (sizeof(ShaderStructureCPUViewProjectionBuffer) + 255) & ~255;
         UINT8* view_projection_constant_mapped_buffer;
+        bool update_view_projection_constant_buffer_view_matrix;
+        bool update_view_projection_constant_buffer_projection_matrix;
 };

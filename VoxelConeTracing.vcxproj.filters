@@ -418,6 +418,9 @@
     <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli">
       <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
     </None>
+    <None Include="Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl">
