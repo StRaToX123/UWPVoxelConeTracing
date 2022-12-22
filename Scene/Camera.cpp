@@ -80,11 +80,29 @@ void Camera::Initialize(const std::shared_ptr<DeviceResources>& deviceResources)
     is_initialized = true;
 }
 
+void Camera::AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute)
+{
+    if (assignCompute == false)
+    {
+        // Asign the constant buffer
+        descriptorHandle.Offset(device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+        _commandList->SetGraphicsRootDescriptorTable(rootParameterIndex, descriptorHandle);
+        descriptorHandle.Offset((c_frame_count - device_resources->GetCurrentFrameIndex()) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+    }
+    else
+    {
+        // Asign the constant buffer
+        descriptorHandle.Offset(device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+        _commandList->SetComputeRootDescriptorTable(rootParameterIndex, descriptorHandle);
+        descriptorHandle.Offset((c_frame_count - device_resources->GetCurrentFrameIndex()) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+    }
+}
+
 void Camera::CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle)
 {
     CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), 0);
     device_resources->GetD3DDevice()->CopyDescriptorsSimple(c_frame_count, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    destinationDescriptorHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+    destinationDescriptorHandle.Offset(c_frame_count * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 }
 
 void Camera::UpdateGPUBuffers()

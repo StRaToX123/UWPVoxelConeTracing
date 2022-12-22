@@ -62,7 +62,7 @@ class DeviceResources
 		DXGI_FORMAT					GetBackBufferFormat() const			{ return m_backBufferFormat; }
 		DXGI_FORMAT					GetDepthBufferFormat() const		{ return m_depthBufferFormat; }
 		D3D12_VIEWPORT				GetScreenViewport() const			{ return m_screenViewport; }
-		D3D12_RECT                  GetDefaultScissorRect() const       { return scissor_rect_default; }
+		D3D12_RECT                  GetScissorRect() const       { return scissor_rect_default; }
 
 		DirectX::XMFLOAT4X4			GetOrientationTransform3D() const	{ return m_orientationTransform3D; }
 		UINT						GetCurrentFrameIndex() const		{ return current_back_buffer_index; }
@@ -121,12 +121,15 @@ class DeviceResources
 
 
 
-		// This event and fence are independant from the ones used by the PresentThread
-		// These variables are used for custom on the side wait for gpu workload tasks
-		Microsoft::WRL::ComPtr<ID3D12Fence>		        fence;
+		Microsoft::WRL::ComPtr<ID3D12Fence>		        fence_direct_queue;
+		Microsoft::WRL::ComPtr<ID3D12Fence>		        fence_compute_queue;
+		Microsoft::WRL::ComPtr<ID3D12Fence>		        fence_copy_normal_priority_queue;
+		Microsoft::WRL::ComPtr<ID3D12Fence>		        fence_copy_high_priority_queue;
 		HANDLE                                          event_wait_for_gpu;
-		UINT64                                          fence_values[c_frame_count];
-		UINT64                                          fence_latest_unused_value;
+		UINT64                                          fence_values_direct_queue[c_frame_count];
+		UINT64                                          fence_unused_value_compute_queue;
+		UINT64                                          fence_unused_value_copy_normal_priority_queue;
+		UINT64                                          fence_unused_value_copy_high_priority_queue;
 
 		// Cached reference to the Window.
 		Platform::Agile<Windows::UI::Core::CoreWindow>	m_window;

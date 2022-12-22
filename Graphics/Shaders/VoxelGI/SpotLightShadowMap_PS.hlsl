@@ -5,7 +5,7 @@ Texture2D<float4> spot_light_depth_buffer : register(t3);
 SamplerState samp : register(s0);
 ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_buffer : register(b3);
 
-float4 main(VertexShaderOutputSpotLightShadowMap input) : SV_Target
+float main(VertexShaderOutputSpotLightShadowMap input) : SV_Target
 {
 	float4 color;
 	float2 projectTexCoord;
@@ -14,7 +14,7 @@ float4 main(VertexShaderOutputSpotLightShadowMap input) : SV_Target
 	float lightIntensity;
 
 	// Set the default output color to be black (shadow).
-	color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	color = 0.0f;
 	// Calculate the projected texture coordinates.
 	// we have to perform the perspective divide ourselves, and in order to remap the value from NDC to a texture coordinate
 	// we have to divide by 2 and add 0.5f, which puts the values in a from -1 +1 range to a 0 1 range, we also have to 
@@ -38,7 +38,7 @@ float4 main(VertexShaderOutputSpotLightShadowMap input) : SV_Target
 			// If this pixel is illuminated then set it to pure white (non-shadow).
 			if (lightIntensity > 0.0f)
 			{
-				color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+				color = 1.0f;
 			}
 		}
 	}

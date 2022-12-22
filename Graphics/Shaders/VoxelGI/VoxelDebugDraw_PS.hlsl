@@ -4,5 +4,6 @@
 
 float4 main(VoxelDebugDrawPixelShaderInput input) : SV_TARGET
 {
-	return input.color;
+	//return input.color;
+	return pow(abs(input.color), 1.0f / 2.2f);
 }

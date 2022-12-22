@@ -5,8 +5,8 @@
 
 
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b4);
 ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_buffer : register(b3);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b4);
 
 VertexShaderOutputWriteOnlyDepth main(VertexShaderInputDefault input)
 {

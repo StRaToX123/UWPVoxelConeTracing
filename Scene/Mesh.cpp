@@ -373,10 +373,10 @@ void Mesh::InitializeAsVerticalPlane(float width, float height)
     vertices.reserve(4);
     indices.reserve(6);
 
-    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, 0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f)));
-    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(0.5f * width, 0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f)));
-    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(0.5f * width, -0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f)));
-    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, -0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, 0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(0.5f * width, 0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(0.5f * width, -0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, -0.5f * height, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f)));
 
     indices.emplace_back(0);
     indices.emplace_back(3);

@@ -6,7 +6,7 @@
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 
 [maxvertexcount(3)]
-void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<VoxelizerGeometryShaderOutput> outputStream)
+void main(triangle VertexShaderOutputVoxelizer input[3], inout TriangleStream<GeometryShaderOutputVoxelizer> outputStream)
 {
 	float3 faceNormal = abs(input[0].normal_world_space + input[1].normal_world_space + input[2].normal_world_space);
 	uint maxFaceNormalIndex = faceNormal[1] > faceNormal[0] ? 1 : 0;
@@ -14,7 +14,7 @@ void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<Vo
 
 	for (uint i = 0; i < 3; ++i)
 	{
-		VoxelizerGeometryShaderOutput output;
+		GeometryShaderOutputVoxelizer output;
 		output.position_voxel_grid_space = input[i].position_voxel_grid_space;
 		
 		// Project onto dominant axis:
@@ -36,7 +36,7 @@ void main(triangle VoxelizerVertexShaderOutput input[3], inout TriangleStream<Vo
 		output.normal_view_space = input[i].normal_view_space;
 		output.position_view_space = input[i].position_view_space;
 		output.position_world_space = input[i].position_world_space;
-		
+		output.spot_light_shadow_map_tex_coord = input[i].spot_light_shadow_map_tex_coord;
 		output.tex_coord = input[i].tex_coord;
 
 		outputStream.Append(output);

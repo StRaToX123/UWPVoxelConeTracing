@@ -58,6 +58,7 @@ class Camera
         void Rotate(FXMVECTOR quaternion );
 
         void UpdateGPUBuffers();
+        void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute);
         void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
 
         ShaderStructureCPUViewProjectionBuffer view_projection_constant_buffer_data;

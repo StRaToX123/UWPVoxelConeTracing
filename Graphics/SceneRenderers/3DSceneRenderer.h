@@ -23,8 +23,6 @@ using namespace Windows::Foundation;
 using namespace Windows::Storage;
 using namespace std;
 
-typedef UINT ModelTransformMatrixBufferIndex;
-
 
 
 // This sample renderer instantiates a basic rendering pipeline.
@@ -43,7 +41,7 @@ class SceneRenderer3D
 			return (bufferSize + (D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1)) & ~(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1);
 		};
 
-		void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, bool isComputeCommandList, UINT currentFrameIndex);
+		void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute);
 		// All the update buffers were put into a single function call so that they can all get batched into one Execute call
 		void UpdateBuffers(bool updateVoxelizerBuffers, bool updateVoxelGridDataBuffers);
 		void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
@@ -174,11 +172,10 @@ class SceneRenderer3D
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_upload_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_draw_required_voxel_debug_data_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_voxel_debug_data_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_voxel_debug_data_counter_reset_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_buffer[c_frame_count];
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_indirect_command_upload_buffer[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_upload_buffer;
 		UINT                                                   indirect_draw_required_voxel_debug_data_counter_offset;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;

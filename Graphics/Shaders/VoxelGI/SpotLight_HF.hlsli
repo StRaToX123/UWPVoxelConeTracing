@@ -11,8 +11,11 @@ struct ShaderStructureGPUSpotLight
 	float4 color;
 	float intensity;
 	float spot_angle_degrees;
+	float spot_angle_radians;
+	float spot_half_angle_degrees;
+	float spot_half_angle_radians;
 	float attenuation;
-	float paddig;
+	float2 padding;
 	matrix spotlight_view_matrix;
 	matrix spotlight_projection_matrix;
 };

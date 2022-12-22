@@ -75,7 +75,7 @@ DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depth
 {
 	for (int i = 0; i < c_frame_count; i++)
 	{
-		fence_values[i] = 0;
+		fence_values_direct_queue[i] = 0;
 	}
 
 	CreateDeviceIndependentResources();
@@ -189,8 +189,14 @@ void DeviceResources::CreateDeviceResources()
 	ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&command_allocator_copy_high_priority)));
 
 	// Create synchronization objects.
-	ThrowIfFailed(m_d3dDevice->CreateFence(fence_values[current_back_buffer_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-	fence_values[current_back_buffer_index]++;
+	ThrowIfFailed(m_d3dDevice->CreateFence(fence_values_direct_queue[current_back_buffer_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_direct_queue)));
+	fence_values_direct_queue[current_back_buffer_index]++;
+	ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_compute_queue)));
+	fence_unused_value_compute_queue = 1;
+	ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_copy_normal_priority_queue)));
+	fence_unused_value_copy_normal_priority_queue = 1;
+	ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_copy_high_priority_queue)));
+	fence_unused_value_copy_high_priority_queue = 1;
 
 	event_wait_for_gpu = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	if (event_wait_for_gpu == nullptr)
@@ -206,6 +212,9 @@ void DeviceResources::CreateDeviceResources()
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav)));
 	NAME_D3D12_OBJECT(descriptor_heap_cbv_srv_uav);
+	
+
+	
 
 	descriptor_size_descriptor_heap_cbv_srv_uav = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
@@ -220,7 +229,7 @@ void DeviceResources::CreateWindowSizeDependentResources()
 	for (UINT n = 0; n < c_frame_count; n++)
 	{
 		m_renderTargets[n] = nullptr;
-		fence_values[n] = fence_values[current_back_buffer_index];
+		fence_values_direct_queue[n] = fence_values_direct_queue[current_back_buffer_index];
 	}
 
 	UpdateRenderTargetSize();
@@ -513,34 +522,52 @@ void DeviceResources::Present()
 
 		// Move to next frame
 		// Schedule a Signal command in the queue.
-		const UINT64 currentFenceValue = fence_values[current_back_buffer_index];
-		ThrowIfFailed(command_queue_direct->Signal(fence.Get(), currentFenceValue));
+		const UINT64 currentFenceValue = fence_values_direct_queue[current_back_buffer_index];
+		ThrowIfFailed(command_queue_direct->Signal(fence_direct_queue.Get(), currentFenceValue));
 		// Advance the frame index.
 		current_back_buffer_index = m_swapChain->GetCurrentBackBufferIndex();
 		// Check to see if the next frame is ready to start.
-		if (fence->GetCompletedValue() < fence_values[current_back_buffer_index])
+		if (fence_direct_queue->GetCompletedValue() < fence_values_direct_queue[current_back_buffer_index])
 		{
-			ThrowIfFailed(fence->SetEventOnCompletion(fence_values[current_back_buffer_index], event_wait_for_gpu));
+			ThrowIfFailed(fence_direct_queue->SetEventOnCompletion(fence_values_direct_queue[current_back_buffer_index], event_wait_for_gpu));
 			WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
 		}
 
 		// Set the fence value for the next frame.
-		fence_values[current_back_buffer_index] = currentFenceValue + 1;
+		fence_values_direct_queue[current_back_buffer_index] = currentFenceValue + 1;
 	}
 }
 
 // Wait for pending GPU work to complete.
 void DeviceResources::WaitForGpu()
 {
-	// Schedule a Signal command in the queue.
-	ThrowIfFailed(command_queue_direct->Signal(fence.Get(), fence_values[current_back_buffer_index]));
+	// Schedule a Signal command in the direct queue.
+	ThrowIfFailed(command_queue_direct->Signal(fence_direct_queue.Get(), fence_values_direct_queue[current_back_buffer_index]));
+	// Schedule a Signal command in the compute queuequeue.
+	ThrowIfFailed(command_queue_direct->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue));
+	// Schedule a Signal command in the copy normal priority queuequeue.
+	ThrowIfFailed(command_queue_direct->Signal(fence_copy_normal_priority_queue.Get(), fence_unused_value_copy_normal_priority_queue));
+	// Schedule a Signal command in the copy high priority queuequeue.
+	ThrowIfFailed(command_queue_direct->Signal(fence_copy_high_priority_queue.Get(), fence_unused_value_copy_high_priority_queue));
 
-	// Wait until the fence has been crossed.
-	ThrowIfFailed(fence->SetEventOnCompletion(fence_values[current_back_buffer_index], event_wait_for_gpu));
+	// Wait until the fences have been crossed.
+	ThrowIfFailed(fence_direct_queue->SetEventOnCompletion(fence_values_direct_queue[current_back_buffer_index], event_wait_for_gpu));
+	WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
+
+	ThrowIfFailed(fence_compute_queue->SetEventOnCompletion(fence_unused_value_compute_queue, event_wait_for_gpu));
+	WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
+
+	ThrowIfFailed(fence_copy_normal_priority_queue->SetEventOnCompletion(fence_unused_value_copy_normal_priority_queue, event_wait_for_gpu));
+	WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
+
+	ThrowIfFailed(fence_copy_high_priority_queue->SetEventOnCompletion(fence_unused_value_copy_high_priority_queue, event_wait_for_gpu));
 	WaitForSingleObjectEx(event_wait_for_gpu, INFINITE, FALSE);
 
 	// Increment the fence value for the current frame.
-	fence_values[current_back_buffer_index]++;
+	fence_values_direct_queue[current_back_buffer_index]++;
+	fence_unused_value_compute_queue++;
+	fence_unused_value_copy_normal_priority_queue++;
+	fence_unused_value_copy_high_priority_queue++;
 }
 
 
