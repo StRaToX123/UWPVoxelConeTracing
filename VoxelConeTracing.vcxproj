@@ -358,6 +358,7 @@
     <ClCompile Include="VoxelConeTracingMain.cpp" />
     <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli" />
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli" />
@@ -406,6 +407,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_CS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+    </None>
     <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceTemporalCopyClear_CS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>

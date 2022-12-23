@@ -114,15 +114,10 @@ class SpotLight
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_uav;
         
         static const UINT c_aligned_constant_buffer_data = (sizeof(ShaderStructureCPUSpotLight) + 255) & ~255;
-        //static const UINT c_aligned_constant_buffer_matrices = (sizeof(ShaderStructureCPUSpotLightMatrices) + 255) & ~255;
         
         Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_data;
         UINT8* constant_mapped_buffer_data;
         UINT8 most_updated_constant_buffer_index;
-        //Microsoft::WRL::ComPtr<ID3D12Resource> resource_constant_buffer_matrices;
-        //ShaderStructureCPUSpotLightMatrices constant_buffer_matrices;
-        //UINT8* constant_mapped_buffer_matrices;
-        //UINT most_updated_constant_buffer_matrices_index;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> texture_shadow_map;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;

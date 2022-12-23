@@ -53,6 +53,7 @@ class SceneRenderer3D
 		// Direct3D resources for cube geometry.
 		std::shared_ptr<DeviceResources>                       device_resources;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav;
+		UINT                                                   descriptor_heap_cbv_srv_uav_number_of_filled_descriptors;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	       render_target_heap;
 		UINT                                                   previous_frame_index;
@@ -164,6 +165,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_unlit;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_mip_chain_generation;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
@@ -181,7 +183,8 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_radiance_texture_3d[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
+		UINT                                                   radiance_texture_3D_mip_level_count;
 
 	private:
 		void UpdateVoxelizerBuffers();
