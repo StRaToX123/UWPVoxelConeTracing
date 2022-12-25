@@ -421,10 +421,13 @@
     <None Include="Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli">
       <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
     </None>
-    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_HF.hlsli">
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_HF.hlsli">
       <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
     </None>
-    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_CS.hlsl">
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli">
+      <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
+    </None>
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_CS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
     </None>
   </ItemGroup>

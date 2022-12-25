@@ -42,12 +42,12 @@ struct IndirectCommandGPU
 
 struct ShaderStructureGPUVoxelDebugData
 {
-	uint index_x;
-	uint index_y;
-	uint index_z;
 	float color_r;
 	float color_g;
 	float color_b;
+	uint index_x;
+	uint index_y;
+	uint index_z;
 };
 
 inline bool IsSaturated(float value)

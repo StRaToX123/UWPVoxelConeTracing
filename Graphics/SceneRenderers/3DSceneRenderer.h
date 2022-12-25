@@ -11,6 +11,7 @@
 #include "Utility/Memory/Allocators/PreAllocator.h"
 #include "Scene/Camera.h"
 #include "Scene/Light.h"
+#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli"
 
 
 
@@ -51,6 +52,7 @@ class SceneRenderer3D
 		static const UINT c_aligned_transform_matrix_buffer = ((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) * TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES) + 255) & ~255;
 		
 		// Direct3D resources for cube geometry.
+		UINT temp;
 		std::shared_ptr<DeviceResources>                       device_resources;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav;
 		UINT                                                   descriptor_heap_cbv_srv_uav_number_of_filled_descriptors;
@@ -146,12 +148,20 @@ class SceneRenderer3D
 
 		struct ShaderStructureCPUVoxelDebugData
 		{
-			unsigned int index_x;
-			unsigned int index_y;
-			unsigned int index_z;
 			float color_r;
 			float color_g;
 			float color_b;
+			unsigned int index_x;
+			unsigned int index_y;
+			unsigned int index_z;
+		};
+
+		struct ShaderStructureCPUGenerate3DMipChainData
+		{
+			UINT output_resolution;
+			float output_resolution_rcp;
+			UINT input_mip_level_index;
+			UINT output_mip_level_index;
 		};
 
 		// This value is saved as a member variable so that we dont have to keep recalculating it every frame
@@ -185,6 +195,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
 		UINT                                                   radiance_texture_3D_mip_level_count;
+		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
 
 	private:
 		void UpdateVoxelizerBuffers();

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -358,7 +358,8 @@
     <ClCompile Include="VoxelConeTracingMain.cpp" />
     <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli" />
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
-    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_HF.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLightWriteOnlyDepth_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli" />
@@ -407,9 +408,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
-    <None Include="Graphics\Shaders\VoxelGI\Generate3DMipChain_CS.hlsl">
+    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_CS.hlsl">
       <FileType>Document</FileType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <EnableUnboundedDescriptorTables Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</EnableUnboundedDescriptorTables>
     </None>
     <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceTemporalCopyClear_CS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -426,6 +428,7 @@
     <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <EnableUnboundedDescriptorTables Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</EnableUnboundedDescriptorTables>
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
