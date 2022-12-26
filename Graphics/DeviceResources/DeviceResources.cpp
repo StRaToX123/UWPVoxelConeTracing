@@ -544,11 +544,11 @@ void DeviceResources::WaitForGpu()
 	// Schedule a Signal command in the direct queue.
 	ThrowIfFailed(command_queue_direct->Signal(fence_direct_queue.Get(), fence_values_direct_queue[current_back_buffer_index]));
 	// Schedule a Signal command in the compute queuequeue.
-	ThrowIfFailed(command_queue_direct->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue));
+	ThrowIfFailed(command_queue_compute->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue));
 	// Schedule a Signal command in the copy normal priority queuequeue.
-	ThrowIfFailed(command_queue_direct->Signal(fence_copy_normal_priority_queue.Get(), fence_unused_value_copy_normal_priority_queue));
+	ThrowIfFailed(command_queue_copy_normal_priority->Signal(fence_copy_normal_priority_queue.Get(), fence_unused_value_copy_normal_priority_queue));
 	// Schedule a Signal command in the copy high priority queuequeue.
-	ThrowIfFailed(command_queue_direct->Signal(fence_copy_high_priority_queue.Get(), fence_unused_value_copy_high_priority_queue));
+	ThrowIfFailed(command_queue_copy_high_priority->Signal(fence_copy_high_priority_queue.Get(), fence_unused_value_copy_high_priority_queue));
 
 	// Wait until the fences have been crossed.
 	ThrowIfFailed(fence_direct_queue->SetEventOnCompletion(fence_values_direct_queue[current_back_buffer_index], event_wait_for_gpu));

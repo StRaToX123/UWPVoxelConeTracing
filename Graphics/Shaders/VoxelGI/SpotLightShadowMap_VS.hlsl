@@ -6,7 +6,7 @@
 ConstantBuffer<ShaderStructureGPURootConstants> root_constants : register(b0);
 ConstantBuffer<ShaderStructureGPUViewProjectionBuffer> view_projection_matrix_buffer : register(b2);
 ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_buffer : register(b3);
-ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b4);
+ConstantBuffer<ShaderStructureGPUTransformBuffer> transform_matrix_buffers[] : register(b5);
 
 
 VertexShaderOutputSpotLightShadowMap main(VertexShaderInputDefault input)

@@ -38,7 +38,7 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
 	imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
-#pragma region Root Signature
+	#pragma region Root Signature
 	CD3DX12_DESCRIPTOR_RANGE rangeCBV;
 
 	CD3DX12_ROOT_PARAMETER parameterMVP;
@@ -66,9 +66,9 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, pSignature.GetAddressOf(), pError.GetAddressOf()));
 	ThrowIfFailed(device_resources->GetD3DDevice()->CreateRootSignature(0, pSignature->GetBufferPointer(), pSignature->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
 	root_signature->SetName(L"VoxelConeTracingMain root_signature");
-#pragma endregion
+	#pragma endregion
 
-#pragma region Default Pipeline
+	#pragma region Default Pipeline
 	char* pVertexShaderByteCode;
 	int vertexShaderByteCodeLength;
 	char* pPixelShaderByteCode;
@@ -95,7 +95,7 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	state.SampleDesc.Count = 1;
 
 	ThrowIfFailed(device_resources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_default)));
-#pragma endregion
+	#pragma endregion
 
 	// Create command list
 	// Create direct command list
@@ -343,7 +343,7 @@ void VoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDeltaX, 
 void VoxelConeTracingMain::Update()
 {
 
-#pragma region Update The Camera
+	#pragma region Update The Camera
 	// Update the camera
 	// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
 	if (gamepad != nullptr)
@@ -471,15 +471,14 @@ void VoxelConeTracingMain::Update()
 	}
 
 	camera.UpdateGPUBuffers();
-#pragma endregion
+	#pragma endregion
 
-#pragma region Update The Lights
+	#pragma region Update The Lights
 	spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
 	spot_light.UpdateConstantBuffers();
-#pragma endregion
-
+	#pragma endregion
 
 	static float angle = 0.0f;
 	static float offset = 0.6f;

@@ -11,6 +11,7 @@
 #include "Utility/Memory/Allocators/PreAllocator.h"
 #include "Scene/Camera.h"
 #include "Scene/Light.h"
+#include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli"
 
 
 
@@ -52,8 +53,12 @@ class SceneRenderer3D
 		
 		// Direct3D resources for cube geometry.
 		std::shared_ptr<DeviceResources>                       device_resources;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav_voxelizer;
+		int                                                    descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          descriptor_cpu_handle_cbv_srv_uav_voxelizer;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav_all_other_resources;
+		int                                                    descriptor_heap_cbv_srv_uav_all_other_resources_number_of_filled_descriptors;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          descriptor_cpu_handle_cbv_srv_uav_all_other_resources;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	       render_target_heap;
 		UINT                                                   previous_frame_index;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_direct;
@@ -153,6 +158,14 @@ class SceneRenderer3D
 			float color_b;
 		};
 
+		struct ShaderStructureCPUGenerate3DMipChainData
+		{
+			UINT output_resolution;
+			float output_resolution_rcp;
+			UINT input_mip_level_index;
+			UINT output_mip_level_index;
+		};
+
 		// This value is saved as a member variable so that we dont have to keep recalculating it every frame
 		// when we're trying to dispatch a compute shader with the number of thread equal to the number of voxels in the scene
 		UINT64                                                 number_of_voxels_in_grid;
@@ -164,6 +177,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_unlit;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_mip_chain_generation;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
@@ -181,7 +195,10 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 per_frame_radiance_texture_3d[c_frame_count];
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
+		UINT                                                   radiance_texture_3D_mip_level_count;
+		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
+		UINT temp;
 
 	private:
 		void UpdateVoxelizerBuffers();

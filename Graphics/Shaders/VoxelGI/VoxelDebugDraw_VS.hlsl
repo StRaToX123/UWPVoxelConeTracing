@@ -6,7 +6,7 @@
 
 
 
-//RWTexture3D<float4> radiance_texture_3d : register(u3);
+RWTexture3D<float4> radiance_texture_3D : register(u3);
 //RWStructuredBuffer<VoxelType> voxel_data_structured_buffer : register(u2);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 RWStructuredBuffer<ShaderStructureGPUVoxelDebugData> voxel_debug_data_required_for_frame_draw : register(u0);
@@ -24,9 +24,9 @@ VoxelDebugDrawPixelShaderInput main(VoxelDebugDrawVertexShaderInput input)
 	output.position = mul(output.position, view_projection_matrix_buffer.view);
 	output.position = mul(output.position, view_projection_matrix_buffer.projection);
 	
-	//output.color = radiance_texture_3d[UnFlatten1DTo3DIndex(voxel_debug_data_required_for_frame_draw[input.instance_id].voxel_index, voxel_grid_data.res)];
+	output.color = radiance_texture_3D[uint3(voxel_debug_data_required_for_frame_draw[input.instance_id].index_x, voxel_debug_data_required_for_frame_draw[input.instance_id].index_y, voxel_debug_data_required_for_frame_draw[input.instance_id].index_z)];
 	//output.color = UnpackVoxelColor(voxel_data_structured_buffer[voxel_debug_data_required_for_frame_draw[input.instance_id].voxel_index].color);
-	output.color = float4(voxel_debug_data_required_for_frame_draw[input.instance_id].color_r, voxel_debug_data_required_for_frame_draw[input.instance_id].color_g, voxel_debug_data_required_for_frame_draw[input.instance_id].color_b, 1.0f);
+	//output.color = float4(voxel_debug_data_required_for_frame_draw[input.instance_id].color_r, voxel_debug_data_required_for_frame_draw[input.instance_id].color_g, voxel_debug_data_required_for_frame_draw[input.instance_id].color_b, 1.0f);
 	
 	return output;
 }
