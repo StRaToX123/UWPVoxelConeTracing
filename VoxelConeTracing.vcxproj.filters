@@ -427,9 +427,6 @@
     <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli">
       <Filter>Graphics\Shaders\VoxelGI\HF</Filter>
     </None>
-    <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_CS.hlsl">
-      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Graphics\Shaders\VoxelGI\Voxelizer_GS.hlsl">
@@ -479,6 +476,9 @@
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\SampleShader\FullScreenTextureVisualization_PS.hlsl">
       <Filter>Graphics\Shaders\SampleShader\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

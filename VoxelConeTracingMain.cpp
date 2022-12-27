@@ -38,7 +38,6 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
 	imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
-
 	#pragma region Root Signature
 	CD3DX12_DESCRIPTOR_RANGE rangeCBV;
 
@@ -197,14 +196,8 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
 	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix();
+	//imgui_spot_light_data = spot_light.constant_buffer_data;
 	spot_light.UpdateConstantBuffers();
-
-	// For this apps purpose the descriptor heap doesn't change so we can fill it out here once, after that we will
-	// only have to assign the descriptors each frame, no need to fill the heap again
-	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHeapCPUHandleDeviceResources(device_resources->GetDescriptorHeapCbvSrvUav()->GetCPUDescriptorHandleForHeapStart());
-	camera.CopyDescriptorsIntoDescriptorHeap(descriptorHeapCPUHandleDeviceResources);
-	spot_light.CopyDescriptorsIntoDescriptorHeap(descriptorHeapCPUHandleDeviceResources, true, true);
-	scene_renderer->CopyDescriptorsIntoDescriptorHeap(descriptorHeapCPUHandleDeviceResources);
 
 	OnWindowSizeChanged();
 }
@@ -350,7 +343,7 @@ void VoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDeltaX, 
 void VoxelConeTracingMain::Update()
 {
 
-#pragma region Update The Camera
+	#pragma region Update The Camera
 	// Update the camera
 	// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
 	if (gamepad != nullptr)
@@ -478,14 +471,14 @@ void VoxelConeTracingMain::Update()
 	}
 
 	camera.UpdateGPUBuffers();
-#pragma endregion
+	#pragma endregion
 
-#pragma region Update The Lights
+	#pragma region Update The Lights
 	spot_light.constant_buffer_data.UpdatePositionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
 	spot_light.UpdateConstantBuffers();
-#pragma endregion
+	#pragma endregion
 
 	static float angle = 0.0f;
 	static float offset = 0.6f;

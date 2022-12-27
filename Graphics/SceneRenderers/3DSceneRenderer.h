@@ -11,7 +11,7 @@
 #include "Utility/Memory/Allocators/PreAllocator.h"
 #include "Scene/Camera.h"
 #include "Scene/Light.h"
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\VoxelConeTracing\Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli"
+#include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli"
 
 
 
@@ -52,11 +52,13 @@ class SceneRenderer3D
 		static const UINT c_aligned_transform_matrix_buffer = ((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) * TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES) + 255) & ~255;
 		
 		// Direct3D resources for cube geometry.
-		UINT temp;
 		std::shared_ptr<DeviceResources>                       device_resources;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav;
-		UINT                                                   descriptor_heap_cbv_srv_uav_number_of_filled_descriptors;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE                          cbv_srv_uav_cpu_handle;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav_voxelizer;
+		int                                                    descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          descriptor_cpu_handle_cbv_srv_uav_voxelizer;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav_all_other_resources;
+		int                                                    descriptor_heap_cbv_srv_uav_all_other_resources_number_of_filled_descriptors;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE                          descriptor_cpu_handle_cbv_srv_uav_all_other_resources;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	       render_target_heap;
 		UINT                                                   previous_frame_index;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	   command_list_direct;
@@ -148,9 +150,6 @@ class SceneRenderer3D
 
 		struct ShaderStructureCPUVoxelDebugData
 		{
-			float color_r;
-			float color_g;
-			float color_b;
 			unsigned int index_x;
 			unsigned int index_y;
 			unsigned int index_z;
@@ -196,6 +195,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
 		UINT                                                   radiance_texture_3D_mip_level_count;
 		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
+		UINT temp;
 
 	private:
 		void UpdateVoxelizerBuffers();

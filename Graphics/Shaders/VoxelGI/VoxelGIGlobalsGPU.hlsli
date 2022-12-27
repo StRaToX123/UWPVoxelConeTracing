@@ -42,9 +42,6 @@ struct IndirectCommandGPU
 
 struct ShaderStructureGPUVoxelDebugData
 {
-	float color_r;
-	float color_g;
-	float color_b;
 	uint index_x;
 	uint index_y;
 	uint index_z;

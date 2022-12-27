@@ -64,9 +64,9 @@ class VoxelConeTracingMain
 
 		bool show_voxel_debug_view;
 		SceneRenderer3D::ShaderStructureCPUVoxelGridData imgui_voxel_grid_data;
-		int voxel_grid_allowed_resolutions[5] = { 16, 32, 64, 128, 256 };
-		int imgui_voxel_grid_selected_allowed_resolution_current_index = 3;
-		int imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
+		int voxel_grid_allowed_resolutions[8] = { 16, 32, 64, 128, 256 };
+		int imgui_voxel_grid_selected_allowed_resolution_current_index = 0;
+		int imgui_voxel_grid_selected_allowed_resolution_previous_index = 0;
 		const char* imgui_combo_box_string_voxel_grid_allowed_resolution = " 16\0 32\0 64\0 128\0 256";
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> root_signature;
