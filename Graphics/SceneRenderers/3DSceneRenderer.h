@@ -153,9 +153,6 @@ class SceneRenderer3D
 			unsigned int index_x;
 			unsigned int index_y;
 			unsigned int index_z;
-			float color_r;
-			float color_g;
-			float color_b;
 		};
 
 		struct ShaderStructureCPUGenerate3DMipChainData
