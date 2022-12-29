@@ -51,7 +51,7 @@ class SceneRenderer3D
 		// Constant buffers must be aligned to the D3D12_TEXTURE_DATA_PITCH_ALIGNMENT.
 		static const UINT c_aligned_transform_matrix_buffer = ((sizeof(ShaderStructureCPUModelAndInverseTransposeModelView) * TRANSFORM_MATRIX_BUFFER_NUMBER_OF_ENTRIES) + 255) & ~255;
 		
-		// Direct3D resources for cube geometry.
+		Microsoft::WRL::ComPtr<ID3D12Resource>			   	   temp_texture;
 		std::shared_ptr<DeviceResources>                       device_resources;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>           descriptor_heap_cbv_srv_uav_voxelizer;
 		int                                                    descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors;
@@ -161,6 +161,14 @@ class SceneRenderer3D
 			float output_resolution_rcp;
 			UINT input_mip_level_index;
 			UINT output_mip_level_index;
+		};
+
+		struct ShaderStructureCPUVoxelType
+		{
+			UINT color;
+			UINT normal;
+			float u_coord_shadow_map;
+			float v_coord_shadow_map;
 		};
 
 		// This value is saved as a member variable so that we dont have to keep recalculating it every frame

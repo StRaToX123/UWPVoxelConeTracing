@@ -504,20 +504,21 @@ void VoxelConeTracingMain::Render()
 	ThrowIfFailed(device_resources->GetCommandAllocatorDirect()->Reset());
 	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(),
-											D3D12_RESOURCE_STATE_PRESENT,
-												D3D12_RESOURCE_STATE_RENDER_TARGET);
+		D3D12_RESOURCE_STATE_PRESENT,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
 	command_list_direct->ResourceBarrier(1, &barrier);
 	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
 	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
 	command_list_direct->ClearRenderTargetView(renderTargetView, DirectX::Colors::CornflowerBlue, 0, nullptr);
 	command_list_direct->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	
+
 	ThrowIfFailed(command_list_direct->Close());
 	ID3D12CommandList* ppCommandLists[] = { command_list_direct.Get() };
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Render out the scene
 	scene_renderer->Render(scene, spot_light, camera, show_voxel_debug_view);
+
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -575,7 +576,7 @@ void VoxelConeTracingMain::Render()
 		ImGui::End();
 
 		bool callUpdateBuffers = false;
-		#pragma region Voxelizer Pass Callbacks
+#pragma region Voxelizer Pass Callbacks
 		// If the voxel grid resolution changed, we will have to update the voxel grid data structure and all of the voxelizer buffers
 		bool updateVoxelizerBuffers = false;
 		if (imgui_voxel_grid_selected_allowed_resolution_current_index != imgui_voxel_grid_selected_allowed_resolution_previous_index)
@@ -605,15 +606,15 @@ void VoxelConeTracingMain::Render()
 			updateVoxelGridDataBuffers = true;
 			imgui_voxel_grid_data = scene_renderer->voxel_grid_data;
 		}
-		#pragma endregion
+#pragma endregion
 
-		#pragma region Spot Light Callbacks
+#pragma region Spot Light Callbacks
 		if (spot_light.constant_buffer_data.spot_angle_degrees != imgui_spot_light_data.spot_angle_degrees)
 		{
 			spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix();
 			imgui_spot_light_data.spot_angle_degrees = spot_light.constant_buffer_data.spot_angle_degrees;
 		}
-		#pragma endregion
+#pragma endregion
 
 		if (callUpdateBuffers == true)
 		{
@@ -622,12 +623,12 @@ void VoxelConeTracingMain::Render()
 			{
 				// !!!!!!!!!!!!!!!!! ALSO UPDATE THE SHADOW MAP TEXTURE OF THE SPOT LIGHT !!!!!!!!!!!!!!!!!
 				spot_light.UpdateShadowMapBuffers(scene_renderer->voxel_grid_data.res, scene_renderer->voxel_grid_data.res);
-				
+
 			}
 
 			scene_renderer->UpdateBuffers(updateVoxelizerBuffers, updateVoxelGridDataBuffers);
 		}
-		
+
 		ImGui::Render();
 		ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_state_default.Get()));
 		command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
@@ -647,9 +648,9 @@ void VoxelConeTracingMain::Render()
 
 	// Finish up the rendering 
 	// Indicate that the render target will now be used to present when the command list is done executing.
-	barrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(), 
-											D3D12_RESOURCE_STATE_RENDER_TARGET, 
-												D3D12_RESOURCE_STATE_PRESENT);
+	barrier = CD3DX12_RESOURCE_BARRIER::Transition(device_resources->GetRenderTarget(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PRESENT);
 	command_list_direct->ResourceBarrier(1, &barrier);
 	ThrowIfFailed(command_list_direct->Close());
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);

@@ -3,10 +3,12 @@
 
 
 
-struct VoxelType
+struct ShaderStructureGPUVoxelType
 {
 	uint color;
 	uint normal;
+	float u_coord_shadow_map;
+	float v_coord_shadow_map;
 };
 
 struct ShaderStructureGPUVoxelGridData
