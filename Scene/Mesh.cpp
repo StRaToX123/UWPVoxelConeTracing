@@ -348,6 +348,7 @@ void Mesh::InitializeAsTorus(float diameter, float thickness, size_t tessellatio
 
 void Mesh::InitializeAsPlane(float width, float height)
 {
+    /*
     vertices.reserve(4);
     indices.reserve(6);
 
@@ -366,6 +367,22 @@ void Mesh::InitializeAsPlane(float width, float height)
     // Make sure to invert the indices and vertices winding orders, to match
     // directX's left hand coordinate system
     ReverseWinding(indices, vertices);
+    */
+
+    vertices.reserve(3);
+    indices.reserve(3);
+
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f)));
+
+    indices.emplace_back(0);
+    indices.emplace_back(1);
+    indices.emplace_back(2);
+
+    // Make sure to invert the indices and vertices winding orders, to match
+    // directX's left hand coordinate system
+    //ReverseWinding(indices, vertices);
 }
 
 void Mesh::InitializeAsVerticalPlane(float width, float height)

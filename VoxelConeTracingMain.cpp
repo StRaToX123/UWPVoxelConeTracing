@@ -121,11 +121,12 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	//scene[0].InitializeAsPlane(2.0f, 2.0f);
 	scene[0].InitializeAsVerticalPlane(2.0f, 2.0f);
 	scene[0].name = "Plane 01";
-	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	//scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
 
-	scene[1].InitializeAsPlane(2.0f, 2.0f);
-	scene[1].name = "Plane 02";
+	scene[1].InitializeAsCube();
+	scene[1].name = "CUBE 02";
 	scene[1].SetColor(XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+	//scene[1].world_position.y = 0.98f;
 
 	/*
 	scene[2].InitializeAsPlane(2.0f, 2.0f);
@@ -486,13 +487,13 @@ void VoxelConeTracingMain::Update()
 	// Update scene objects.
 	step_timer.Tick([&]()
 	{	
-		angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
-		if (angle >= 360.0f)
-		{
-			angle -= 360.0f;
-		}
+		//angle += static_cast<float>(step_timer.GetElapsedSeconds()) * 45.0f;
+		//if (angle >= 360.0f)
+		//{
+		//	angle -= 360.0f;
+		//}
 
-		scene[1].world_position.x = offset * cos(angle * convToRad);
+		//scene[1].world_position.x = offset * cos(angle * convToRad);
 	});
 }
 
@@ -544,8 +545,12 @@ void VoxelConeTracingMain::Render()
 			{
 				string iAsString = to_string(i);
 				ImGui::Checkbox((string("Is Static##") + iAsString).c_str(), &scene[i].is_static);
+				/*
 				ImGui::SliderFloat3((string("World Position##") + iAsString).c_str(), &scene[i].world_position.x, -5.0f, 5.0f);
 				ImGui::SliderFloat3((string("Local Rotation##") + iAsString).c_str(), &scene[i].local_rotation.x, 0.0f, 360.0f);
+				*/
+				ImGui::InputFloat3((string("World Position##") + iAsString).c_str(), &scene[i].world_position.x);
+				ImGui::InputFloat3((string("Local Rotation##") + iAsString).c_str(), &scene[i].local_rotation.x);
 			}
 		}
 
@@ -559,7 +564,8 @@ void VoxelConeTracingMain::Render()
 		{
 			ImGui::Checkbox("Show", &show_voxel_debug_view);
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
-			ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
+			//ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
+			ImGui::InputFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
 			ImGui::SliderInt("Number of Cones", &scene_renderer->voxel_grid_data.num_cones, 2, 10);
 			ImGui::SliderFloat("Ray Step Size", &scene_renderer->voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
 			ImGui::SliderFloat("Max Distance", &scene_renderer->voxel_grid_data.max_distance, 0.5f, 10.0f);

@@ -16,9 +16,9 @@ struct ShaderStructureGPUVoxelGridData
 	float grid_half_extent_rcp;
 	float voxel_half_extent;
 	float voxel_extent_rcp;
-	float bottom_left_point_world_space_x;
-	float bottom_left_point_world_space_y;
-	float bottom_left_point_world_space_z;
+	float top_left_point_world_space_x;
+	float top_left_point_world_space_y;
+	float top_left_point_world_space_z;
 	float center_world_space_x;
 	float center_world_space_y;
 	float center_world_space_z;

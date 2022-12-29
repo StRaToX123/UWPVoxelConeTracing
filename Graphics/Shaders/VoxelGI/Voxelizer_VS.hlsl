@@ -20,7 +20,7 @@ VertexShaderOutputVoxelizer main(VertexShaderInputDefault input)
 	output.normal_world_space -= float4(modelTransformMatrix._41_42_43, 0.0f);
 	output.normal_view_space = mul(float4(input.normal, 1.0f), transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].inverse_transpose_model_view).xyz;
 	output.normal_view_space = normalize(output.normal_view_space);
-	float4 shadowMapCoordsTemp = mul(float4(output.position_view_space, 1.0f), view_projection_matrix_buffer.projection);
+	
 	output.spot_light_shadow_map_tex_coord = mul(float4(output.position_view_space, 1.0f), view_projection_matrix_buffer.projection);
 	
 	// World space -> Voxel grid space:

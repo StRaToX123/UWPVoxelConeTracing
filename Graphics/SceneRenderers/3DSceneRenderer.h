@@ -105,9 +105,9 @@ class SceneRenderer3D
 				res = newRes;
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				bottom_left_point_world_space_x = -((float)res * voxel_half_extent);
-				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
-				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
+				top_left_point_world_space_x = -((float)res * voxel_half_extent);
+				top_left_point_world_space_y = -top_left_point_world_space_x;
+				top_left_point_world_space_z = top_left_point_world_space_x;
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 			};
 
@@ -117,19 +117,19 @@ class SceneRenderer3D
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				bottom_left_point_world_space_x = -((float)res * voxel_half_extent);
-				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
-				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
+				top_left_point_world_space_x = -((float)res * voxel_half_extent);
+				top_left_point_world_space_y = -top_left_point_world_space_x;
+				top_left_point_world_space_z = top_left_point_world_space_x;
 			};
 
-			uint32_t res = 256;
-			float grid_extent = 2.04f;
+			uint32_t res = 128;
+			float grid_extent = 2.00f;
 			float grid_half_extent_rcp = 1.0f;
 			float voxel_half_extent = 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
-			float bottom_left_point_world_space_x = 0.0f;
-			float bottom_left_point_world_space_y = 0.0f;
-			float bottom_left_point_world_space_z = 0.0f;
+			float top_left_point_world_space_x = 0.0f;
+			float top_left_point_world_space_y = 0.0f;
+			float top_left_point_world_space_z = 0.0f;
 			float center_world_space_x = 0.0f;
 			float center_world_space_y = 0.0f;
 			float center_world_space_z = 0.0f;

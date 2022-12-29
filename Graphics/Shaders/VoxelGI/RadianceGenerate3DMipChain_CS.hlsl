@@ -15,7 +15,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 	{
 		Texture3D<float4> input = radiance_texture_3D_SRVs[generate_3d_mip_chain_data.input_mip_index];
 		RWTexture3D<float4> output = radiance_texture_3D_UAVs[generate_3d_mip_chain_data.output_mip_index];
-		float3 sampleCoords = ((float3) dispatchThreadID + 0.5f) * (float3) generate_3d_mip_chain_data.output_resolution_rcp;
+		//float3 sampleCoords = ;
 		// We need to invert the y axis uv coordinate, since when we'll be using the Texsture3D SampleLevel function
 		// in order to read from the radiance 3d texture. This function looks at the 3D texture as a series of 2D ones
 		// each slice being referenced by the standard DirectX texture uvw system, where the X axis grows to the right, 
@@ -24,8 +24,8 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 		// for the voxel indexes grows upwards, so here we have to flip the y coordinate in order for it to be inline
 		// with the way we voxelized the scene, so that each slice of the 3D texture would be read from the bottom left point
 		// instead of the top left one
-		sampleCoords.y = 1.0f - sampleCoords.y;
-		float4 color = input.SampleLevel(linear_sampler, sampleCoords, 0);
+		//sampleCoords.y = 1.0f - sampleCoords.y;
+		float4 color = input.SampleLevel(linear_sampler, ((float3) dispatchThreadID + 0.5f) * (float3) generate_3d_mip_chain_data.output_resolution_rcp, 0);
 		
 		color.a = 1.0f;
 		output[dispatchThreadID] = color;
