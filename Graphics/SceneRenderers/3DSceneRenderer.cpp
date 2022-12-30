@@ -801,7 +801,7 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 
 	// Create a constant buffer that holds all the model transform matrixes for each possible voxel position
 	number_of_voxels_in_grid = voxel_grid_data.res * voxel_grid_data.res * voxel_grid_data.res;
-	const UINT constantBufferDataSize = ((number_of_voxels_in_grid * sizeof(ShaderStructureCPUVoxelDebugData)) + 255) & ~255;
+	const UINT64 constantBufferDataSize = ((number_of_voxels_in_grid * sizeof(ShaderStructureCPUVoxelDebugData)) + 255) & ~255;
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
@@ -839,7 +839,7 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 
 	D3D12_SUBRESOURCE_DATA voxelDebugConstantBufferSubresourceData;
 	voxelDebugConstantBufferSubresourceData.pData = pVoxelDebugConstantBufferData;
-	voxelDebugConstantBufferSubresourceData.RowPitch = ((number_of_voxels_in_grid * sizeof(ShaderStructureCPUVoxelDebugData)) + 255) & ~255;
+	voxelDebugConstantBufferSubresourceData.RowPitch = constantBufferDataSize;
 	voxelDebugConstantBufferSubresourceData.SlicePitch = voxelDebugConstantBufferSubresourceData.RowPitch;
 	UpdateSubresources(command_list_direct.Get(), voxel_debug_constant_buffer.Get(), voxel_debug_constant_upload_buffer.Get(), 0, 0, 1, &voxelDebugConstantBufferSubresourceData);
 	command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(voxel_debug_constant_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
@@ -904,10 +904,12 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 		descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors--;
 	}
 
+	UINT64 alignedVoxelDataStructuredBufferSize = ((number_of_voxels_in_grid * sizeof(UINT32) * 2) + 255) & ~255;
+	/*
 	D3D12_RESOURCE_DESC voxelDataStructuredBufferDesc = {};
 	voxelDataStructuredBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	voxelDataStructuredBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-	voxelDataStructuredBufferDesc.Width = number_of_voxels_in_grid * sizeof(UINT32) * 2;
+	voxelDataStructuredBufferDesc.Width = alignedVoxelDataStructuredBufferSize;
 	voxelDataStructuredBufferDesc.Height = 1;
 	voxelDataStructuredBufferDesc.MipLevels = 1;
 	voxelDataStructuredBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -916,37 +918,38 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	voxelDataStructuredBufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	voxelDataStructuredBufferDesc.SampleDesc.Count = 1;
 	voxelDataStructuredBufferDesc.SampleDesc.Quality = 0;
+	*/
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
-		&voxelDataStructuredBufferDesc,
+		&CD3DX12_RESOURCE_DESC::Buffer(alignedVoxelDataStructuredBufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&voxel_data_structured_buffer)));
 	voxel_data_structured_buffer->SetName(L"SceneRenderer3D voxel_data_structured_buffer");
 
-	voxelDataStructuredBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	//voxelDataStructuredBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&voxelDataStructuredBufferDesc,
+		&CD3DX12_RESOURCE_DESC::Buffer(alignedVoxelDataStructuredBufferSize),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&voxel_data_structured_upload_buffer)));
 	voxel_data_structured_upload_buffer->SetName(L"SceneRenderer3D voxel_data_structured_upload_buffer");
 
 	// Zero out the resource
-	UINT32* pVoxelDataStructuredBufferData = new UINT32[number_of_voxels_in_grid * 2];
-	std::ZeroMemory(pVoxelDataStructuredBufferData, number_of_voxels_in_grid * sizeof(UINT32) * 2);
+	UINT8* pVoxelDataStructuredBufferData = new UINT8[alignedVoxelDataStructuredBufferSize];
+	std::ZeroMemory(pVoxelDataStructuredBufferData, alignedVoxelDataStructuredBufferSize);
 	D3D12_SUBRESOURCE_DATA subresourceDataVoxelDataStructuredBuffer;
 	subresourceDataVoxelDataStructuredBuffer.pData = pVoxelDataStructuredBufferData;
-	subresourceDataVoxelDataStructuredBuffer.RowPitch = number_of_voxels_in_grid * sizeof(UINT32) * 2;
+	subresourceDataVoxelDataStructuredBuffer.RowPitch = alignedVoxelDataStructuredBufferSize;
 	subresourceDataVoxelDataStructuredBuffer.SlicePitch = subresourceDataVoxelDataStructuredBuffer.RowPitch;
 
 	UpdateSubresources(command_list_direct.Get(), voxel_data_structured_buffer.Get(), voxel_data_structured_upload_buffer.Get(), 0, 0, 1, &subresourceDataVoxelDataStructuredBuffer);
 	delete[] pVoxelDataStructuredBufferData;
 
-	D3D12_RESOURCE_BARRIER voxelDataStructuredBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
+	D3D12_RESOURCE_BARRIER voxelDataStructuredBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(voxel_data_structured_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	command_list_direct.Get()->ResourceBarrier(1, &voxelDataStructuredBufferResourceBarrier);
 
 	// Create a UAV
@@ -1474,6 +1477,13 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		command_list_direct->RSSetViewports(1, &viewport_voxelizer);
 		command_list_direct->RSSetScissorRects(1, &scissor_rect_voxelizer);
 		command_list_direct->OMSetRenderTargets(0, nullptr, false, nullptr);
+		
+		spotLightShadowMapPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapBuffer(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+		command_list_direct->ResourceBarrier(1, spotLightShadowMapPassBarriers);
 
 		for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
 		{
@@ -1489,12 +1499,18 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
 		}
 
+		spotLightShadowMapPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+			spotLight.GetShadowMapBuffer(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		command_list_direct->ResourceBarrier(1, spotLightShadowMapPassBarriers);
 
 		command_list_direct->Close();
 		device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
 		device_resources->GetCommandQueueDirect()->Signal(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value);
 		fence_command_list_direct_progress_latest_unused_value++;
-#pragma endregion
+		#pragma endregion
 
 		#pragma region Radiance Temporal Copy Clear Render Pass
 		ThrowIfFailed(device_resources->GetCommandAllocatorCompute()->Reset());

@@ -59,7 +59,8 @@ void main(GeometryShaderOutputVoxelizer input)
 	projectTexCoord.x = input.spot_light_shadow_map_tex_coord.x / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
 	projectTexCoord.y = -input.spot_light_shadow_map_tex_coord.y / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
 	// Determine if the projected coordinates are in the 0 to 1 range.  If so then this pixel is in the view of the light.
-	color.rgb *= spot_light_shadow_map.Sample(samp, projectTexCoord);
+	color.rgb *= spot_light_shadow_map.SampleLevel(samp, projectTexCoord, 0);
+	//color.rgb *= spot_light_shadow_map[ceil(projectTexCoord * voxel_grid_data.res)];
 	
 	uint colorEncoded = PackVoxelColor(color);
 	//uint colorEncoded = PackVoxelColor(pow(abs(test_texture.Sample(samp, input.tex_coord)), 1.0f / 2.2f));

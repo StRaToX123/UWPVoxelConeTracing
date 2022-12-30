@@ -119,11 +119,14 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
 
-#pragma region Texture Shadow Map
+    #pragma region Texture Shadow Map
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapCpuHandle(rtv_heap->GetCPUDescriptorHandleForHeapStart());
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     rtvDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+    rtvDesc.Texture2D.PlaneSlice = 0;
+
     float clearColor[1] = { 0.0f };
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -132,13 +135,15 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = 1;
     srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.PlaneSlice = 0;
     
     D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
         DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT,
         shadowMapWidth,
         shadowMapHeight,
+        1,
         1);
-    textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    textureDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
     ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -155,21 +160,13 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     // SRV
     device_resources->GetD3DDevice()->CreateShaderResourceView(texture_shadow_map.Get(), &srvDesc, cbvSrvUavCpuHandle);
     cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    
-#pragma endregion
+    #pragma endregion
 
-#pragma region Depth Buffer Shadow Map
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDescDepthBuffer = {};
-    srvDescDepthBuffer.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDescDepthBuffer.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-    srvDescDepthBuffer.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDescDepthBuffer.Texture2D.MipLevels = 1;
-    srvDescDepthBuffer.Texture2D.MostDetailedMip = 0;
-    
+    #pragma region Depth Buffer Shadow Map
     D3D12_RESOURCE_DESC depthResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, 
         shadowMapWidth, 
         shadowMapHeight, 
-        1, 
+        1,
         1);
     depthResourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     CD3DX12_CLEAR_VALUE depthOptimizedClearValue(device_resources->GetDepthBufferFormat(), 1.0f, 0);
@@ -188,12 +185,20 @@ void SpotLight::UpdateShadowMapBuffers(UINT64 shadowMapWidth, UINT shadowMapHeig
     dsvDesc.Format = device_resources->GetDepthBufferFormat();
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+    dsvDesc.Texture2D.MipSlice = 0;
     d3dDevice->CreateDepthStencilView(depth_buffer_shadow_map.Get(), &dsvDesc, dsv_heap->GetCPUDescriptorHandleForHeapStart());
 
     // Create a srv for the depth buffer, so we may read it in the shadow map shader
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDescDepthBuffer = {};
+    srvDescDepthBuffer.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDescDepthBuffer.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+    srvDescDepthBuffer.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDescDepthBuffer.Texture2D.MipLevels = 1;
+    srvDescDepthBuffer.Texture2D.MostDetailedMip = 0;
+    srvDescDepthBuffer.Texture2D.PlaneSlice = 0;
     device_resources->GetD3DDevice()->CreateShaderResourceView(depth_buffer_shadow_map.Get(), &srvDescDepthBuffer, cbvSrvUavCpuHandle);
     cbvSrvUavCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-#pragma endregion
+    #pragma endregion
 
 }
 
