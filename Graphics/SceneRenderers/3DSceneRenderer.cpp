@@ -124,9 +124,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		parameterComputeVisibleDescriptorTableRequiredVoxelDebugDataForDrawInstanced,
 		parameterAllVisibleDescriptorTableVoxelDataStructuredBufferUAV,
 		parameterComputeVisibleDescriptorTableRadianceTexture3DMipSRVs,
-		//parameterComputeVisibleDescriptorTableRadianceTexture3DMipSRVMIIIIP,
 		parameterComputeVisibleDescriptorTableRadianceTexture3DMipUAVs,
-		//parameterComputeVisibleDescriptorTableRadianceTexture3DMipUAVMIIIIP,
 		parameterComputeVisibleRootConstantsRadianceTexture3DGenerateMipChain,
 		parameterPixelVisibleDescriptorTableTestTexture,
 		parameterComputeVisibleDescriptorTableIndirectCommand,
@@ -143,7 +141,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	staticSamplerDesc.MipLODBias = 0;
 	staticSamplerDesc.MaxAnisotropy = 0;
 	staticSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-	staticSamplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR::D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+	staticSamplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR::D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 	staticSamplerDesc.MinLOD = 0.0f;
 	staticSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
 	staticSamplerDesc.ShaderRegister = 0;

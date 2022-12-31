@@ -34,8 +34,8 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	device_resources = deviceResources;
 
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
-	imgui_voxel_grid_selected_allowed_resolution_current_index = 3;
-	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
+	imgui_voxel_grid_selected_allowed_resolution_current_index = 0;
+	imgui_voxel_grid_selected_allowed_resolution_previous_index = 0;
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
 	imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
 	#pragma region Root Signature

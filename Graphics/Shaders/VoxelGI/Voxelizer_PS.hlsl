@@ -45,25 +45,23 @@ float4 DoSpotLight(float3 V, float3 P, float3 N)
 
 void main(GeometryShaderOutputVoxelizer input)
 {
-	float3 voxelGridBottomLeftPointWorldSpace = float3(voxel_grid_data.bottom_left_point_world_space_x, voxel_grid_data.bottom_left_point_world_space_y, voxel_grid_data.bottom_left_point_world_space_z);
-	int3 voxelIndex = (input.position_world_space - voxelGridBottomLeftPointWorldSpace) * voxel_grid_data.voxel_extent_rcp;
+	int3 voxelIndex = (input.position_world_space - voxel_grid_data.top_left_point_world_space) * voxel_grid_data.voxel_extent_rcp;
+	voxelIndex.y *= -1;
 	
-	float4 color = float4(input.color.rgb + spot_light_data.color.rgb, 1.0f);
-	color.rgb *= DoSpotLight(normalize(-input.position_view_space), input.position_view_space, input.normal_view_space) / PI;
+	float4 color = float4(input.color.rgb /*+ spot_light_data.color.rgb*/, 1.0f);
+	//color.rgb *= DoSpotLight(normalize(-input.position_view_space), input.position_view_space, input.normal_view_space) / PI;
 	// Apply the spot light shadow map
 	// Calculate the projected texture coordinates.
 	// we have to perform the perspective divide ourselves, and in order to remap the value from NDC to a texture coordinate
 	// we have to divide by 2 and add 0.5f, which puts the values in a from -1 +1 range to a 0 1 range, we also have to 
 	// flip the y axis since we will be using these coordinates to look up a texture, where the y axis grows downwards
-	float2 projectTexCoord;
-	projectTexCoord.x = input.spot_light_shadow_map_tex_coord.x / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
-	projectTexCoord.y = -input.spot_light_shadow_map_tex_coord.y / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
+	//float2 projectTexCoord;
+	//projectTexCoord.x = input.spot_light_shadow_map_tex_coord.x / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
+	//projectTexCoord.y = -input.spot_light_shadow_map_tex_coord.y / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
 	// Determine if the projected coordinates are in the 0 to 1 range.  If so then this pixel is in the view of the light.
-	color.rgb *= spot_light_shadow_map.SampleLevel(samp, projectTexCoord, 0);
-	//color.rgb *= spot_light_shadow_map[ceil(projectTexCoord * voxel_grid_data.res)];
+	//color.rgb *= spot_light_shadow_map.SampleLevel(samp, projectTexCoord, 0);
 	
 	uint colorEncoded = PackVoxelColor(color);
-	//uint colorEncoded = PackVoxelColor(pow(abs(test_texture.Sample(samp, input.tex_coord)), 1.0f / 2.2f));
 	uint normalEncoded = PackUnitvector(input.normal_view_space);
 	
 	uint id = Flatten3DIndex(voxelIndex, voxel_grid_data.res);

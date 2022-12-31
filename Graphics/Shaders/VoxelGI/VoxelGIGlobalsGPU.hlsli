@@ -16,9 +16,7 @@ struct ShaderStructureGPUVoxelGridData
 	float grid_half_extent_rcp;
 	float voxel_half_extent;
 	float voxel_extent_rcp;
-	float bottom_left_point_world_space_x;
-	float bottom_left_point_world_space_y;
-	float bottom_left_point_world_space_z;
+	float3 top_left_point_world_space;
 	float center_world_space_x;
 	float center_world_space_y;
 	float center_world_space_z;
@@ -29,6 +27,7 @@ struct ShaderStructureGPUVoxelGridData
 	uint reflections_enabled;
 	uint center_changed_this_frame;
 	uint mips;
+	float2 padding;
 };
 
 struct IndirectCommandGPU

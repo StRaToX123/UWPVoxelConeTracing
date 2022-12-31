@@ -105,9 +105,9 @@ class SceneRenderer3D
 				res = newRes;
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				bottom_left_point_world_space_x = -((float)res * voxel_half_extent);
-				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
-				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
+				top_left_point_world_space.x = -((float)res * voxel_half_extent);
+				top_left_point_world_space.y = -top_left_point_world_space.x;
+				top_left_point_world_space.z = top_left_point_world_space.x;
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 			};
 
@@ -117,9 +117,9 @@ class SceneRenderer3D
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				bottom_left_point_world_space_x = -((float)res * voxel_half_extent);
-				bottom_left_point_world_space_y = bottom_left_point_world_space_x;
-				bottom_left_point_world_space_z = bottom_left_point_world_space_x;
+				top_left_point_world_space.x = -((float)res * voxel_half_extent);
+				top_left_point_world_space.y = -top_left_point_world_space.x;
+				top_left_point_world_space.z = top_left_point_world_space.x;
 			};
 
 			uint32_t res = 256;
@@ -127,9 +127,7 @@ class SceneRenderer3D
 			float grid_half_extent_rcp = 1.0f;
 			float voxel_half_extent = 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
-			float bottom_left_point_world_space_x = 0.0f;
-			float bottom_left_point_world_space_y = 0.0f;
-			float bottom_left_point_world_space_z = 0.0f;
+			XMFLOAT3 top_left_point_world_space;
 			float center_world_space_x = 0.0f;
 			float center_world_space_y = 0.0f;
 			float center_world_space_z = 0.0f;
@@ -140,6 +138,7 @@ class SceneRenderer3D
 			uint32_t reflections_enabled = 1;
 			uint32_t center_changed_this_frame = 0;
 			uint32_t mips = 7;
+			XMFLOAT2 padding;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
