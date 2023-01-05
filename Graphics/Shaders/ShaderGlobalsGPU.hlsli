@@ -67,5 +67,18 @@ inline uint3 UnFlatten1DTo3DIndex(uint idx, uint3 dim)
 	return uint3(x, y, z);
 }
 
+// Returns a matrix which transforms a vector from tangent space to 
+// the space in which the supplied normal was
+inline float3x3 GetTangentSpaceToSuppliedNormalVectorSpace(in float3 normal)
+{
+	// Choose a helper vector for the cross product
+	float3 helper = abs(normal.x) > 0.99 ? float3(0, 0, 1) : float3(1, 0, 0);
+
+	// Generate vectors
+	float3 tangent = normalize(cross(normal, helper));
+	float3 binormal = normalize(cross(normal, tangent));
+	return float3x3(tangent, binormal, normal);
+}
+
 
 #endif

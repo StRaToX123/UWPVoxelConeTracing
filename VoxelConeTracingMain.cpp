@@ -592,6 +592,14 @@ void VoxelConeTracingMain::Render()
 			imgui_voxel_grid_data.UpdateGirdExtent(scene_renderer->voxel_grid_data.grid_extent);
 		}
 
+		if (scene_renderer->voxel_grid_data.num_cones != imgui_voxel_grid_data.num_cones)
+		{
+			callUpdateBuffers = true;
+			updateVoxelGridDataBuffers = true;
+			scene_renderer->voxel_grid_data.UpdateNumOfCones(scene_renderer->voxel_grid_data.num_cones);
+			imgui_voxel_grid_data.UpdateNumOfCones(scene_renderer->voxel_grid_data.num_cones);
+		}
+
 		// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer
 		if (memcmp(&scene_renderer->voxel_grid_data, &imgui_voxel_grid_data, sizeof(SceneRenderer3D::ShaderStructureCPUVoxelGridData)) != 0)
 		{

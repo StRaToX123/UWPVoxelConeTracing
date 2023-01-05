@@ -103,7 +103,10 @@ class SceneRenderer3D
 			void UpdateRes(UINT newRes)
 			{
 				res = newRes;
+				res_rcp = 1.0f / (float)res;
+				mip_count = (UINT32)log2(res) + 1;
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
 				top_left_point_world_space.x = -((float)res * voxel_half_extent);
 				top_left_point_world_space.y = -top_left_point_world_space.x;
@@ -116,29 +119,41 @@ class SceneRenderer3D
 				grid_extent = gridExtent;
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
 				top_left_point_world_space.x = -((float)res * voxel_half_extent);
 				top_left_point_world_space.y = -top_left_point_world_space.x;
 				top_left_point_world_space.z = top_left_point_world_space.x;
 			};
 
+			void UpdateNumOfCones(UINT numOfCones)
+			{
+				num_cones = numOfCones;
+				num_cones_rcp = 1.0f / (float)numOfCones;
+			}
+
 			uint32_t res = 256;
+			float res_rcp = 1.0f / 256.0f;
 			float grid_extent = 2.04f;
 			float grid_half_extent_rcp = 1.0f;
 			float voxel_half_extent = 0.0078125f;
+			float voxel_half_extent_rcp = 1.0f / 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
+			float padding01;
 			XMFLOAT3 top_left_point_world_space;
-			float center_world_space_x = 0.0f;
-			float center_world_space_y = 0.0f;
-			float center_world_space_z = 0.0f;
+			float padding02;
+			XMFLOAT3 centre_world_space = { 0.0f, 0.0f, 0.0f };
+			float padding03;
 			int num_cones = 2;
+			float num_cones_rcp = 1.0f / 2.0f;
 			float ray_step_size = 0.0058593f;
 			float max_distance = 5.0f;
-			int secondary_bounce_enabled = 1;
+			float voxel_radiance_stepsize; // raymarch step size in voxel space units
+			int secondary_bounce_enabled = 0;
 			uint32_t reflections_enabled = 1;
 			uint32_t center_changed_this_frame = 0;
-			uint32_t mips = 7;
-			XMFLOAT2 padding;
+			uint32_t mip_count = 7;
+			XMFLOAT3 padding04;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
@@ -178,6 +193,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_full_screen_texture_visualization;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
@@ -192,7 +208,6 @@ class SceneRenderer3D
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
-		UINT                                                   radiance_texture_3D_mip_level_count;
 		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
 		UINT temp;
 

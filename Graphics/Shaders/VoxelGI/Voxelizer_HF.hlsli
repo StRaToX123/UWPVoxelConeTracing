@@ -1,3 +1,6 @@
+
+
+
 struct VertexShaderOutputVoxelizer
 {
 	float4 position_voxel_grid_space : SV_POSITION;
