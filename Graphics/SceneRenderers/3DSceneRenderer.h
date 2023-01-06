@@ -146,14 +146,14 @@ class SceneRenderer3D
 			float padding03;
 			int num_cones = 2;
 			float num_cones_rcp = 1.0f / 2.0f;
-			float ray_step_size = 0.0058593f;
-			float max_distance = 5.0f;
-			float voxel_radiance_stepsize; // raymarch step size in voxel space units
+			float ray_step_size = 0.5f;
+			float max_distance = 1.1f;
+			float cone_aperture = tan(PI * 0.5f * 0.33f);
 			int secondary_bounce_enabled = 0;
 			uint32_t reflections_enabled = 1;
 			uint32_t center_changed_this_frame = 0;
 			uint32_t mip_count = 7;
-			XMFLOAT3 padding04;
+			XMFLOAT3 padding4;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
@@ -208,6 +208,12 @@ class SceneRenderer3D
 		Mesh                                                   voxel_debug_cube;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
+		// The reason we keep a copy of the voxel_grid_data.mip_count in this variable, is because
+		// when the grid resolution changes it will rewrite the voxel_grid_data.mip_count variable,
+		// yet we need it's previous and current value to properly calculate the descriptor count this renderer is using.
+		// That's why we need a copy in order to keep the previous value, we assign the new one once the voxelizer buffers have been
+		// properly updated.
+		UINT                                                   radiance_texture_3D_mip_count_copy;
 		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
 		UINT temp;
 

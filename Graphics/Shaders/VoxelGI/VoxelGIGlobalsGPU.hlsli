@@ -27,12 +27,12 @@ struct ShaderStructureGPUVoxelGridData
 	float num_cones_rcp;
 	float ray_step_size;
 	float max_distance;
-	float voxel_radiance_stepsize; // raymarch step size in voxel space units
+	float cone_aperture;
 	int secondary_bounce_enabled;
 	uint reflections_enabled;
 	uint center_changed_this_frame;
 	uint mip_count;
-	float3 padding04;
+	float3 padding4;
 };
 
 struct IndirectCommandGPU
@@ -121,6 +121,7 @@ float4 UnpackVoxelColor(in uint colorMask)
 // coneAperture:	tan(coneHalfAngle)
 #define VOXEL_INITIAL_OFFSET 2
 #define SQRT2 1.41421356237309504880
+/*
 inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUVoxelGridData voxelGridData, SamplerState samp, float3 P, float3 N, float3 coneDirection, float coneAperture)
 {
 	float3 color = 0;
@@ -142,7 +143,7 @@ inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUV
 		float mip = log2(diameter * voxelGridData.voxel_half_extent_rcp);
 		// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
 		float3 voxelGridCoords = startingPosition + coneDirection * distanceTraveled;
-		voxelGridCoords = (voxelGridCoords - voxelGridData.center_world_space) * voxelGridData.grid_half_extent_rcp /*voxelGridData.voxel_half_extent_rcp*/;
+		voxelGridCoords = (voxelGridCoords - voxelGridData.center_world_space) * voxelGridData.grid_half_extent_rcp;
 		//voxelGridCoords *= voxelGridData.res_rcp;
 		voxelGridCoords = (voxelGridCoords * float3(0.5f, -0.5f, 0.5f)) + 0.5f;
 
@@ -165,7 +166,7 @@ inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUV
 
 	return float4(color, alpha);
 }
-
+*/
 
 // A uniform 2D random generator for hemisphere sampling: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 //	idx	: iteration index
@@ -199,6 +200,7 @@ float3 HemispherePointUVtoTanglentSpaceCosWeightedDistribution(float u, float v)
 // voxels:			3D Texture containing voxel scene with direct diffuse lighting (or direct + secondary indirect bounce)
 // P:				world-space position of receiving surface
 // N:				world-space normal vector of receiving surface
+/*
 inline float4 ConeTraceDiffuse(Texture3D<float4> radianceTexture3D, ShaderStructureGPUVoxelGridData voxelGridData, SamplerState samp, float3 P, float3 N)
 {
 	float4 amount = 0;
@@ -220,6 +222,6 @@ inline float4 ConeTraceDiffuse(Texture3D<float4> radianceTexture3D, ShaderStruct
 
 	return amount;
 }
-
+*/
 
 #endif

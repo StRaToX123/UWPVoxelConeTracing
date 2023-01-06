@@ -25,6 +25,9 @@ SceneRenderer3D::SceneRenderer3D(const std::shared_ptr<DeviceResources>& deviceR
 	temp(0)
 {
 	voxel_grid_data.UpdateRes(voxelGridResolution);
+	voxel_grid_data.UpdateGirdExtent(voxel_grid_data.grid_extent);
+	voxel_grid_data.UpdateNumOfCones(voxel_grid_data.num_cones);
+	radiance_texture_3D_mip_count_copy = voxel_grid_data.mip_count;
 
 
 	LoadState();
@@ -53,9 +56,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	CD3DX12_DESCRIPTOR_RANGE rangeUAVRequiredVoxelDebugDataForDrawInstanced;
 	CD3DX12_DESCRIPTOR_RANGE rangeUAVVoxelDataStructuredBuffer;
 	CD3DX12_DESCRIPTOR_RANGE rangeSRVradianceTexture3DMips;
-	CD3DX12_DESCRIPTOR_RANGE rangeSRVMIIIIPradianceTexture3DMips;
 	CD3DX12_DESCRIPTOR_RANGE rangeUAVradianceTexture3DMips;
-	CD3DX12_DESCRIPTOR_RANGE rangeUAVMIIIIPradianceTexture3DMips;
 	CD3DX12_DESCRIPTOR_RANGE rangeSRVTestTexture;
 	CD3DX12_DESCRIPTOR_RANGE rangeUAVIndirectCommand;
 	CD3DX12_DESCRIPTOR_RANGE rangeCBVTransformMatrix;
@@ -68,9 +69,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	rangeUAVRequiredVoxelDebugDataForDrawInstanced.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 	rangeUAVVoxelDataStructuredBuffer.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 	rangeSRVradianceTexture3DMips.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
-	rangeSRVMIIIIPradianceTexture3DMips.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
 	rangeUAVradianceTexture3DMips.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3);
-	rangeUAVMIIIIPradianceTexture3DMips.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 4);
 	rangeSRVTestTexture.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	rangeUAVIndirectCommand.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 	rangeCBVTransformMatrix.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 5);
@@ -101,9 +100,7 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	parameterComputeVisibleDescriptorTableRequiredVoxelDebugDataForDrawInstanced.InitAsDescriptorTable(1, &rangeUAVRequiredVoxelDebugDataForDrawInstanced, D3D12_SHADER_VISIBILITY_ALL);
 	parameterAllVisibleDescriptorTableVoxelDataStructuredBufferUAV.InitAsDescriptorTable(1, &rangeUAVVoxelDataStructuredBuffer, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableRadianceTexture3DMipSRVs.InitAsDescriptorTable(1, &rangeSRVradianceTexture3DMips, D3D12_SHADER_VISIBILITY_ALL);
-	parameterComputeVisibleDescriptorTableRadianceTexture3DMipSRVMIIIIP.InitAsDescriptorTable(1, &rangeSRVMIIIIPradianceTexture3DMips, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableRadianceTexture3DMipUAVs.InitAsDescriptorTable(1, &rangeUAVradianceTexture3DMips, D3D12_SHADER_VISIBILITY_ALL);
-	parameterComputeVisibleDescriptorTableRadianceTexture3DMipUAVMIIIIP.InitAsDescriptorTable(1, &rangeUAVMIIIIPradianceTexture3DMips, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleRootConstantsRadianceTexture3DGenerateMipChain.InitAsConstants(sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), 4, 0, D3D12_SHADER_VISIBILITY_ALL);
 	parameterPixelVisibleDescriptorTableTestTexture.InitAsDescriptorTable(1, &rangeSRVTestTexture, D3D12_SHADER_VISIBILITY_ALL);
 	parameterComputeVisibleDescriptorTableIndirectCommand.InitAsDescriptorTable(1, &rangeUAVIndirectCommand, D3D12_SHADER_VISIBILITY_ALL);
@@ -203,6 +200,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	state.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_unlit)));
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 	#pragma endregion
 
 	#pragma region Voxelizer Pipeline State
@@ -340,6 +339,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateSpotLightWriteOnlyDepth.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateSpotLightWriteOnlyDepth, IID_PPV_ARGS(&pipeline_state_spot_light_write_only_depth)));
+
+	delete[] pVertexShaderByteCode;
 	#pragma endregion
 
 	#pragma region Spot Light Shadow Pass Pipeline State
@@ -362,6 +363,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateSpotLightShadowPass.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateSpotLightShadowPass, IID_PPV_ARGS(&pipeline_state_spot_light_shadow_pass)));
+
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 	#pragma endregion
 
 	#pragma region Full Screen Texture Visualization Pipeline Pass
@@ -385,6 +389,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateFullScreenTextureVisualization.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateFullScreenTextureVisualization, IID_PPV_ARGS(&pipeline_state_full_screen_texture_visualization)));
+
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 	#pragma endregion
 
 	#pragma region Final Gather Pass
@@ -408,6 +415,9 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	stateFinalGather.SampleDesc.Count = 1;
 
 	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateFinalGather, IID_PPV_ARGS(&pipeline_state_final_gather)));
+
+	delete[] pVertexShaderByteCode;
+	delete[] pPixelShaderByteCode;
 	#pragma endregion
 
 
@@ -990,10 +1000,10 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	#pragma region Radiance 3D Texture
 	if (radiance_texture_3D.Get() != nullptr)
 	{
-		descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors -= 2 * voxel_grid_data.mip_count;
+		descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors -= 2 * radiance_texture_3D_mip_count_copy;
 	}
 	
-	voxel_grid_data.mip_count = (UINT32)log2(voxel_grid_data.res) + 1;
+	radiance_texture_3D_mip_count_copy = voxel_grid_data.mip_count;
 	descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors += 2 * voxel_grid_data.mip_count;
 	D3D12_RESOURCE_DESC radiance3DTextureDesc = {};
 	radiance3DTextureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
@@ -1014,6 +1024,7 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 		nullptr,
 		IID_PPV_ARGS(&radiance_texture_3D)));
+	radiance_texture_3D->SetName(L"SceneRenderer3D radiacne_texture_3D");
 	// Create an SRV and a UAV for each mip level
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDescRadince3DTexture = {};
 	srvDescRadince3DTexture.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1578,7 +1589,6 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			command_list_compute->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
 			
 			
-			
 			radiance_texture_3D_generate_mip_chain_data.output_resolution = max(1u, radiance_texture_3D_generate_mip_chain_data.output_resolution / 2);
 			radiance_texture_3D_generate_mip_chain_data.output_resolution_rcp = 1.0f / (float)radiance_texture_3D_generate_mip_chain_data.output_resolution;
 
@@ -1599,6 +1609,24 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			}
 		}
 
+		// We need to transition the last mip as well 
+		D3D12_RESOURCE_BARRIER radianceTexture3DSubresourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+			radiance_texture_3D.Get(),
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+			voxel_grid_data.mip_count - 1);
+		command_list_compute->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+		// If the secondary bounce is disabled, we won't be transitioning subresources back to a UAV state
+		// because we need the entire resource to be in an SRV state for the final gather anyway
+		if ((bool)voxel_grid_data.secondary_bounce_enabled == true)
+		{
+			radianceTexture3DSubresourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				radiance_texture_3D.Get(),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				voxel_grid_data.mip_count - 1);
+			command_list_compute->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+		}
 
 
 		command_list_compute->Close();
@@ -1635,11 +1663,12 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 
 			// Indicate that the command buffer will be used for indirect drawing
 			// and that the back buffer will be used as a render target.
-			D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[2];
+			D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[3];
 			voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 				indirect_command_buffer.Get(),
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 				D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+
 			command_list_direct->ResourceBarrier(1, voxelDebugVisualizationPassBarriers);
 
 			command_list_direct->ExecuteIndirect(
@@ -1656,9 +1685,14 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer.Get(),
 				D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
 				D3D12_RESOURCE_STATE_COPY_DEST);
+			voxelDebugVisualizationPassBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(
+				radiance_texture_3D.Get(),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			command_list_direct->ResourceBarrier(3, voxelDebugVisualizationPassBarriers);
+			
 
 
-			command_list_direct->ResourceBarrier(2, voxelDebugVisualizationPassBarriers);
 
 			command_list_direct->Close();
 			device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
@@ -1691,7 +1725,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				radiance_texture_3D.Get(),
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			command_list_compute->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+			command_list_direct->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
 
 			for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
 			{
@@ -1711,7 +1745,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				radiance_texture_3D.Get(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			command_list_compute->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+			command_list_direct->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
 
 			command_list_direct->Close();
 			device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
@@ -1750,6 +1784,12 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				command_list_direct->IASetIndexBuffer(&scene[scene_object_indexes_that_require_rendering[i]].index_buffer_view);
 				command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
 			}
+
+			D3D12_RESOURCE_BARRIER radianceTexture3DSubresourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				radiance_texture_3D.Get(),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			command_list_direct->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
 
 			command_list_direct->Close();
 			device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);

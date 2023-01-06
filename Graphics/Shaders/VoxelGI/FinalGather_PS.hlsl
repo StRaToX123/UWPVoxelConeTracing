@@ -17,25 +17,79 @@ float4 main(VertexShaderOutputFinalGather input) : SV_TARGET
 	// The closer the geometry is to the border of the voxel grid, the less the GI contribution will be 
 	// This way if the grid moves around, the indirect contribution will smoothly fade in
 	float3 voxelSpacePos = input.position_world_space - voxel_grid_data.center_world_space;
-	//voxelSpacePos *= voxel_grid_data.voxel_half_extent_rcp;
 	voxelSpacePos *= voxel_grid_data.grid_half_extent_rcp;
 	voxelSpacePos = saturate(abs(voxelSpacePos));
 	float blend = 1 - pow(max(voxelSpacePos.x, max(voxelSpacePos.y, voxelSpacePos.z)), 4);
 
 	// Diffuse:
-	float4 trace = ConeTraceDiffuse(radiance_texture_3D_SRV, voxel_grid_data, linear_sampler, input.position_world_space, input.normal_world_space);
+	float4 indirectDiffuseColor = 0;
+	float3x3 tangentSpaceToWorldSpaceMatrix = GetTangentSpaceToSuppliedNormalVectorSpace(input.normal_world_space);
+	for (uint coneIndex = 0; coneIndex < voxel_grid_data.num_cones; ++coneIndex) // quality is between 1 and 16 cones
+	{
+		float2 hamm = Hammersley2D(coneIndex, voxel_grid_data.num_cones);
+		float3 hemisphere = HemispherePointUVtoTanglentSpaceCosWeightedDistribution(hamm.x, hamm.y);
+		float3 coneDirection = mul(hemisphere, tangentSpaceToWorldSpaceMatrix);
+		
+		// Trace this cone
+		float3 coneTraceColor = 0;
+		float coneTraceAlpha = 0;
+		// We need to offset the cone start position to avoid sampling its own voxel (self-occlusion):
+		// Unfortunately, it will result in disconnection between nearby surfaces :(
+		float distanceTraveled = voxel_grid_data.voxel_half_extent;
+		// Offset by cone dir so that first sample of all cones are not the same
+		float3 startingPosition = input.position_world_space + input.normal_world_space * voxel_grid_data.voxel_half_extent * SQRT2 * VOXEL_INITIAL_OFFSET; // sqrt2 is here because when multiplied by the voxel half extent equals the diagonal of the voxel
+
+		// We will break off the loop if the sampling distance is too far for performance reasons:
+		uint kurcetina = 0;
+		//while (distanceTraveled < voxel_grid_data.max_distance && coneTraceAlpha < 1.0f)
+		while (kurcetina < 20)
+		{
+			float diameter = max(voxel_grid_data.voxel_half_extent, 2 * voxel_grid_data.cone_aperture * distanceTraveled);
+			// The closer the diameter is to the resolution (size of the grid) the lower the mip we're sampling from should be
+			// In other words the closer the cone gets to the edges of the grid the larger the mip. So we convert the diameter
+			// to a grid resolution value in order to calculated a mip level from it
+			float mip = log2(diameter * voxel_grid_data.voxel_half_extent_rcp);
+			// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
+			float3 voxelGridCoords = startingPosition + coneDirection * distanceTraveled;
+			voxelGridCoords = (voxelGridCoords - voxel_grid_data.center_world_space) * voxel_grid_data.grid_half_extent_rcp /*voxelGridData.voxel_half_extent_rcp*/;
+			//voxelGridCoords *= voxelGridData.res_rcp;
+			voxelGridCoords = (voxelGridCoords * float3(0.5f, -0.5f, 0.5f)) + 0.5f;
+
+			// break if the ray exits the voxel grid, or we sample from the last mip:
+			if (!IsSaturated(voxelGridCoords) || mip >= (float) voxel_grid_data.mip_count)
+				break;
+
+			float4 sampledRadiance = radiance_texture_3D_SRV.SampleLevel(linear_sampler, voxelGridCoords, mip);
+
+			// This is the correct blending to avoid black-staircase artifact (ray stepped front-to back, so blend front to back):
+			// In other words the amount of color accumulated over the tracing is reduced with each new sampling
+			// Also the amount the alpha falls off over time is reduced, creating a smooth curve towards the alpha reaching zero
+			float a = 1 - coneTraceAlpha;
+			coneTraceColor += a * sampledRadiance.rgb;
+			coneTraceAlpha += a * sampledRadiance.a;
+
+			// Step along the ray:
+			distanceTraveled += diameter * voxel_grid_data.ray_step_size;
+			
+			kurcetina++;
+		}
+
+		indirectDiffuseColor.rgb += coneTraceColor;
+		indirectDiffuseColor.a += coneTraceAlpha;
+	}
+
+	// final radiance is average of all the cones radiances
+	indirectDiffuseColor *= voxel_grid_data.num_cones_rcp;
+	indirectDiffuseColor.rgb = max(0, indirectDiffuseColor.rgb);
+	indirectDiffuseColor.a = saturate(indirectDiffuseColor.a);
+	
+	
 	//return float4(lerp(input.color.rgb, trace.rgb, trace.a * blend), 1.0f);
 	//return float4(input.color.rgb * trace.a * blend, 1.0f);
-	return float4(trace.rgb, 1.0f);
 	
 	
-	/*
-		// specular:
-		[branch]
-	if (GetFrame().options & OPTION_BIT_VOXELGI_REFLECTIONS_ENABLED)
-	{
-		float4 trace = ConeTraceSpecular(texture_voxelgi, surface.P, surface.N, surface.V, surface.roughness);
-		lighting.indirect.specular = lerp(lighting.indirect.specular, trace.rgb * surface.F, trace.a * blend);
-	}
-*/
+	
+	
+	return float4(indirectDiffuseColor.rgb, 1.0f);
+
 }

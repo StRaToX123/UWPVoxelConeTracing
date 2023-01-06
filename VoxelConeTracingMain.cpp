@@ -37,7 +37,7 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	imgui_voxel_grid_selected_allowed_resolution_current_index = 3;
 	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
-	imgui_voxel_grid_data.UpdateRes(voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]);
+	imgui_voxel_grid_data = scene_renderer->voxel_grid_data;
 	#pragma region Root Signature
 	CD3DX12_DESCRIPTOR_RANGE rangeCBV;
 
