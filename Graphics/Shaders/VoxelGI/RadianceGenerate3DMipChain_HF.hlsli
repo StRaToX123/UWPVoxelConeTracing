@@ -7,8 +7,8 @@ struct ShaderStructureGPUGenerate3DMipChainData
 {
 	uint output_resolution;
 	float output_resolution_rcp;
-	uint input_mip_index;
-	uint output_mip_index;
+	uint input_mip_level;
+	uint output_mip_level;
 };
 
 #endif

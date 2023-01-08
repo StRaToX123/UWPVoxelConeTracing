@@ -30,11 +30,21 @@ using namespace std;
 class SceneRenderer3D
 {
 	public:
-		SceneRenderer3D(const std::shared_ptr<DeviceResources>& deviceResources, Camera& camera, unsigned int voxelGridResolution);
+		enum DrawMode
+		{
+			VoxelDebugView = 0,
+			IndirectDiffuseView = 1,
+			FinalGatherView = 2
+		};
+
+		SceneRenderer3D(const std::shared_ptr<DeviceResources>& deviceResources, Camera& camera, UINT voxelGridResolution);
 		~SceneRenderer3D();
+
+		
+
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources(Camera& camera);
-		void Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& camera, bool showVoxelDebugView);
+		void Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& camera, bool showVoxelDebugView, DrawMode drawMode);
 		void SaveState();
 		void LoadState();
 		static inline UINT AlignForUavCounter(UINT bufferSize)
@@ -97,7 +107,16 @@ class SceneRenderer3D
 
 			ShaderStructureCPUVoxelGridData()
 			{
-				
+				res_rcp = 1.0f / (float)res;
+				mip_count = (UINT32)log2(res) + 1;
+				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
+				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
+				top_left_point_world_space.x = -((float)res * voxel_half_extent);
+				top_left_point_world_space.y = -top_left_point_world_space.x;
+				top_left_point_world_space.z = top_left_point_world_space.x;
+				grid_extent_rcp = 1.0f / grid_extent;
+				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 			};
 
 			void UpdateRes(UINT newRes)
@@ -108,15 +127,16 @@ class SceneRenderer3D
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				top_left_point_world_space.x = -((float)res * voxel_half_extent);
-				top_left_point_world_space.y = -top_left_point_world_space.x;
-				top_left_point_world_space.z = top_left_point_world_space.x;
-				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
+				//top_left_point_world_space.x = -((float)res * voxel_half_extent);
+				//top_left_point_world_space.y = -top_left_point_world_space.x;
+				//top_left_point_world_space.z = top_left_point_world_space.x;
+				//grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 			};
 
 			void UpdateGirdExtent(float gridExtent)
 			{
 				grid_extent = gridExtent;
+				grid_extent_rcp = 1.0f / grid_extent;
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
@@ -135,15 +155,15 @@ class SceneRenderer3D
 			uint32_t res = 256;
 			float res_rcp = 1.0f / 256.0f;
 			float grid_extent = 2.04f;
+			float grid_extent_rcp = 1.0f / 2.04f;
 			float grid_half_extent_rcp = 1.0f;
 			float voxel_half_extent = 0.0078125f;
 			float voxel_half_extent_rcp = 1.0f / 0.0078125f;
 			float voxel_extent_rcp = 1.0f / 0.0078125f;
-			float padding01;
 			XMFLOAT3 top_left_point_world_space;
-			float padding02;
+			float padding01;
 			XMFLOAT3 centre_world_space = { 0.0f, 0.0f, 0.0f };
-			float padding03;
+			float padding02;
 			int num_cones = 2;
 			float num_cones_rcp = 1.0f / 2.0f;
 			float ray_step_size = 0.5f;
@@ -153,7 +173,7 @@ class SceneRenderer3D
 			uint32_t reflections_enabled = 1;
 			uint32_t center_changed_this_frame = 0;
 			uint32_t mip_count = 7;
-			XMFLOAT3 padding4;
+			XMFLOAT3 padding3;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
@@ -164,19 +184,20 @@ class SceneRenderer3D
 
 		struct ShaderStructureCPUVoxelDebugData
 		{
-			unsigned int index_x;
-			unsigned int index_y;
-			unsigned int index_z;
+			XMUINT3 index;
+			UINT padding1;
+			XMFLOAT4 color;
 		};
 
 		struct ShaderStructureCPUGenerate3DMipChainData
 		{
 			UINT output_resolution;
 			float output_resolution_rcp;
-			UINT input_mip_level_index;
-			UINT output_mip_level_index;
+			UINT input_mip_level;
+			UINT output_mip_level;
 		};
 
+		const UINT voxel_grid_resolutions[9] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
 		// This value is saved as a member variable so that we dont have to keep recalculating it every frame
 		// when we're trying to dispatch a compute shader with the number of thread equal to the number of voxels in the scene
 		UINT64                                                 number_of_voxels_in_grid;
@@ -189,11 +210,13 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_mip_chain_generation;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_visualization;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_draw;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_full_screen_texture_visualization;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather_copy;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_voxel_debug_draw_compute;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
@@ -214,8 +237,12 @@ class SceneRenderer3D
 		// That's why we need a copy in order to keep the previous value, we assign the new one once the voxelizer buffers have been
 		// properly updated.
 		UINT                                                   radiance_texture_3D_mip_count_copy;
+		// Used by the pipeline_state_radiance_mip_chain_generation shader to generate mip levels
+		// Also used by the pipeline_state_voxel_debug_draw_compute shader to signal which mips data should be interpreted into instanced debug voxel cube draws
 		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
-		UINT temp;
+		// Which mip level of the radiance_texture_3D should be drawn in the voxel debug draw pass
+		int                                                    radiance_texture_3D_voxel_debug_draw_mip_level;
+		UINT                                                   temp;
 
 	private:
 		void UpdateVoxelizerBuffers();

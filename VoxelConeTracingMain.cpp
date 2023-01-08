@@ -516,7 +516,7 @@ void VoxelConeTracingMain::Render()
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Render out the scene
-	scene_renderer->Render(scene, spot_light, camera, show_voxel_debug_view);
+	scene_renderer->Render(scene, spot_light, camera, show_voxel_debug_view, scene_renderer_draw_mode);
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -558,6 +558,12 @@ void VoxelConeTracingMain::Render()
 		if (ImGui::CollapsingHeader("Voxelizer Pass"))
 		{
 			ImGui::Checkbox("Show", &show_voxel_debug_view);
+			ImGui::Combo("Draw Mode", (int*)(&scene_renderer_draw_mode), imgui_combo_box_string_scene_renderer_draw_mode);
+			if (scene_renderer_draw_mode == 0)
+			{
+				ImGui::SliderInt("Displayed Mip Level", &scene_renderer->radiance_texture_3D_voxel_debug_draw_mip_level, 0, scene_renderer->voxel_grid_data.mip_count);
+			}
+
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
 			ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
 			ImGui::SliderInt("Number of Cones", &scene_renderer->voxel_grid_data.num_cones, 2, 10);

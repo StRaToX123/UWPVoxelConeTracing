@@ -61,12 +61,6 @@ float4 main(VertexShaderOutputFinalGather input) : SV_TARGET
 				break;
 
 			float4 sampledRadiance = radiance_texture_3D_SRV.SampleLevel(linear_sampler, voxelGridCoords, mip);
-			
-			if ((sampledRadiance.x > 0.0f) || (sampledRadiance.y > 0.0f) || (sampledRadiance.z > 0.0f) || (sampledRadiance.w > 0))
-			{
-				return float4(1.0f, 1.0f, 1.0f, 1.0f);
-			}
-
 			// This is the correct blending to avoid black-staircase artifact (ray stepped front-to back, so blend front to back):
 			// In other words the amount of color accumulated over the tracing is reduced with each new sampling
 			// Also the amount the alpha falls off over time is reduced, creating a smooth curve towards the alpha reaching zero
@@ -96,7 +90,5 @@ float4 main(VertexShaderOutputFinalGather input) : SV_TARGET
 	
 	
 	
-	//return float4(indirectDiffuseColor.rgb, 1.0f);
-	return float4(0.0f, 0.0f, 0.0f, 1.0f);
-
+	return float4(indirectDiffuseColor.rgb, 1.0f);
 }

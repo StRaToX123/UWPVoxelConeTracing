@@ -6,7 +6,7 @@
 
 Texture2D<float4> test_texture : register(t0);
 Texture2D<float> spot_light_shadow_map : register(t2);
-SamplerState samp : register(s0);
+SamplerState point_sampler : register(s0);
 RWStructuredBuffer<VoxelType> output : register(u2);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
 ConstantBuffer<ShaderStructureGPUSpotLight> spot_light_data : register(b3);
@@ -59,7 +59,7 @@ void main(GeometryShaderOutputVoxelizer input)
 	projectTexCoord.x = input.spot_light_shadow_map_tex_coord.x / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
 	projectTexCoord.y = -input.spot_light_shadow_map_tex_coord.y / input.spot_light_shadow_map_tex_coord.w / 2.0f + 0.5f;
 	// Determine if the projected coordinates are in the 0 to 1 range.  If so then this pixel is in the view of the light.
-	color.rgb *= spot_light_shadow_map.SampleLevel(samp, projectTexCoord, 0);
+	color.rgb *= spot_light_shadow_map.SampleLevel(point_sampler, projectTexCoord, 0);
 	
 	uint colorEncoded = PackVoxelColor(color);
 	uint normalEncoded = PackUnitvector(input.normal_view_space);

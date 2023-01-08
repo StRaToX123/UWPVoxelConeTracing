@@ -409,6 +409,12 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGatherCopy_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGatherCopy_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGather_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
     </FxCompile>
@@ -430,6 +436,10 @@
     <FxCompile Include="Graphics\Shaders\VoxelGI\SpotLightShadowMap_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <EnableUnboundedDescriptorTables Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</EnableUnboundedDescriptorTables>
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

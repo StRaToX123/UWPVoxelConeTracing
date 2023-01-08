@@ -63,8 +63,10 @@ class VoxelConeTracingMain
 		XMFLOAT4 imgui_spot_light_default_color;
 
 		bool show_voxel_debug_view;
+		SceneRenderer3D::DrawMode scene_renderer_draw_mode = SceneRenderer3D::DrawMode::VoxelDebugView;
+		const char* imgui_combo_box_string_scene_renderer_draw_mode = " Voxel Debug View\0 Indirect Diffuse View\0 Final Gather View";
 		SceneRenderer3D::ShaderStructureCPUVoxelGridData imgui_voxel_grid_data;
-		int voxel_grid_allowed_resolutions[8] = { 16, 32, 64, 128, 256 };
+		const UINT voxel_grid_allowed_resolutions[5] = { 16, 32, 64, 128, 256 };
 		int imgui_voxel_grid_selected_allowed_resolution_current_index = 0;
 		int imgui_voxel_grid_selected_allowed_resolution_previous_index = 0;
 		const char* imgui_combo_box_string_voxel_grid_allowed_resolution = " 16\0 32\0 64\0 128\0 256";

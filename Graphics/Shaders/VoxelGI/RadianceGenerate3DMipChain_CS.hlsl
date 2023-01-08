@@ -13,8 +13,8 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
 	if (dispatchThreadID.x < generate_3d_mip_chain_data.output_resolution && dispatchThreadID.y < generate_3d_mip_chain_data.output_resolution && dispatchThreadID.z < generate_3d_mip_chain_data.output_resolution)
 	{
-		Texture3D<float4> input = radiance_texture_3D_SRVs[generate_3d_mip_chain_data.input_mip_index];
-		RWTexture3D<float4> output = radiance_texture_3D_UAVs[generate_3d_mip_chain_data.output_mip_index];
+		Texture3D<float4> input = radiance_texture_3D_SRVs[generate_3d_mip_chain_data.input_mip_level];
+		RWTexture3D<float4> output = radiance_texture_3D_UAVs[generate_3d_mip_chain_data.output_mip_level];
 		float4 color = input.SampleLevel(linear_sampler, ((float3) dispatchThreadID + 0.5f) * (float3) generate_3d_mip_chain_data.output_resolution_rcp, 0);
 		
 		output[dispatchThreadID] = color;

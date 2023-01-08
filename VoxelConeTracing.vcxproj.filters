@@ -489,6 +489,15 @@
     <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGather_VS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGatherCopy_PS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGatherCopy_VS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDebugDraw_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VoxelConeTracing.rc" />
