@@ -64,6 +64,42 @@ struct ShaderStructureCPUVertexPositionNormalTextureColor
     static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
 };
 
+struct ShaderStructureCPUVertexPosition
+{
+    ShaderStructureCPUVertexPosition()
+    {
+
+    }
+
+    ShaderStructureCPUVertexPosition(const XMFLOAT3& position):
+        position(position)
+    {
+
+    }
+
+    ShaderStructureCPUVertexPosition(FXMVECTOR& position)
+    {
+        XMStoreFloat3(&this->position, position);
+    }
+
+    ShaderStructureCPUVertexPosition(const XMFLOAT3& position) : 
+        position(position)
+    {
+
+    }
+
+    ShaderStructureCPUVertexPosition(FXMVECTOR& position)
+    {
+        XMStoreFloat3(&this->position, position);
+    }
+
+
+    XMFLOAT3 position;
+
+    static const int input_element_count = 1;
+    static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
+};
+
 
 struct ShaderStructureCPUModelAndInverseTransposeModelView
 {

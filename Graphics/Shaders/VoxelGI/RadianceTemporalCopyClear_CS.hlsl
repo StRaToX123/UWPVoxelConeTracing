@@ -4,9 +4,6 @@
 RWStructuredBuffer<VoxelType> input_output : register(u2);
 RWTexture3D<float4> radiance_texture_3D_UAV : register(u3);
 ConstantBuffer<ShaderStructureGPUVoxelGridData> voxel_grid_data : register(b1);
-//StructuredBuffer<ShaderStructureGPUVoxelDebugData> voxel_debug_data : register(t1);
-//AppendStructuredBuffer<ShaderStructureGPUVoxelDebugData> voxel_debug_data_required_for_frame_draw : register(u0);
-//RWStructuredBuffer<IndirectCommandGPU> voxel_debug_indirect_command : register(u1);
 
 [numthreads(256, 1, 1)]
 void main(uint dispatchThreadID : SV_DispatchThreadID)
@@ -20,9 +17,6 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 		// Blend voxels with the previous frame's data to avoid popping artifacts for dynamic objects:
 		// This operation requires Feature: Typed UAV additional format loads!
 		radiance_texture_3D_UAV[writecoord] = lerp(radiance_texture_3D_UAV[writecoord], float4(color.rgb, 1.0f), 0.2f);
-		//ShaderStructureGPUVoxelDebugData debugVoxel = voxel_debug_data[dispatchThreadID.x];
-		//voxel_debug_data_required_for_frame_draw.Append(debugVoxel);
-		//InterlockedAdd(voxel_debug_indirect_command[0].instance_count, 1);
 	}
 	else
 	{

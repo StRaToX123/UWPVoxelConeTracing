@@ -101,6 +101,7 @@ class SceneRenderer3D
 		//////////////
 		// Voxel GI //
 		//////////////
+
 		struct ShaderStructureCPUVoxelGridData
 		{
 			

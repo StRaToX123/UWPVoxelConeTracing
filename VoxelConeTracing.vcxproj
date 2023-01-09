@@ -358,6 +358,7 @@
     <ClCompile Include="VoxelConeTracingMain.cpp" />
     <None Include="Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli" />
     <None Include="Graphics\Shaders\ShaderGlobalsGPU.hlsli" />
+    <None Include="Graphics\Shaders\VoxelGI\ConeDirectionLineDraw_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\FinalGather_HF.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli" />
     <None Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChain_HF.hlsli" />
@@ -408,6 +409,15 @@
     <FxCompile Include="Graphics\Shaders\Unlit\Unlit_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\ConeDirectionLineDraw_GS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\ConeDirectionLineDraw_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\ConeDirectionLineDraw_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Graphics\Shaders\VoxelGI\FinalGatherCopy_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

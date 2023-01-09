@@ -561,7 +561,7 @@ void VoxelConeTracingMain::Render()
 			ImGui::Combo("Draw Mode", (int*)(&scene_renderer_draw_mode), imgui_combo_box_string_scene_renderer_draw_mode);
 			if (scene_renderer_draw_mode == 0)
 			{
-				ImGui::SliderInt("Displayed Mip Level", &scene_renderer->radiance_texture_3D_voxel_debug_draw_mip_level, 0, scene_renderer->voxel_grid_data.mip_count);
+				ImGui::SliderInt("Displayed Mip Level", &scene_renderer->radiance_texture_3D_voxel_debug_draw_mip_level, 0, scene_renderer->voxel_grid_data.mip_count - 1);
 			}
 
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);

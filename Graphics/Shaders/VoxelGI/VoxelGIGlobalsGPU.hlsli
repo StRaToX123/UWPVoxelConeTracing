@@ -51,6 +51,8 @@ struct ShaderStructureGPUVoxelDebugData
 	float4 color;
 };
 
+
+
 inline bool IsSaturated(float value)
 {
 	return value == saturate(value);
