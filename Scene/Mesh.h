@@ -64,41 +64,6 @@ struct ShaderStructureCPUVertexPositionNormalTextureColor
     static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
 };
 
-struct ShaderStructureCPUVertexPosition
-{
-    ShaderStructureCPUVertexPosition()
-    {
-
-    }
-
-    ShaderStructureCPUVertexPosition(const XMFLOAT3& position):
-        position(position)
-    {
-
-    }
-
-    ShaderStructureCPUVertexPosition(FXMVECTOR& position)
-    {
-        XMStoreFloat3(&this->position, position);
-    }
-
-    ShaderStructureCPUVertexPosition(const XMFLOAT3& position) : 
-        position(position)
-    {
-
-    }
-
-    ShaderStructureCPUVertexPosition(FXMVECTOR& position)
-    {
-        XMStoreFloat3(&this->position, position);
-    }
-
-
-    XMFLOAT3 position;
-
-    static const int input_element_count = 1;
-    static const D3D12_INPUT_ELEMENT_DESC input_elements[input_element_count];
-};
 
 
 struct ShaderStructureCPUModelAndInverseTransposeModelView
@@ -115,6 +80,7 @@ class Mesh
     public:
         Mesh(bool isStatic);
     
+        void InitializeAsLine(XMFLOAT3 point01worldSpaceCoords, XMFLOAT3 point02WorldSpaceCoords);
         void InitializeAsCube(float size = 1);
         void InitializeAsSphere(float diameter = 1, size_t tessellation = 16);
         void InitializeAsCone(float diameter = 1, float height = 1, size_t tessellation = 32);

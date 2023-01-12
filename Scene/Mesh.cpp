@@ -10,11 +10,6 @@ const D3D12_INPUT_ELEMENT_DESC ShaderStructureCPUVertexPositionNormalTextureColo
     { "COLOR",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 };
 
-const D3D12_INPUT_ELEMENT_DESC ShaderStructureCPUVertexPosition::input_elements[] =
-{
-    { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-};
-
 
 Mesh::Mesh()
 {
@@ -45,7 +40,16 @@ Mesh::Mesh(bool isStatic)
     vertex_and_index_buffer_upload_started = false;
 }
 
+void Mesh::InitializeAsLine(XMFLOAT3 point01worldSpaceCoords, XMFLOAT3 point02WorldSpaceCoords)
+{
+    vertices.reserve(2);
+    indices.reserve(2);
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(point01worldSpaceCoords, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)));
+    vertices.emplace_back(ShaderStructureCPUVertexPositionNormalTextureColor(point01worldSpaceCoords, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)));
 
+    indices.emplace_back(0);
+    indices.emplace_back(1);
+}
 
 
 void Mesh::InitializeAsSphere(float diameter, size_t tessellation)

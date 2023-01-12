@@ -20,10 +20,11 @@ struct GeometryShaderOutputConeDirectionLineDraw
 	float4 color : COLOR;
 };
 
-struct ShaderStructureGPUConeDebugDirectionData
+struct ShaderStructureGPUConeDirectionDebugData
 {
 	float3 line_vertices_world_position[2];
 	float2 padding1;
+	float4 color;
 };
 
 #endif

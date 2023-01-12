@@ -462,28 +462,31 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	delete[] pComputeShaderByteCode;
 	#pragma endregion
 
-	#pragma region Cone Direction Line Draw Pipeline State
+	#pragma region Cone Direction Debug Line Draw Pipeline State
 	LoadShaderByteCode((standardStringInstallPath + "\\ConeDirectionLineDraw_VS.cso").c_str(), pVertexShaderByteCode, vertexShaderByteCodeLength);
+	LoadShaderByteCode((standardStringInstallPath + "\\ConeDirectionLineDraw_GS.cso").c_str(), pGeometryShaderByteCode, geometryShaderByteCodeLength);
 	LoadShaderByteCode((standardStringInstallPath + "\\ConeDirectionLineDraw_PS.cso").c_str(), pPixelShaderByteCode, pixelShaderByteCodeLength);
 
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.InputLayout = { ShaderStructureCPUVertexPosition::input_elements, ShaderStructureCPUVertexPosition::input_element_count };
-	state.pRootSignature = root_signature.Get();
-	state.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
-	state.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	state.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	state.SampleMask = UINT_MAX;
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-	state.NumRenderTargets = 1;
-	state.RTVFormats[0] = device_resources->GetBackBufferFormat();
-	state.DSVFormat = device_resources->GetDepthBufferFormat();
-	state.SampleDesc.Count = 1;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC stateConeDirectionLineDraw = {};
+	stateConeDirectionLineDraw.InputLayout = { ShaderStructureCPUVertexPositionNormalTextureColor::input_elements, ShaderStructureCPUVertexPositionNormalTextureColor::input_element_count };
+	stateConeDirectionLineDraw.pRootSignature = root_signature.Get();
+	stateConeDirectionLineDraw.VS = CD3DX12_SHADER_BYTECODE(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	stateConeDirectionLineDraw.GS = CD3DX12_SHADER_BYTECODE(pGeometryShaderByteCode, geometryShaderByteCodeLength);
+	stateConeDirectionLineDraw.PS = CD3DX12_SHADER_BYTECODE(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	stateConeDirectionLineDraw.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	stateConeDirectionLineDraw.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	stateConeDirectionLineDraw.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	stateConeDirectionLineDraw.SampleMask = UINT_MAX;
+	stateConeDirectionLineDraw.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	stateConeDirectionLineDraw.NumRenderTargets = 1;
+	stateConeDirectionLineDraw.RTVFormats[0] = device_resources->GetBackBufferFormat();
+	stateConeDirectionLineDraw.DSVFormat = device_resources->GetDepthBufferFormat();
+	stateConeDirectionLineDraw.SampleDesc.Count = 1;
 
-	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&pipeline_state_unlit)));
+	ThrowIfFailed(d3dDevice->CreateGraphicsPipelineState(&stateConeDirectionLineDraw, IID_PPV_ARGS(&pipeline_state_cone_direction_debug_line_draw)));
 	delete[] pVertexShaderByteCode;
+	delete[] pGeometryShaderByteCode;
 	delete[] pPixelShaderByteCode;
 	#pragma endregion
 
@@ -534,8 +537,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	commandSignatureDesc.NumArgumentDescs = _countof(argumentDescs);
 	commandSignatureDesc.ByteStride = sizeof(IndirectCommand);
 
-	ThrowIfFailed(d3dDevice->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&voxel_debug_command_signature)));
-	voxel_debug_command_signature->SetName(L"SceneRenderer3D voxel_debug_command_signature");
+	ThrowIfFailed(d3dDevice->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&indirect_draw_command_signature)));
+	indirect_draw_command_signature->SetName(L"SceneRenderer3D voxel_debug_command_signature");
 
 	// Allocate a buffer that can be used to reset the UAV counters and initialize them to 0.
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
@@ -544,12 +547,12 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT)),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(&indirect_draw_required_voxel_debug_data_counter_reset_buffer)));
+		IID_PPV_ARGS(&indirect_draw_counter_reset_buffer)));
 
 	UINT8* pMappedCounterReset = nullptr;
-	ThrowIfFailed(indirect_draw_required_voxel_debug_data_counter_reset_buffer->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&pMappedCounterReset)));
+	ThrowIfFailed(indirect_draw_counter_reset_buffer->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&pMappedCounterReset)));
 	std::ZeroMemory(pMappedCounterReset, sizeof(UINT));
-	indirect_draw_required_voxel_debug_data_counter_reset_buffer->Unmap(0, nullptr);
+	indirect_draw_counter_reset_buffer->Unmap(0, nullptr);
 
 	// Create a descriptor heap for the voxelizer resources
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDescVoxelizer = {};
@@ -726,7 +729,68 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(voxel_debug_cube.index_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 	#pragma endregion
 
-	#pragma region Indirect Command Buffer
+	#pragma region Cone Direction Debug Line
+	cone_direction_debug_line.InitializeAsLine(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f));
+	// Upload the vertex buffer to the GPU.
+	const UINT coneDirectionDebugLineVertexBufferSize = cone_direction_debug_line.vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
+	CD3DX12_RESOURCE_DESC vertexBufferDescConeDirectionLine = CD3DX12_RESOURCE_DESC::Buffer(coneDirectionDebugLineVertexBufferSize);
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&vertexBufferDescConeDirectionLine,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&cone_direction_debug_line.vertex_buffer)));
+	cone_direction_debug_line.vertex_buffer->SetName(L"SceneRenderer3D cone_direction_debug_line.vertex_buffer");
+
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&vertexBufferDescConeDirectionLine,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&cone_direction_debug_line.vertex_buffer_upload)));
+
+
+	D3D12_SUBRESOURCE_DATA coneDirectionDebugLineSubSubresourceVertexData = {};
+	coneDirectionDebugLineSubSubresourceVertexData.pData = reinterpret_cast<BYTE*>(&cone_direction_debug_line.vertices[0]);
+	coneDirectionDebugLineSubSubresourceVertexData.RowPitch = voxelDebugCubeVertexBufferSize;
+	coneDirectionDebugLineSubSubresourceVertexData.SlicePitch = coneDirectionDebugLineSubSubresourceVertexData.RowPitch;
+
+	UpdateSubresources(command_list_direct.Get(), cone_direction_debug_line.vertex_buffer.Get(), cone_direction_debug_line.vertex_buffer_upload.Get(), 0, 0, 1, &coneDirectionDebugLineSubSubresourceVertexData);
+
+	command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(cone_direction_debug_line.vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+	// Upload the index buffer to the GPU.
+	const UINT indexBufferSizeConeDirectionLine = sizeof(uint16_t) * cone_direction_debug_line.indices.size();
+	CD3DX12_RESOURCE_DESC indexBufferDescConeDirectionLine = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSizeConeDirectionLine);
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&indexBufferDescConeDirectionLine,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&cone_direction_debug_line.index_buffer)));
+
+	ThrowIfFailed(device_resources->GetD3DDevice()->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&indexBufferDescConeDirectionLine,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&cone_direction_debug_line.index_buffer_upload)));
+
+	D3D12_SUBRESOURCE_DATA coneDirectionDebugLineSubresourceIndexData = {};
+	coneDirectionDebugLineSubresourceIndexData.pData = reinterpret_cast<BYTE*>(&cone_direction_debug_line.indices[0]);
+	coneDirectionDebugLineSubresourceIndexData.RowPitch = indexBufferSize;
+	coneDirectionDebugLineSubresourceIndexData.SlicePitch = coneDirectionDebugLineSubresourceIndexData.RowPitch;
+
+	UpdateSubresources(command_list_direct.Get(), cone_direction_debug_line.index_buffer.Get(), cone_direction_debug_line.index_buffer_upload.Get(), 0, 0, 1, &coneDirectionDebugLineSubresourceIndexData);
+
+	command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(cone_direction_debug_line.index_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+	#pragma endregion
+
+	#pragma region Indirect Command Buffer Voxel Debug
 	// Create UAVs for each frame IndirectCommand
 	IndirectCommand indirectCommand;
 	indirectCommand.draw_indexed_arguments.IndexCountPerInstance = voxel_debug_cube.indices.size();
@@ -740,8 +804,8 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand)), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
-		IID_PPV_ARGS(&indirect_command_buffer)));
-	NAME_D3D12_OBJECT(indirect_command_buffer);
+		IID_PPV_ARGS(&indirect_command_buffer_voxel_debug)));
+	NAME_D3D12_OBJECT(indirect_command_buffer_voxel_debug);
 
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -749,22 +813,20 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 		&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand))),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(&indirect_command_upload_buffer)));
-	NAME_D3D12_OBJECT(indirect_command_upload_buffer);
+		IID_PPV_ARGS(&indirect_command_upload_buffer_voxel_debug)));
+	NAME_D3D12_OBJECT(indirect_command_upload_buffer_voxel_debug);
 
 	D3D12_SUBRESOURCE_DATA perFrameIndirectCommandSubresourceData;
 	perFrameIndirectCommandSubresourceData.pData = &indirectCommand;
 	perFrameIndirectCommandSubresourceData.RowPitch = sizeof(IndirectCommand);
 	perFrameIndirectCommandSubresourceData.SlicePitch = perFrameIndirectCommandSubresourceData.RowPitch;
 	UpdateSubresources(command_list_direct.Get(),
-		indirect_command_buffer.Get(),
-		indirect_command_upload_buffer.Get(),
+		indirect_command_buffer_voxel_debug.Get(),
+		indirect_command_upload_buffer_voxel_debug.Get(),
 		0,
 		0,
 		1,
 		&perFrameIndirectCommandSubresourceData);
-
-	command_list_direct->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON));
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -776,9 +838,66 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
 	d3dDevice->CreateUnorderedAccessView(
-		indirect_command_buffer.Get(),
+		indirect_command_buffer_voxel_debug.Get(),
 		nullptr,
 		&uavDesc,
+		descriptor_cpu_handle_cbv_srv_uav_all_other_resources);
+
+	descriptor_cpu_handle_cbv_srv_uav_all_other_resources.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+	descriptor_heap_cbv_srv_uav_all_other_resources_number_of_filled_descriptors++;
+	#pragma endregion
+
+	#pragma region Indirect Command Buffer Cone Direction Debug Line Draw
+	// Create UAVs for each frame IndirectCommand
+	IndirectCommand indirectCommandConeDirectionDebug;
+	indirectCommandConeDirectionDebug.draw_indexed_arguments.IndexCountPerInstance = cone_direction_debug_line.indices.size();
+	indirectCommandConeDirectionDebug.draw_indexed_arguments.StartIndexLocation = 0;
+	indirectCommandConeDirectionDebug.draw_indexed_arguments.StartInstanceLocation = 0;
+	indirectCommandConeDirectionDebug.draw_indexed_arguments.BaseVertexLocation = 0;
+
+	ThrowIfFailed(d3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand)), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&indirect_command_buffer_cone_direction_debug)));
+	indirect_command_buffer_cone_direction_debug->SetName(L"SceneRenderer3D indirect_command_buffer_cone_direction_debug");
+
+	ThrowIfFailed(d3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand))),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&indirect_command_upload_buffer_cone_direction_debug)));
+	indirect_command_upload_buffer_cone_direction_debug->SetName(L"SceneRenderer3D indirect_command_upload_buffer_cone_direction_debug");
+
+	D3D12_SUBRESOURCE_DATA indirectCommandConeDirectionDebugSubresourceData;
+	indirectCommandConeDirectionDebugSubresourceData.pData = &indirectCommand;
+	indirectCommandConeDirectionDebugSubresourceData.RowPitch = sizeof(IndirectCommand);
+	indirectCommandConeDirectionDebugSubresourceData.SlicePitch = perFrameIndirectCommandSubresourceData.RowPitch;
+	UpdateSubresources(command_list_direct.Get(),
+		indirect_command_buffer_cone_direction_debug.Get(),
+		indirect_command_upload_buffer_cone_direction_debug.Get(),
+		0,
+		0,
+		1,
+		&indirectCommandConeDirectionDebugSubresourceData);
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDescConeDirectionDebug = {};
+	uavDescConeDirectionDebug.Format = DXGI_FORMAT_UNKNOWN;
+	uavDescConeDirectionDebug.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	uavDescConeDirectionDebug.Buffer.FirstElement = 0;
+	uavDescConeDirectionDebug.Buffer.NumElements = 1;
+	uavDescConeDirectionDebug.Buffer.StructureByteStride = sizeof(IndirectCommand);
+	uavDescConeDirectionDebug.Buffer.CounterOffsetInBytes = 0;
+	uavDescConeDirectionDebug.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+	d3dDevice->CreateUnorderedAccessView(
+		indirect_command_buffer_cone_direction_debug.Get(),
+		nullptr,
+		&uavDescConeDirectionDebug,
 		descriptor_cpu_handle_cbv_srv_uav_all_other_resources);
 
 	descriptor_cpu_handle_cbv_srv_uav_all_other_resources.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
@@ -834,10 +953,12 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	test_texture_upload.Reset();
 	voxel_debug_cube.vertex_buffer_upload.Reset();
 	voxel_debug_cube.index_buffer_upload.Reset();
-	indirect_command_upload_buffer.Reset();
+	indirect_command_upload_buffer_voxel_debug.Reset();
+	cone_direction_debug_line.vertex_buffer_upload.Reset();
+	cone_direction_debug_line.index_buffer_upload.Reset();
+	indirect_command_upload_buffer_cone_direction_debug.Reset();
 
 	// Create the vertex and index buffer views for the voxel debug cube
-	// Create vertex/index views
 	voxel_debug_cube.vertex_buffer_view.BufferLocation = voxel_debug_cube.vertex_buffer->GetGPUVirtualAddress();
 	voxel_debug_cube.vertex_buffer_view.StrideInBytes = sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
 	voxel_debug_cube.vertex_buffer_view.SizeInBytes = voxel_debug_cube.vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
@@ -845,6 +966,15 @@ void SceneRenderer3D::CreateDeviceDependentResources()
 	voxel_debug_cube.index_buffer_view.BufferLocation = voxel_debug_cube.index_buffer->GetGPUVirtualAddress();
 	voxel_debug_cube.index_buffer_view.SizeInBytes = voxel_debug_cube.indices.size() * sizeof(uint16_t);
 	voxel_debug_cube.index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
+
+	// Create the vertex and index buffer views for the cone direction debug line
+	cone_direction_debug_line.vertex_buffer_view.BufferLocation = cone_direction_debug_line.vertex_buffer->GetGPUVirtualAddress();
+	cone_direction_debug_line.vertex_buffer_view.StrideInBytes = sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
+	cone_direction_debug_line.vertex_buffer_view.SizeInBytes = cone_direction_debug_line.vertices.size() * sizeof(ShaderStructureCPUVertexPositionNormalTextureColor);
+
+	cone_direction_debug_line.index_buffer_view.BufferLocation = cone_direction_debug_line.index_buffer->GetGPUVirtualAddress();
+	cone_direction_debug_line.index_buffer_view.SizeInBytes = cone_direction_debug_line.indices.size() * sizeof(uint16_t);
+	cone_direction_debug_line.index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
 }
 
 void SceneRenderer3D::UpdateBuffers(bool updateVoxelizerBuffers, bool updateVoxelGridDataBuffers)
@@ -871,7 +1001,7 @@ void SceneRenderer3D::UpdateBuffers(bool updateVoxelizerBuffers, bool updateVoxe
 	// Release the upload buffers
 	if (updateVoxelizerBuffers == true)
 	{
-		voxel_debug_constant_upload_buffer.Reset();
+		//voxel_debug_constant_upload_buffer.Reset();
 		voxel_data_structured_upload_buffer.Reset();
 	}
 }
@@ -893,75 +1023,6 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	descriptor_cpu_handle_cbv_srv_uav_voxelizer.InitOffsetted(descriptor_heap_cbv_srv_uav_voxelizer->GetCPUDescriptorHandleForHeapStart(), c_frame_count * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
 
 	number_of_voxels_in_grid = voxel_grid_data.res * voxel_grid_data.res * voxel_grid_data.res;
-
-	/*
-	#pragma region Voxel Debug Constant Buffer
-	if (voxel_debug_constant_buffer.Get() != nullptr)
-	{
-		descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors--;
-	}
-
-	// Create a constant buffer that holds all the model transform matrixes for each possible voxel position
-	
-	const UINT64 constantBufferDataSize = ((number_of_voxels_in_grid * sizeof(ShaderStructureCPUVoxelDebugData)) + 255) & ~255;
-	ThrowIfFailed(d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(constantBufferDataSize),
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&voxel_debug_constant_buffer)));
-
-	voxel_debug_constant_buffer->SetName(L"SceneRenderer3D voxel_debug_constant_buffer");
-
-	ThrowIfFailed(d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(constantBufferDataSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&voxel_debug_constant_upload_buffer)));
-
-	voxel_debug_constant_upload_buffer->SetName(L"SceneRenderer3D voxel_debug_constant_upload_buffer");
-
-	ShaderStructureCPUVoxelDebugData* pVoxelDebugConstantBufferData = new ShaderStructureCPUVoxelDebugData[number_of_voxels_in_grid];
-	for (int i = 0; i < voxel_grid_data.res; i++)
-	{
-		for (int j = 0; j < voxel_grid_data.res; j++)
-		{
-			for (int k = 0; k < voxel_grid_data.res; k++)
-			{
-				UINT index = (i * voxel_grid_data.res * voxel_grid_data.res) + (j * voxel_grid_data.res) + k;
-				(pVoxelDebugConstantBufferData + index)->index.x = k;
-				(pVoxelDebugConstantBufferData + index)->index.y = j;
-				(pVoxelDebugConstantBufferData + index)->index.z = i;
-			}
-		}
-	}
-
-	D3D12_SUBRESOURCE_DATA voxelDebugConstantBufferSubresourceData;
-	voxelDebugConstantBufferSubresourceData.pData = pVoxelDebugConstantBufferData;
-	voxelDebugConstantBufferSubresourceData.RowPitch = constantBufferDataSize;
-	voxelDebugConstantBufferSubresourceData.SlicePitch = voxelDebugConstantBufferSubresourceData.RowPitch;
-	UpdateSubresources(command_list_direct.Get(), voxel_debug_constant_buffer.Get(), voxel_debug_constant_upload_buffer.Get(), 0, 0, 1, &voxelDebugConstantBufferSubresourceData);
-	command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(voxel_debug_constant_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-
-	delete[] pVoxelDebugConstantBufferData;
-	// Create shader resource views (SRV) of the constant buffers for the
-	// compute shader to read from.
-	D3D12_SHADER_RESOURCE_VIEW_DESC indirectCommandSRVDesc = {};
-	indirectCommandSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-	indirectCommandSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	indirectCommandSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	indirectCommandSRVDesc.Buffer.NumElements = number_of_voxels_in_grid;
-	indirectCommandSRVDesc.Buffer.StructureByteStride = sizeof(ShaderStructureCPUVoxelDebugData);
-	indirectCommandSRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-
-	d3dDevice->CreateShaderResourceView(voxel_debug_constant_buffer.Get(), &indirectCommandSRVDesc, descriptor_cpu_handle_cbv_srv_uav_voxelizer);
-	descriptor_cpu_handle_cbv_srv_uav_voxelizer.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-	descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors++;
-	#pragma endregion
-	*/
 	
 	#pragma region Indirect Draw Required Voxel Debug Data
 	if (indirect_draw_required_voxel_debug_data_buffer.Get() != nullptr)
@@ -970,13 +1031,13 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	}
 
 	// Create the unordered access views (UAVs) that store the results of the compute work.
-	indirect_draw_required_voxel_debug_data_counter_offset = AlignForUavCounter(sizeof(ShaderStructureCPUVoxelDebugData) * number_of_voxels_in_grid);
+	counter_offset_indirect_draw_required_voxel_debug_data = AlignForUavCounter(sizeof(ShaderStructureCPUVoxelDebugData) * number_of_voxels_in_grid);
 	// Allocate a buffer large enough to hold all of the indirect commands
 	// for a single frame as well as a UAV counter.
 	ThrowIfFailed(d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indirect_draw_required_voxel_debug_data_counter_offset + sizeof(UINT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+		&CD3DX12_RESOURCE_DESC::Buffer(counter_offset_indirect_draw_required_voxel_debug_data + sizeof(UINT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&indirect_draw_required_voxel_debug_data_buffer)));
@@ -988,13 +1049,49 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	uavDesc.Buffer.FirstElement = 0;
 	uavDesc.Buffer.NumElements = number_of_voxels_in_grid;
 	uavDesc.Buffer.StructureByteStride = sizeof(ShaderStructureCPUVoxelDebugData);
-	uavDesc.Buffer.CounterOffsetInBytes = indirect_draw_required_voxel_debug_data_counter_offset;
+	uavDesc.Buffer.CounterOffsetInBytes = counter_offset_indirect_draw_required_voxel_debug_data;
 	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
 	d3dDevice->CreateUnorderedAccessView(
 		indirect_draw_required_voxel_debug_data_buffer.Get(),
 		indirect_draw_required_voxel_debug_data_buffer.Get(),
 		&uavDesc,
+		descriptor_cpu_handle_cbv_srv_uav_voxelizer);
+
+	descriptor_cpu_handle_cbv_srv_uav_voxelizer.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+	descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors++;
+	#pragma endregion
+
+	#pragma region Indirect Draw Required Cone Direction Debug Data
+	if (indirect_draw_required_cone_direction_debug_data_buffer.Get() != nullptr)
+	{
+		descriptor_heap_cbv_srv_uav_voxelizer_number_of_filled_descriptors--;
+	}
+
+	// Create the unordered access views (UAVs) that store the results of the compute work.
+	counter_offset_indirect_draw_required_cone_direction_debug_data = AlignForUavCounter(sizeof(ShaderStructureCPUConeDirectionDebugData) * voxel_grid_data.num_cones * 20);
+	ThrowIfFailed(d3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(counter_offset_indirect_draw_required_cone_direction_debug_data + sizeof(UINT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&indirect_draw_required_cone_direction_debug_data_buffer)));
+	indirect_draw_required_cone_direction_debug_data_buffer->SetName(L"SceneRenderer3D indirect_draw_required_cone_direction_debug_data_buffer");
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDescConeDirectionDebug = {};
+	uavDescConeDirectionDebug.Format = DXGI_FORMAT_UNKNOWN;
+	uavDescConeDirectionDebug.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	uavDescConeDirectionDebug.Buffer.FirstElement = 0;
+	uavDescConeDirectionDebug.Buffer.NumElements = voxel_grid_data.num_cones * 20;
+	uavDescConeDirectionDebug.Buffer.StructureByteStride = sizeof(ShaderStructureCPUConeDirectionDebugData);
+	uavDescConeDirectionDebug.Buffer.CounterOffsetInBytes = counter_offset_indirect_draw_required_cone_direction_debug_data;
+	uavDescConeDirectionDebug.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+	d3dDevice->CreateUnorderedAccessView(
+		indirect_draw_required_cone_direction_debug_data_buffer.Get(),
+		indirect_draw_required_cone_direction_debug_data_buffer.Get(),
+		&uavDescConeDirectionDebug,
 		descriptor_cpu_handle_cbv_srv_uav_voxelizer);
 
 	descriptor_cpu_handle_cbv_srv_uav_voxelizer.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
@@ -1095,6 +1192,13 @@ void SceneRenderer3D::UpdateVoxelizerBuffers()
 	{
 		srvDescRadince3DTexture.Texture3D.MostDetailedMip = i;
 		srvDescRadince3DTexture.Texture3D.MipLevels = 1;
+		// The first SRV for the mip level 0 needs to see all other mips, because this srv is the one used
+		// when tracing the 3D texture, all the other SRVs for all the other mip levels can leave this setting at 1
+		// since they will only be used when generating the mip chain, they won't be used to blend multiple mips together
+		if (i == 0)
+		{
+			srvDescRadince3DTexture.Texture3D.MipLevels = voxel_grid_data.mip_count;
+		}
 
 		d3dDevice->CreateShaderResourceView(radiance_texture_3D.Get(), &srvDescRadince3DTexture, descriptor_cpu_handle_cbv_srv_uav_voxelizer);
 		descriptor_cpu_handle_cbv_srv_uav_voxelizer.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
@@ -1214,23 +1318,29 @@ void SceneRenderer3D::AssignDescriptors(ID3D12GraphicsCommandList* _commandList,
 		// Required voxel debug data for frame draw UAV
 		_commandList->SetComputeRootDescriptorTable(5, descriptorHandle);
 		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
-		// Voxel Data RW Buffer UAV
+		// Required cone debug data for frame draw UAV
 		_commandList->SetComputeRootDescriptorTable(6, descriptorHandle);
 		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
-		// Radiance Texture 3D SRV
+		// Voxel Data RW Buffer UAV
 		_commandList->SetComputeRootDescriptorTable(7, descriptorHandle);
-		descriptorHandle.Offset(voxel_grid_data.mip_count * cbvSrvUavDescriptorSize);
-		// Radiance Texture 3D UAV
+		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
+		// Radiance Texture 3D SRV
 		_commandList->SetComputeRootDescriptorTable(8, descriptorHandle);
 		descriptorHandle.Offset(voxel_grid_data.mip_count * cbvSrvUavDescriptorSize);
+		// Radiance Texture 3D UAV
+		_commandList->SetComputeRootDescriptorTable(9, descriptorHandle);
+		descriptorHandle.Offset(voxel_grid_data.mip_count * cbvSrvUavDescriptorSize);
 		// SRV test texture
-		_commandList->SetComputeRootDescriptorTable(10, descriptorHandle);
-		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
-		// Indirect command
 		_commandList->SetComputeRootDescriptorTable(11, descriptorHandle);
 		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
-		// Transform buffers CBV
+		// Indirect command Voxel Debug
 		_commandList->SetComputeRootDescriptorTable(12, descriptorHandle);
+		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
+		// Indirect command Cone Debug
+		_commandList->SetComputeRootDescriptorTable(13, descriptorHandle);
+		descriptorHandle.Offset(cbvSrvUavDescriptorSize);
+		// Transform buffers CBV
+		_commandList->SetComputeRootDescriptorTable(14, descriptorHandle);
 	}
 }
 
@@ -1564,18 +1674,6 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		#pragma endregion
 
 		#pragma region Voxelizer Render Pass
-		// Clear the radiance_texture_3D
-		/*
-		float radianceTexture3DClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		command_list_direct->ClearUnorderedAccessViewFloat(
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(device_resources->GetDescriptorHeapCbvSrvUav()->GetGPUDescriptorHandleForHeapStart(), (((c_frame_count * 2) + 2) + c_frame_count + 3 + voxel_grid_data.mip_count) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_heap_cbv_srv_uav_voxelizer->GetCPUDescriptorHandleForHeapStart(), (c_frame_count + 3 + voxel_grid_data.mip_count) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav()),
-			radiance_texture_3D.Get(),
-			radianceTexture3DClearValues,
-			0,
-			NULL);
-		*/
-
 		command_list_direct->SetPipelineState(pipeline_state_voxelizer.Get());
 		command_list_direct->RSSetViewports(1, &viewport_voxelizer);
 		command_list_direct->RSSetScissorRects(1, &scissor_rect_voxelizer);
@@ -1627,19 +1725,6 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 		spotLight.AssignDescriptors(command_list_compute.Get(), descriptorHeapGPUHandleDeviceResources, 2, true);
 		AssignDescriptors(command_list_compute.Get(), descriptorHeapGPUHandleDeviceResources, 4, true);
 
-		command_list_compute->CopyBufferRegion(indirect_draw_required_voxel_debug_data_buffer.Get(), indirect_draw_required_voxel_debug_data_counter_offset, indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
-		command_list_compute->CopyBufferRegion(indirect_command_buffer.Get(), sizeof(UINT), indirect_draw_required_voxel_debug_data_counter_reset_buffer.Get(), 0, sizeof(UINT));
-
-		D3D12_RESOURCE_BARRIER perFrameIndirectProcesedCommandsBufferBarriers[2];
-		perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_voxel_debug_data_buffer.Get(),
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer.Get(),
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-		command_list_compute->ResourceBarrier(2, perFrameIndirectProcesedCommandsBufferBarriers);
-
 		command_list_compute->Dispatch(max(1u, (number_of_voxels_in_grid / 256)), 1, 1);
 		#pragma endregion
 
@@ -1662,7 +1747,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			radiance_texture_3D_generate_mip_chain_data.output_resolution = max(1u, radiance_texture_3D_generate_mip_chain_data.output_resolution / 2);
 			radiance_texture_3D_generate_mip_chain_data.output_resolution_rcp = 1.0f / (float)radiance_texture_3D_generate_mip_chain_data.output_resolution;
 
-			command_list_compute->SetComputeRoot32BitConstants(9, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
+			command_list_compute->SetComputeRoot32BitConstants(10, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
 			UINT dispatchBlockSize = max(1u, (radiance_texture_3D_generate_mip_chain_data.output_resolution + GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE - 1) / GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE);
 			command_list_compute->Dispatch(dispatchBlockSize, dispatchBlockSize, dispatchBlockSize);
 			
@@ -1711,7 +1796,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 			fence_command_list_compute_progress_latest_unused_value++;
 		}
 		#pragma endregion
-
+		
 		switch (drawMode)
 		{
 			case DrawMode::VoxelDebugView:
@@ -1722,8 +1807,21 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				radiance_texture_3D_generate_mip_chain_data.output_resolution_rcp = 1.0f / (float)radiance_texture_3D_generate_mip_chain_data.output_resolution;
 				radiance_texture_3D_generate_mip_chain_data.input_mip_level = radiance_texture_3D_voxel_debug_draw_mip_level;
 
-				command_list_compute->SetComputeRoot32BitConstants(9, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
-				//UINT dispatchBlockSize = max(1u, (radiance_texture_3D_generate_mip_chain_data.output_resolution + GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE - 1) / GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE);
+				command_list_compute->CopyBufferRegion(indirect_draw_required_voxel_debug_data_buffer.Get(), counter_offset_indirect_draw_required_voxel_debug_data, indirect_draw_counter_reset_buffer.Get(), 0, sizeof(UINT));
+				command_list_compute->CopyBufferRegion(indirect_command_buffer_voxel_debug.Get(), sizeof(UINT), indirect_draw_counter_reset_buffer.Get(), 0, sizeof(UINT));
+
+				D3D12_RESOURCE_BARRIER perFrameIndirectProcesedCommandsBufferBarriers[2];
+				perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_voxel_debug_data_buffer.Get(),
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer_voxel_debug.Get(),
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+				command_list_compute->ResourceBarrier(2, perFrameIndirectProcesedCommandsBufferBarriers);
+
+
+				command_list_compute->SetComputeRoot32BitConstants(10, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
 				UINT dispatchBlockSize = max(1u, ((radiance_texture_3D_generate_mip_chain_data.output_resolution * radiance_texture_3D_generate_mip_chain_data.output_resolution * radiance_texture_3D_generate_mip_chain_data.output_resolution) / 256));
 				command_list_compute->Dispatch(dispatchBlockSize, 1, 1);
 
@@ -1761,17 +1859,17 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				// and that the back buffer will be used as a render target.
 				D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[3];
 				voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
-					indirect_command_buffer.Get(),
+					indirect_command_buffer_voxel_debug.Get(),
 					D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 					D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 
 				command_list_direct->ResourceBarrier(1, voxelDebugVisualizationPassBarriers);
 
-				command_list_direct->SetGraphicsRoot32BitConstants(9, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
+				command_list_direct->SetGraphicsRoot32BitConstants(10, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
 				command_list_direct->ExecuteIndirect(
-					voxel_debug_command_signature.Get(),
+					indirect_draw_command_signature.Get(),
 					1,
-					indirect_command_buffer.Get(),
+					indirect_command_buffer_voxel_debug.Get(),
 					0,
 					nullptr,
 					0);
@@ -1779,7 +1877,7 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_voxel_debug_data_buffer.Get(),
 					D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 					D3D12_RESOURCE_STATE_COPY_DEST);
-				voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer.Get(),
+				voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer_voxel_debug.Get(),
 					D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
 					D3D12_RESOURCE_STATE_COPY_DEST);
 				voxelDebugVisualizationPassBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -1787,8 +1885,6 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 					D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				command_list_direct->ResourceBarrier(3, voxelDebugVisualizationPassBarriers);
-
-
 
 
 				command_list_direct->Close();
@@ -1818,11 +1914,21 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 				command_list_direct->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
 				command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
 
-				D3D12_RESOURCE_BARRIER radianceTexture3DSubresourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				command_list_direct->CopyBufferRegion(indirect_draw_required_cone_direction_debug_data_buffer.Get(), counter_offset_indirect_draw_required_cone_direction_debug_data, indirect_draw_counter_reset_buffer.Get(), 0, sizeof(UINT));
+				command_list_direct->CopyBufferRegion(indirect_command_buffer_cone_direction_debug.Get(), sizeof(UINT), indirect_draw_counter_reset_buffer.Get(), 0, sizeof(UINT));
+
+				D3D12_RESOURCE_BARRIER finalGatherCopySubresourceBarriers[3];
+				finalGatherCopySubresourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 					radiance_texture_3D.Get(),
 					D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				command_list_direct->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+				finalGatherCopySubresourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_cone_direction_debug_data_buffer.Get(),
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				finalGatherCopySubresourceBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer_cone_direction_debug.Get(),
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				command_list_direct->ResourceBarrier(3, finalGatherCopySubresourceBarriers);
 
 				for (UINT i = 0; i < scene_object_indexes_that_require_rendering.size(); i++)
 				{
@@ -1838,16 +1944,53 @@ void SceneRenderer3D::Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& 
 					command_list_direct->DrawIndexedInstanced(scene[scene_object_indexes_that_require_rendering[i]].indices.size(), 1, 0, 0, 0);
 				}
 
-				radianceTexture3DSubresourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				finalGatherCopySubresourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
 					radiance_texture_3D.Get(),
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				command_list_direct->ResourceBarrier(1, &radianceTexture3DSubresourceBarrier);
+				command_list_direct->ResourceBarrier(1, finalGatherCopySubresourceBarriers);
+
+				/*command_list_direct->Close();
+				device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
+				device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);*/
+				#pragma endregion
+
+				#pragma region Cone Direction Line Draw Pass
+				command_list_direct->SetPipelineState(pipeline_state_cone_direction_debug_line_draw.Get());
+				command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+				command_list_direct->IASetVertexBuffers(0, 1, &cone_direction_debug_line.vertex_buffer_view);
+				command_list_direct->IASetIndexBuffer(&cone_direction_debug_line.index_buffer_view);
+
+				D3D12_RESOURCE_BARRIER coneDirectionLineDrawSubresourceBarriers[2]; 
+				coneDirectionLineDrawSubresourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+					indirect_command_buffer_cone_direction_debug.Get(),
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+				command_list_direct->ResourceBarrier(1, coneDirectionLineDrawSubresourceBarriers);
+
+				command_list_direct->ExecuteIndirect(
+					indirect_draw_command_signature.Get(),
+					1,
+					indirect_command_buffer_cone_direction_debug.Get(),
+					0,
+					nullptr,
+					0);
+
+				coneDirectionLineDrawSubresourceBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+					indirect_draw_required_cone_direction_debug_data_buffer.Get(),
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				coneDirectionLineDrawSubresourceBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(
+					indirect_command_buffer_cone_direction_debug.Get(),
+					D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				command_list_direct->ResourceBarrier(2, coneDirectionLineDrawSubresourceBarriers);
 
 				command_list_direct->Close();
 				device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
 				device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
 				#pragma endregion
+
 				break;
 			}
 			case DrawMode::FinalGatherView:

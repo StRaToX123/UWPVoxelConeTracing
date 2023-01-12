@@ -128,10 +128,6 @@ class SceneRenderer3D
 				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
 				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
-				//top_left_point_world_space.x = -((float)res * voxel_half_extent);
-				//top_left_point_world_space.y = -top_left_point_world_space.x;
-				//top_left_point_world_space.z = top_left_point_world_space.x;
-				//grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
 			};
 
 			void UpdateGirdExtent(float gridExtent)
@@ -190,6 +186,13 @@ class SceneRenderer3D
 			XMFLOAT4 color;
 		};
 
+		struct ShaderStructureCPUConeDirectionDebugData
+		{
+			XMFLOAT3 points_world_position[2];
+			XMFLOAT2 padding1;
+			XMFLOAT4 color;
+		};
+
 		struct ShaderStructureCPUGenerate3DMipChainData
 		{
 			UINT output_resolution;
@@ -218,19 +221,26 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather_copy;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_voxel_debug_draw_compute;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_cone_direction_debug_line_draw;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_upload_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_voxel_debug_data_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_voxel_debug_data_counter_reset_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_upload_buffer;
-		UINT                                                   indirect_draw_required_voxel_debug_data_counter_offset;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_required_cone_direction_debug_data_buffer;
+		// A buffer that holds a single zero number, used to copy that zero into other indirect draw buffers in order to reset their counters
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_draw_counter_reset_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer_voxel_debug;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_upload_buffer_voxel_debug;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_buffer_cone_direction_debug;
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_upload_buffer_cone_direction_debug;
+		UINT                                                   counter_offset_indirect_draw_required_voxel_debug_data;
+		UINT                                                   counter_offset_indirect_draw_required_cone_direction_debug_data;
+		//Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
+		//Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;
 		Mesh                                                   voxel_debug_cube;
-		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         voxel_debug_command_signature;
+		Mesh                                                   cone_direction_debug_line;
+		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         indirect_draw_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
 		// The reason we keep a copy of the voxel_grid_data.mip_count in this variable, is because
 		// when the grid resolution changes it will rewrite the voxel_grid_data.mip_count variable,
