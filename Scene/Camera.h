@@ -8,6 +8,7 @@ struct ShaderStructureCPUViewProjectionBuffer
 {
     DirectX::XMFLOAT4X4 view;
     DirectX::XMFLOAT4X4 projection;
+    DirectX::XMFLOAT4X4 ivnerse_view;
 };
 
 // When performing transformations on the camera, 

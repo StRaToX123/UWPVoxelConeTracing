@@ -34,8 +34,8 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	device_resources = deviceResources;
 
 	ImGui_ImplDX12_Init(device_resources->GetD3DDevice(), c_frame_count, device_resources->GetBackBufferFormat());
-	imgui_voxel_grid_selected_allowed_resolution_current_index = 3;
-	imgui_voxel_grid_selected_allowed_resolution_previous_index = 3;
+	imgui_voxel_grid_selected_allowed_resolution_current_index = 4;
+	imgui_voxel_grid_selected_allowed_resolution_previous_index = 4;
 	scene_renderer = std::unique_ptr<SceneRenderer3D>(new SceneRenderer3D(device_resources, camera, voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index]));
 	imgui_voxel_grid_data = scene_renderer->voxel_grid_data;
 	#pragma region Root Signature
@@ -122,6 +122,7 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	scene[0].InitializeAsVerticalPlane(2.0f, 2.0f);
 	scene[0].name = "Plane 01";
 	scene[0].SetColor(XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f));
+	scene[0].local_rotation.x = 360.0f;
 
 	scene[1].InitializeAsPlane(2.0f, 2.0f);
 	scene[1].name = "Plane 02";
@@ -188,7 +189,7 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 		voxel_grid_allowed_resolutions[imgui_voxel_grid_selected_allowed_resolution_current_index],
 		device_resources);
 	spot_light.constant_buffer_data.position_world_space.y = 0.8f;
-	spot_light.constant_buffer_data.position_world_space.z = 0.0f;
+	spot_light.constant_buffer_data.position_world_space.z = -0.735f;
 	spot_light.constant_buffer_data.direction_world_space.y = -1.0f;
 	spot_light.constant_buffer_data.direction_world_space.z = 0.0f;
 	XMStoreFloat4(&spot_light.constant_buffer_data.color, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
@@ -196,7 +197,6 @@ void VoxelConeTracingMain::Initialize(CoreWindow^ coreWindow, const std::shared_
 	spot_light.constant_buffer_data.UpdateDirectionViewSpace(camera);
 	spot_light.constant_buffer_data.UpdateSpotLightViewMatrix();
 	spot_light.constant_buffer_data.UpdateSpotLightProjectionMatrix();
-	//imgui_spot_light_data = spot_light.constant_buffer_data;
 	spot_light.UpdateConstantBuffers();
 
 	OnWindowSizeChanged();
@@ -566,7 +566,10 @@ void VoxelConeTracingMain::Render()
 
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
 			ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
+			ImGui::SliderFloat("Diffuse Ambient Intensity", &scene_renderer->voxel_grid_data.diffuse_ambient_intensity, 0, 1.0f);
+			ImGui::SliderFloat("Indirect Diffuse Multiplier", &scene_renderer->voxel_grid_data.indirect_diffuse_multiplier, 0, 30.0f);
 			ImGui::SliderInt("Number of Cones", &scene_renderer->voxel_grid_data.num_cones, 2, 10);
+			ImGui::SliderFloat("Tracing Mip Level Bias", &scene_renderer->voxel_grid_data.trace_mip_level_bias, 0, 4.0f);
 			ImGui::SliderFloat("Ray Step Size", &scene_renderer->voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
 			ImGui::SliderFloat("Max Distance", &scene_renderer->voxel_grid_data.max_distance, 0.5f, 10.0f);
 			ImGui::SliderInt("Enable Secondary Bounce", &scene_renderer->voxel_grid_data.secondary_bounce_enabled, 0, 1);

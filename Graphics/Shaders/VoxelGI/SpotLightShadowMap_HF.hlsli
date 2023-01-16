@@ -6,9 +6,9 @@
 struct VertexShaderOutputSpotLightShadowMap
 {
 	float4 position : SV_Position;
-	float3 normal : NORMAL;
-	float4 lightViewPosition : TEXCOORD0;
-	float3 lightPos : TEXCOORD1;
+	float3 normal_world_space : NORMAL;
+	float4 position_light_view_proj_space : TEXCOORD0;
+	float3 light_pos_world_space : TEXCOORD1;
 };
 
 #endif

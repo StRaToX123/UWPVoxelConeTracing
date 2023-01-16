@@ -10,7 +10,7 @@ struct VertexShaderOutputVoxelizer
 	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
 	float4 color : COLOR;
 	float2 tex_coord : TEXCOORD;
-	centroid float4 spot_light_shadow_map_tex_coord : TEXCOORD1;
+	centroid float4 position_spot_light_view_proj_space : TEXCOORD1;
 };
 
 // Centroid interpolation is used to avoid floating voxels in some cases
@@ -22,6 +22,6 @@ struct GeometryShaderOutputVoxelizer
 	centroid float3 normal_view_space : NORMAL1; // needs to be in view space so that lighting can be calculated
 	centroid float4 color : COLOR;
 	float2 tex_coord : TEXCOORD;
-	centroid float4 spot_light_shadow_map_tex_coord : TEXCOORD1;
+	centroid float4 position_spot_light_view_proj_space : TEXCOORD1;
 };
 

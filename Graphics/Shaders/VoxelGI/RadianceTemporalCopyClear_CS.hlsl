@@ -20,7 +20,7 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 	}
 	else
 	{
-		radiance_texture_3D_UAV[writecoord] = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		radiance_texture_3D_UAV[writecoord] = 0;
 	}
 
 	// Delete emission data, but keep normals (no need to delete, we will only read normal values of filled voxels)

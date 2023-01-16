@@ -42,7 +42,7 @@ void Camera::Initialize(const std::shared_ptr<DeviceResources>& deviceResources)
     ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav)));
     NAME_D3D12_OBJECT(descriptor_heap_cbv_srv_uav);
 
-#pragma region Camera View Projection Buffer
+    #pragma region Camera View Projection Buffer
     // Create the camera view projection constant buffer
     CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(c_frame_count * c_aligned_view_projection_matrix_constant_buffer);
     ThrowIfFailed(d3dDevice->CreateCommittedResource(
@@ -75,7 +75,7 @@ void Camera::Initialize(const std::shared_ptr<DeviceResources>& deviceResources)
     // We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
     ThrowIfFailed(view_projection_constant_buffer->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&view_projection_constant_mapped_buffer)));
     std::ZeroMemory(view_projection_constant_mapped_buffer, c_frame_count * c_aligned_view_projection_matrix_constant_buffer);
-#pragma endregion
+    #pragma endregion
 
     is_initialized = true;
 }
@@ -228,8 +228,12 @@ void Camera::UpdateViewMatrix()
     XMMATRIX rotationMatrix = XMMatrixTranspose(XMMatrixRotationQuaternion(p_data->rotation_quaternion));
     XMMATRIX translationMatrix = XMMatrixTranslationFromVector(-(p_data->translation));
 
+    XMMATRIX inverseRotationMatrix = XMMatrixRotationQuaternion(p_data->rotation_quaternion);
+    XMMATRIX inverseTranslationMatrix = XMMatrixTranslationFromVector(p_data->translation);
+
     p_data->view_matrix = translationMatrix * rotationMatrix;
     DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.view, XMMatrixTranspose(p_data->view_matrix));
+    DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.ivnerse_view, XMMatrixTranspose(XMMatrixMultiply(inverseRotationMatrix, inverseTranslationMatrix)));
     is_dirty_view_matrix = false;
 }
 

@@ -101,7 +101,7 @@ class SceneRenderer3D
 		//////////////
 		// Voxel GI //
 		//////////////
-
+		#define SQRT3 1.73205080757
 		struct ShaderStructureCPUVoxelGridData
 		{
 			
@@ -149,6 +149,7 @@ class SceneRenderer3D
 				num_cones_rcp = 1.0f / (float)numOfCones;
 			}
 
+
 			uint32_t res = 256;
 			float res_rcp = 1.0f / 256.0f;
 			float grid_extent = 2.04f;
@@ -161,16 +162,18 @@ class SceneRenderer3D
 			float padding01;
 			XMFLOAT3 centre_world_space = { 0.0f, 0.0f, 0.0f };
 			float padding02;
-			int num_cones = 2;
-			float num_cones_rcp = 1.0f / 2.0f;
-			float ray_step_size = 0.5f;
+			int num_cones = 10;
+			float num_cones_rcp = 1.0f / 10.0f;
+			float ray_step_size = 0.228f;
 			float max_distance = 1.1f;
 			float cone_aperture = tan(PI * 0.5f * 0.33f);
 			int secondary_bounce_enabled = 0;
 			uint32_t reflections_enabled = 1;
 			uint32_t center_changed_this_frame = 0;
 			uint32_t mip_count = 7;
-			XMFLOAT3 padding3;
+			float trace_mip_level_bias = 0.131f;
+			float indirect_diffuse_multiplier = 10.0f;
+			float diffuse_ambient_intensity = 0.2f;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;

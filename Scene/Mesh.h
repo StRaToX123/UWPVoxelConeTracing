@@ -104,6 +104,8 @@ class Mesh
         friend class SceneRenderer3D;
         
         XMMATRIX transform_matrix;
+        XMMATRIX translation_matrix;
+        XMMATRIX rotation_matrix;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
         Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer_upload;

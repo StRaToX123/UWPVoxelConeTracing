@@ -25,16 +25,6 @@ VoxelDebugDrawPixelShaderInput main(VoxelDebugDrawVertexShaderInput input)
 	
 	
 	output.color = voxel_debug_data_required_for_frame_draw[input.instance_id].color;
-	/*
-	if ((voxel_debug_data_required_for_frame_draw[input.instance_id].color.x > 0.0f) || (voxel_debug_data_required_for_frame_draw[input.instance_id].color.y > 0.0f) || (voxel_debug_data_required_for_frame_draw[input.instance_id].color.z > 0.0f))
-	{
-		output.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
-	else
-	{
-		output.color = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	}
-	*/
 	
 	return output;
 }

@@ -11,19 +11,21 @@ ConstantBuffer<ShaderStructureGPUGenerate3DMipChainData> generate_3d_mip_chain_d
 Texture3D<float4> radiance_texture_3D_SRVs[] : register(t4);
 
 
-[numthreads(256, 1, 1)]
+[numthreads(GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE, GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE, GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-	const uint3 voxelIndex = UnFlatten1DTo3DIndex(dispatchThreadID.x, generate_3d_mip_chain_data.output_resolution);
-	float4 color = radiance_texture_3D_SRVs[generate_3d_mip_chain_data.input_mip_level][voxelIndex];
-	[branch]
-	if (color.a > 0.0f)
+	if (dispatchThreadID.x < generate_3d_mip_chain_data.output_resolution && dispatchThreadID.y < generate_3d_mip_chain_data.output_resolution && dispatchThreadID.z < generate_3d_mip_chain_data.output_resolution)
 	{
-		ShaderStructureGPUVoxelDebugData debugVoxel;
-		debugVoxel.index = voxelIndex;
-		debugVoxel.color = float4(color.rgb, 1.0f);
-		debugVoxel.padding1 = 0;
-		voxel_debug_data_required_for_frame_draw.Append(debugVoxel);
-		InterlockedAdd(voxel_debug_indirect_command[0].instance_count, 1);
+		float4 color = radiance_texture_3D_SRVs[generate_3d_mip_chain_data.input_mip_level][dispatchThreadID];
+		[branch]
+		if (color.a > 0.0f)
+		{
+			ShaderStructureGPUVoxelDebugData debugVoxel;
+			debugVoxel.index = dispatchThreadID;
+			debugVoxel.color = float4(color.rgb, 1.0f);
+			debugVoxel.padding1 = 0;
+			voxel_debug_data_required_for_frame_draw.Append(debugVoxel);
+			InterlockedAdd(voxel_debug_indirect_command[0].instance_count, 1);
+		}
 	}
 }

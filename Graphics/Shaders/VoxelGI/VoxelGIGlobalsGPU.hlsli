@@ -32,7 +32,9 @@ struct ShaderStructureGPUVoxelGridData
 	uint reflections_enabled;
 	uint center_changed_this_frame;
 	uint mip_count;
-	float3 padding3;
+	float trace_mip_level_bias;
+	float indirect_diffuse_multiplier;
+	float diffuse_ambient_intensity;
 };
 
 struct IndirectCommandGPU
@@ -123,8 +125,8 @@ float4 UnpackVoxelColor(in uint colorMask)
 // coneAperture:	tan(coneHalfAngle)
 #define VOXEL_INITIAL_OFFSET 2
 #define SQRT2 1.41421356237309504880
-/*
-inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUVoxelGridData voxelGridData, SamplerState samp, float3 P, float3 N, float3 coneDirection, float coneAperture)
+#define SQRT3 1.73205080757
+inline float4 ConeTrace(in Texture3D<float4> radianceTexture3D, ShaderStructureGPUVoxelGridData voxelGridData, in SamplerState samp, float3 P, in float3 N, in float3 coneDirection)
 {
 	float3 color = 0;
 	float alpha = 0;
@@ -134,20 +136,20 @@ inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUV
 	float distanceTraveled = voxelGridData.voxel_half_extent; 
 	// Offset by cone dir so that first sample of all cones are not the same
 	float3 startingPosition = P + N * voxelGridData.voxel_half_extent * SQRT2 * VOXEL_INITIAL_OFFSET; // sqrt2 is here because when multiplied by the voxel half extent equals the diagonal of the voxel
-
+	//float3 startingPosition = P + N * voxelGridData.tracing_starting_position_offset;
+	
 	// We will break off the loop if the sampling distance is too far for performance reasons:
 	while (distanceTraveled < voxelGridData.max_distance && alpha < 1.0f)
 	{
-		float diameter = max(voxelGridData.voxel_half_extent, 2 * coneAperture * distanceTraveled);
+		float diameter = max(voxelGridData.voxel_half_extent, 2 * voxelGridData.cone_aperture * distanceTraveled);
 		// The closer the diameter is to the resolution (size of the grid) the lower the mip we're sampling from should be
 		// In other words the closer the cone gets to the edges of the grid the larger the mip. So we convert the diameter
 		// to a grid resolution value in order to calculated a mip level from it
 		float mip = log2(diameter * voxelGridData.voxel_half_extent_rcp);
 		// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
 		float3 voxelGridCoords = startingPosition + coneDirection * distanceTraveled;
-		voxelGridCoords = (voxelGridCoords - voxelGridData.center_world_space) * voxelGridData.grid_half_extent_rcp;
-		//voxelGridCoords *= voxelGridData.res_rcp;
-		voxelGridCoords = (voxelGridCoords * float3(0.5f, -0.5f, 0.5f)) + 0.5f;
+		voxelGridCoords = (voxelGridCoords - voxelGridData.top_left_point_world_space) * voxelGridData.grid_extent_rcp;
+		voxelGridCoords.y *= -1;
 
 		// break if the ray exits the voxel grid, or we sample from the last mip:
 		if (!IsSaturated(voxelGridCoords) || mip >= (float)voxelGridData.mip_count)
@@ -163,12 +165,11 @@ inline float4 ConeTrace(Texture3D<float4> radianceTexture3D, ShaderStructureGPUV
 		alpha += a * sampledRadiance.a;
 
 		// Step along the ray:
-		distanceTraveled += diameter * voxelGridData.voxel_radiance_stepsize;
+		distanceTraveled += diameter * voxelGridData.ray_step_size;
 	}
 
 	return float4(color, alpha);
 }
-*/
 
 // A uniform 2D random generator for hemisphere sampling: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 //	idx	: iteration index
@@ -202,8 +203,7 @@ float3 HemispherePointUVtoTanglentSpaceCosWeightedDistribution(float u, float v)
 // voxels:			3D Texture containing voxel scene with direct diffuse lighting (or direct + secondary indirect bounce)
 // P:				world-space position of receiving surface
 // N:				world-space normal vector of receiving surface
-/*
-inline float4 ConeTraceDiffuse(Texture3D<float4> radianceTexture3D, ShaderStructureGPUVoxelGridData voxelGridData, SamplerState samp, float3 P, float3 N)
+inline float4 ConeTraceDiffuse(in Texture3D<float4> radianceTexture3D, in ShaderStructureGPUVoxelGridData voxelGridData, in SamplerState samp, in float3 P, in float3 N)
 {
 	float4 amount = 0;
 	float3x3 tangentSpaceToWorldSpaceMatrix = GetTangentSpaceToSuppliedNormalVectorSpace(N);
@@ -214,7 +214,7 @@ inline float4 ConeTraceDiffuse(Texture3D<float4> radianceTexture3D, ShaderStruct
 		float3 hemisphere = HemispherePointUVtoTanglentSpaceCosWeightedDistribution(hamm.x, hamm.y);
 		float3 coneDirection = mul(hemisphere, tangentSpaceToWorldSpaceMatrix);
 
-		amount += ConeTrace(radianceTexture3D, voxelGridData, samp, P, N, coneDirection, tan(PI * 0.5f * 0.33f));
+		amount += ConeTrace(radianceTexture3D, voxelGridData, samp, P, N, coneDirection);
 	}
 
 	// final radiance is average of all the cones radiances
@@ -224,6 +224,6 @@ inline float4 ConeTraceDiffuse(Texture3D<float4> radianceTexture3D, ShaderStruct
 
 	return amount;
 }
-*/
+
 
 #endif

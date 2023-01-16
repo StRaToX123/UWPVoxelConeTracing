@@ -10,16 +10,14 @@ VertexShaderOutputFinalGatherCopy main(VertexShaderInputDefault input)
 	VertexShaderOutputFinalGatherCopy output;
 	matrix modelTransformMatrix = transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].model;
 	output.position_world_space = mul(float4(input.position, 1.0f), modelTransformMatrix).xyz;
-	output.normal_world_space = mul(input.normal, (float3x3)modelTransformMatrix);
 	output.pos = mul(float4(output.position_world_space, 1.0f), view_projection_matrix_buffer.view);
+	output.position_view_space = output.pos.xyz;
 	output.pos = mul(output.pos, view_projection_matrix_buffer.projection);
-	
-	//output.screen_space_coords = uint2((output.pos.x + 1) * 1200 * 0.5 + 0, (1 - output.pos.y) * 766 * 0.5 + 0);
-
-	
-	
+	output.spot_light_shadow_map_tex_coord = output.pos;
+	output.normal_world_space = normalize(mul(input.normal, (float3x3) modelTransformMatrix));
+	output.normal_view_space = mul(float4(input.normal, 1.0f), transform_matrix_buffers[root_constants.transform_matrix_buffer_index].data[root_constants.transform_matrix_buffer_inner_index].inverse_transpose_model_view).xyz;
+	output.normal_view_space = normalize(output.normal_view_space);
 	output.color = float4(input.color, 1.0f);
-	
 	
 	
 	return output;

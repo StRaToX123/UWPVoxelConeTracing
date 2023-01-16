@@ -21,6 +21,7 @@ struct ShaderStructureGPUViewProjectionBuffer
 {
 	matrix view;
 	matrix projection;
+	matrix inverse_view;
 };
 
 struct ShaderStructureGPUModelAndInverseTransposeModelView
