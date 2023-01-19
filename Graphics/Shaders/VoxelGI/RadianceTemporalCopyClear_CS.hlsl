@@ -25,5 +25,4 @@ void main(uint dispatchThreadID : SV_DispatchThreadID)
 
 	// Delete emission data, but keep normals (no need to delete, we will only read normal values of filled voxels)
 	input_output[dispatchThreadID.x].color = 0;
-	input_output[dispatchThreadID.x].normal = 0;
 }

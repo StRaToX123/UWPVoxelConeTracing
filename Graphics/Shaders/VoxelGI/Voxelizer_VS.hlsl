@@ -22,7 +22,7 @@ VertexShaderOutputVoxelizer main(VertexShaderInputDefault input)
 	output.normal_view_space = normalize(output.normal_view_space);
 	
 	// World space -> Voxel grid space:
-	output.position_voxel_grid_space = float4(output.position_world_space - voxel_grid_data.center_world_space, 1.0f);
+	output.position_voxel_grid_space = float4(output.position_world_space - voxel_grid_data.centre_world_space, 1.0f);
 	
 	
 	

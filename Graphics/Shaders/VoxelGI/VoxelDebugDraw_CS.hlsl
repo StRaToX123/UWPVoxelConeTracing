@@ -8,7 +8,7 @@ RWStructuredBuffer<IndirectCommandGPU> voxel_debug_indirect_command : register(u
 // The ShaderStructureGPUGenerate3DMipChainData is used here to tell us from which mip level
 // We should be sampling and generating debug voxel from
 ConstantBuffer<ShaderStructureGPUGenerate3DMipChainData> generate_3d_mip_chain_data : register(b4);
-Texture3D<float4> radiance_texture_3D_SRVs[] : register(t4);
+Texture3D<float4> radiance_texture_3D_SRVs[] : register(t5);
 
 
 [numthreads(GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE, GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE, GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE)]

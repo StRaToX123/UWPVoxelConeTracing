@@ -16,8 +16,7 @@ VoxelConeTracingMain::VoxelConeTracingMain() :
 	camera_controller_down(0.0f),
 	camera_controller_pitch(0.0f),
 	camera_controller_pitch_limit(89.99f),
-	camera_controller_yaw(0.0f),
-	show_voxel_debug_view(true)
+	camera_controller_yaw(0.0f)
 {
 	// Change the timer settings if you want something other than the default variable timestep mode.
 	// example for 60 FPS fixed timestep update logic
@@ -516,7 +515,7 @@ void VoxelConeTracingMain::Render()
 	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Render out the scene
-	scene_renderer->Render(scene, spot_light, camera, show_voxel_debug_view, scene_renderer_draw_mode);
+	scene_renderer->Render(scene, spot_light, camera, scene_renderer_draw_mode);
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -557,7 +556,6 @@ void VoxelConeTracingMain::Render()
 		ImGui::Begin("Render Controls");
 		if (ImGui::CollapsingHeader("Voxelizer Pass"))
 		{
-			ImGui::Checkbox("Show", &show_voxel_debug_view);
 			ImGui::Combo("Draw Mode", (int*)(&scene_renderer_draw_mode), imgui_combo_box_string_scene_renderer_draw_mode);
 			if (scene_renderer_draw_mode == 0)
 			{
@@ -567,11 +565,12 @@ void VoxelConeTracingMain::Render()
 			ImGui::Combo("Grid Resolution", &imgui_voxel_grid_selected_allowed_resolution_current_index, imgui_combo_box_string_voxel_grid_allowed_resolution);
 			ImGui::SliderFloat("Grid Extent", &scene_renderer->voxel_grid_data.grid_extent, 0.5f, 10.0f);
 			ImGui::SliderFloat("Diffuse Ambient Intensity", &scene_renderer->voxel_grid_data.diffuse_ambient_intensity, 0, 1.0f);
-			ImGui::SliderFloat("Indirect Diffuse Multiplier", &scene_renderer->voxel_grid_data.indirect_diffuse_multiplier, 0, 30.0f);
+			ImGui::SliderFloat("Indirect Diffuse Multiplier", &scene_renderer->voxel_grid_data.indirect_diffuse_multiplier, 0, 100.0f);
 			ImGui::SliderInt("Number of Cones", &scene_renderer->voxel_grid_data.num_cones, 2, 10);
-			ImGui::SliderFloat("Tracing Mip Level Bias", &scene_renderer->voxel_grid_data.trace_mip_level_bias, 0, 4.0f);
 			ImGui::SliderFloat("Ray Step Size", &scene_renderer->voxel_grid_data.ray_step_size, 0.0058593f, 0.5f);
-			ImGui::SliderFloat("Max Distance", &scene_renderer->voxel_grid_data.max_distance, 0.5f, 10.0f);
+			ImGui::SliderFloat("Max Trace Distance", &scene_renderer->voxel_grid_data.max_distance, 0.5f, 10.0f);
+			ImGui::SliderFloat("Tracing Mip Level Bias", &scene_renderer->voxel_grid_data.trace_mip_level_bias, 0, 4.0f);
+			ImGui::SliderFloat("Cone Aperature", &imgui_voxel_grid_data_cone_aperature_scale, 0.0f, 1.0f);
 			ImGui::SliderInt("Enable Secondary Bounce", &scene_renderer->voxel_grid_data.secondary_bounce_enabled, 0, 1);
 		}
 
@@ -607,6 +606,15 @@ void VoxelConeTracingMain::Render()
 			updateVoxelGridDataBuffers = true;
 			scene_renderer->voxel_grid_data.UpdateNumOfCones(scene_renderer->voxel_grid_data.num_cones);
 			imgui_voxel_grid_data.UpdateNumOfCones(scene_renderer->voxel_grid_data.num_cones);
+		}
+
+		if (imgui_voxel_grid_data_cone_aperature_scale != imgui_voxel_grid_data_cone_aperature_scale_previous_value)
+		{
+			callUpdateBuffers = true;
+			updateVoxelGridDataBuffers = true;
+			scene_renderer->voxel_grid_data.UpdateConeAperature(imgui_voxel_grid_data_cone_aperature_scale);
+			imgui_voxel_grid_data.cone_aperture = scene_renderer->voxel_grid_data.cone_aperture;
+			imgui_voxel_grid_data_cone_aperature_scale_previous_value = imgui_voxel_grid_data_cone_aperature_scale;
 		}
 
 		// If anything else changed for the voxel grid, we only need to update the voxel grid data buffer

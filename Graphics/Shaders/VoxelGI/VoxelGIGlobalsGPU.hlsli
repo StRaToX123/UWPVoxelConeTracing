@@ -16,25 +16,26 @@ struct ShaderStructureGPUVoxelGridData
 	float grid_extent;
 	float grid_extent_rcp;
 	float grid_half_extent_rcp;
+	float voxel_extent;
+	float voxel_extent_rcp;
 	float voxel_half_extent;
 	float voxel_half_extent_rcp;
-	float voxel_extent_rcp;
+	float3 padding01;
 	float3 top_left_point_world_space;
-	float padding01;
-	float3 center_world_space;
 	float padding02;
+	float3 centre_world_space;
+	float padding03;
 	int num_cones;
 	float num_cones_rcp;
 	float ray_step_size;
 	float max_distance;
 	float cone_aperture;
 	int secondary_bounce_enabled;
-	uint reflections_enabled;
-	uint center_changed_this_frame;
 	uint mip_count;
 	float trace_mip_level_bias;
 	float indirect_diffuse_multiplier;
 	float diffuse_ambient_intensity;
+	float2 padding04;
 };
 
 struct IndirectCommandGPU
@@ -133,7 +134,7 @@ inline float4 ConeTrace(in Texture3D<float4> radianceTexture3D, ShaderStructureG
 	
 	// We need to offset the cone start position to avoid sampling its own voxel (self-occlusion):
 	// Unfortunately, it will result in disconnection between nearby surfaces :(
-	float distanceTraveled = voxelGridData.voxel_half_extent; 
+	float distanceTraveled = 0.0f; 
 	// Offset by cone dir so that first sample of all cones are not the same
 	float3 startingPosition = P + N * voxelGridData.voxel_half_extent * SQRT2 * VOXEL_INITIAL_OFFSET; // sqrt2 is here because when multiplied by the voxel half extent equals the diagonal of the voxel
 	//float3 startingPosition = P + N * voxelGridData.tracing_starting_position_offset;
@@ -142,17 +143,14 @@ inline float4 ConeTrace(in Texture3D<float4> radianceTexture3D, ShaderStructureG
 	while (distanceTraveled < voxelGridData.max_distance && alpha < 1.0f)
 	{
 		float diameter = max(voxelGridData.voxel_half_extent, 2 * voxelGridData.cone_aperture * distanceTraveled);
-		// The closer the diameter is to the resolution (size of the grid) the lower the mip we're sampling from should be
-		// In other words the closer the cone gets to the edges of the grid the larger the mip. So we convert the diameter
-		// to a grid resolution value in order to calculated a mip level from it
-		float mip = log2(diameter * voxelGridData.voxel_half_extent_rcp);
+		float mip = (float) (voxelGridData.mip_count - 1) - lerp(0.0f, (float) (voxelGridData.mip_count - 1), 1.0f - pow(distanceTraveled / voxelGridData.max_distance, voxelGridData.trace_mip_level_bias));
 		// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
 		float3 voxelGridCoords = startingPosition + coneDirection * distanceTraveled;
 		voxelGridCoords = (voxelGridCoords - voxelGridData.top_left_point_world_space) * voxelGridData.grid_extent_rcp;
 		voxelGridCoords.y *= -1;
 
 		// break if the ray exits the voxel grid, or we sample from the last mip:
-		if (!IsSaturated(voxelGridCoords) || mip >= (float)voxelGridData.mip_count)
+		if (!IsSaturated(voxelGridCoords) || mip >= (float)(voxelGridData.mip_count - 1))
 			break;
 
 		float4 sampledRadiance = radianceTexture3D.SampleLevel(samp, voxelGridCoords, mip);

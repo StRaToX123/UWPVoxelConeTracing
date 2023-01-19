@@ -510,6 +510,15 @@
     <FxCompile Include="Graphics\Shaders\VoxelGI\ConeDirectionLineDraw_GS.hlsl">
       <Filter>Graphics\Shaders\VoxelGI\GS</Filter>
     </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceSecondaryBounce_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\RadianceGenerate3DHelperMipChain_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Graphics\Shaders\VoxelGI\VoxelDataClearOnlyNormals_CS.hlsl">
+      <Filter>Graphics\Shaders\VoxelGI\CS</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VoxelConeTracing.rc" />

@@ -4,8 +4,7 @@
 #include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\SpotLight_HF.hlsli"
 
 
-Texture2D<float4> test_texture : register(t0);
-//Texture2D<float> spot_light_shadow_map : register(t2);
+//Texture2D<float4> test_texture : register(t0);
 Texture2D<float> spot_light_depth_buffer : register(t3);
 SamplerState point_sampler : register(s0);
 RWStructuredBuffer<VoxelType> output : register(u2);
@@ -44,7 +43,7 @@ void main(GeometryShaderOutputVoxelizer input)
 	color.rgb *= isNotInShadow;
 	
 	uint colorEncoded = PackVoxelColor(color);
-	uint normalEncoded = PackUnitvector(input.normal_view_space);
+	uint normalEncoded = PackUnitVector(input.normal_view_space);
 	
 	uint id = Flatten3DIndex(voxelIndex, voxel_grid_data.res);
 	// The way the voxelIndex is calculated, it doesn't take into account what happens when the input.position_world_space

@@ -11,7 +11,9 @@
 #include "Utility/Memory/Allocators/PreAllocator.h"
 #include "Scene/Camera.h"
 #include "Scene/Light.h"
-#include "c:\users\stratox\documents\visual studio 2019\projects\voxelconetracing\Graphics\Shaders\VoxelGI\RadianceGenerate3DMipChainCPUGPU.hlsli"
+#include "Graphics/Shaders/VoxelGI/RadianceGenerate3DMipChainCPUGPU.hlsli"
+#include "Graphics/Shaders/VoxelGI/RadianceSecondaryBounceCPUGPU.hlsli"
+
 
 
 
@@ -44,7 +46,7 @@ class SceneRenderer3D
 
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources(Camera& camera);
-		void Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& camera, bool showVoxelDebugView, DrawMode drawMode);
+		void Render(vector<Mesh>& scene, SpotLight& spotLight, Camera& camera, DrawMode drawMode);
 		void SaveState();
 		void LoadState();
 		static inline UINT AlignForUavCounter(UINT bufferSize)
@@ -52,7 +54,10 @@ class SceneRenderer3D
 			return (bufferSize + (D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1)) & ~(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1);
 		};
 
-		void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute);
+		// If assignRadianceTexture3DSecondaryBounceInPlaceOfPrimaryBounce is set to true, then the radiance_texture_3D_helper which
+		// holds the secondary bounce radiance gets assigned to the same register the radiance_texture_3D was assigned to.
+		// This way shaders can keep reading from the same register and not have to worrie if the secondary bounce is enabled of not
+		void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignRadianceTexture3DSecondaryBounceInPlaceOfPrimaryBounce, bool assignCompute);
 		// All the update buffers were put into a single function call so that they can all get batched into one Execute call
 		void UpdateBuffers(bool updateVoxelizerBuffers, bool updateVoxelGridDataBuffers);
 		void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
@@ -110,9 +115,10 @@ class SceneRenderer3D
 			{
 				res_rcp = 1.0f / (float)res;
 				mip_count = (UINT32)log2(res) + 1;
-				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_extent = grid_extent / (float)res;
+				voxel_extent_rcp = 1.0f / voxel_extent;
+				voxel_half_extent = voxel_extent / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
-				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
 				top_left_point_world_space.x = -((float)res * voxel_half_extent);
 				top_left_point_world_space.y = -top_left_point_world_space.x;
 				top_left_point_world_space.z = top_left_point_world_space.x;
@@ -125,9 +131,10 @@ class SceneRenderer3D
 				res = newRes;
 				res_rcp = 1.0f / (float)res;
 				mip_count = (UINT32)log2(res) + 1;
-				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_extent = grid_extent / (float)res;
+				voxel_extent_rcp = 1.0f / voxel_extent;
+				voxel_half_extent = voxel_extent / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
-				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
 			};
 
 			void UpdateGirdExtent(float gridExtent)
@@ -135,9 +142,10 @@ class SceneRenderer3D
 				grid_extent = gridExtent;
 				grid_extent_rcp = 1.0f / grid_extent;
 				grid_half_extent_rcp = 1.0f / (grid_extent / 2.0f);
-				voxel_half_extent = (grid_extent / (float)res) / 2.0f;
+				voxel_extent = grid_extent / (float)res;
+				voxel_extent_rcp = 1.0f / voxel_extent;
+				voxel_half_extent = voxel_extent / 2.0f;
 				voxel_half_extent_rcp = 1.0f / voxel_half_extent;
-				voxel_extent_rcp = 1.0f / (grid_extent / (float)res);
 				top_left_point_world_space.x = -((float)res * voxel_half_extent);
 				top_left_point_world_space.y = -top_left_point_world_space.x;
 				top_left_point_world_space.z = top_left_point_world_space.x;
@@ -149,31 +157,37 @@ class SceneRenderer3D
 				num_cones_rcp = 1.0f / (float)numOfCones;
 			}
 
+			void UpdateConeAperature(float coneAperature01Scale)
+			{
+				cone_aperture = tan(PI * 0.5f * coneAperature01Scale);
+			}
+
 
 			uint32_t res = 256;
 			float res_rcp = 1.0f / 256.0f;
 			float grid_extent = 2.04f;
 			float grid_extent_rcp = 1.0f / 2.04f;
 			float grid_half_extent_rcp = 1.0f;
+			float voxel_extent = 2.04f / 256.0f;
+			float voxel_extent_rcp = 1.0f / 0.0078125f;
 			float voxel_half_extent = 0.0078125f;
 			float voxel_half_extent_rcp = 1.0f / 0.0078125f;
-			float voxel_extent_rcp = 1.0f / 0.0078125f;
+			XMFLOAT3 padding01;
 			XMFLOAT3 top_left_point_world_space;
-			float padding01;
-			XMFLOAT3 centre_world_space = { 0.0f, 0.0f, 0.0f };
 			float padding02;
+			XMFLOAT3 centre_world_space = { 0.0f, 0.0f, 0.0f };
+			float padding03;
 			int num_cones = 10;
 			float num_cones_rcp = 1.0f / 10.0f;
 			float ray_step_size = 0.228f;
 			float max_distance = 1.1f;
 			float cone_aperture = tan(PI * 0.5f * 0.33f);
-			int secondary_bounce_enabled = 0;
-			uint32_t reflections_enabled = 1;
-			uint32_t center_changed_this_frame = 0;
+			int secondary_bounce_enabled = 1;
 			uint32_t mip_count = 7;
 			float trace_mip_level_bias = 0.131f;
 			float indirect_diffuse_multiplier = 10.0f;
 			float diffuse_ambient_intensity = 0.2f;
+			XMFLOAT2 padding04;
 		};
 
 		const UINT c_aligned_shader_structure_cpu_voxel_grid_data = (sizeof(ShaderStructureCPUVoxelGridData) + 255) & ~255;
@@ -217,6 +231,8 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_radiance_temporal_clear;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_mip_chain_generation;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_helper_mip_chain_generation;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_radiance_secondary_bounce;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_voxel_debug_draw;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			   pipeline_state_spot_light_write_only_depth;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	           pipeline_state_spot_light_shadow_pass;
@@ -225,6 +241,7 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_final_gather_copy;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_voxel_debug_draw_compute;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_cone_direction_debug_line_draw;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>            pipeline_state_voxel_data_clear_only_normals;
 		D3D12_VIEWPORT									       viewport_voxelizer;
 		D3D12_RECT                                             scissor_rect_voxelizer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_data_structured_buffer;
@@ -239,12 +256,12 @@ class SceneRenderer3D
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 indirect_command_upload_buffer_cone_direction_debug;
 		UINT                                                   counter_offset_indirect_draw_required_voxel_debug_data;
 		UINT                                                   counter_offset_indirect_draw_required_cone_direction_debug_data;
-		//Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_buffer;
-		//Microsoft::WRL::ComPtr<ID3D12Resource>                 voxel_debug_constant_upload_buffer;
 		Mesh                                                   voxel_debug_cube;
 		Mesh                                                   cone_direction_debug_line;
 		Microsoft::WRL::ComPtr<ID3D12CommandSignature>         indirect_draw_command_signature;
 		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D;
+		// Used as a destination when tracing the secondary bounce from radiance_texture_3D
+		Microsoft::WRL::ComPtr<ID3D12Resource>                 radiance_texture_3D_helper;
 		// The reason we keep a copy of the voxel_grid_data.mip_count in this variable, is because
 		// when the grid resolution changes it will rewrite the voxel_grid_data.mip_count variable,
 		// yet we need it's previous and current value to properly calculate the descriptor count this renderer is using.
@@ -256,7 +273,6 @@ class SceneRenderer3D
 		ShaderStructureCPUGenerate3DMipChainData               radiance_texture_3D_generate_mip_chain_data;
 		// Which mip level of the radiance_texture_3D should be drawn in the voxel debug draw pass
 		int                                                    radiance_texture_3D_voxel_debug_draw_mip_level;
-		UINT                                                   temp;
 
 	private:
 		void UpdateVoxelizerBuffers();

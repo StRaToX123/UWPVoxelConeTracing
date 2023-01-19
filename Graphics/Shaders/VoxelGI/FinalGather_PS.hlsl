@@ -16,7 +16,7 @@ float4 main(VertexShaderOutputFinalGather input) : SV_TARGET
 	// Determine blending factor
 	// The closer the geometry is to the border of the voxel grid, the less the GI contribution will be 
 	// This way if the grid moves around, the indirect contribution will smoothly fade in
-	float3 voxelSpacePos = input.position_world_space - voxel_grid_data.center_world_space;
+	float3 voxelSpacePos = input.position_world_space - voxel_grid_data.centre_world_space;
 	voxelSpacePos *= voxel_grid_data.grid_half_extent_rcp;
 	voxelSpacePos = saturate(abs(voxelSpacePos));
 	float blend = 1 - pow(max(voxelSpacePos.x, max(voxelSpacePos.y, voxelSpacePos.z)), 4);
