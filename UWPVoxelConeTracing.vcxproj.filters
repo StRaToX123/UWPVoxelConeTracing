@@ -1,0 +1,464 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Assets">
+      <UniqueIdentifier>0e723a29-f8c0-4b17-baec-1fb80cc1c3b1</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Filter Include="Source">
+      <UniqueIdentifier>{85805944-c386-498b-89f6-1389d94e60ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility">
+      <UniqueIdentifier>{8f91beb9-bf6c-4869-a578-e8034fda4896}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\Debug">
+      <UniqueIdentifier>{faa798e3-63b8-43ac-b732-087ab6203201}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\Debug\Header Files">
+      <UniqueIdentifier>{ce64b819-9f8b-401d-b406-eae8b290773e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\Time">
+      <UniqueIdentifier>{75dba608-1dbc-41c5-9450-450b83025bc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\Time\Header Files">
+      <UniqueIdentifier>{b22d98fc-8aff-45e3-8e8f-eb2a1a964f18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\Time\Source Files">
+      <UniqueIdentifier>{d62c137d-33e9-40f5-9fe8-a9272b55dbf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene">
+      <UniqueIdentifier>{0284f074-fa9f-4195-9239-2a6c57290096}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Header Files">
+      <UniqueIdentifier>{75e9643e-0af8-4843-b174-10df0662745f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Source Files">
+      <UniqueIdentifier>{9b742425-bba8-4394-b5c6-1ae2bd509e19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics">
+      <UniqueIdentifier>{ddf4c8de-05ca-4101-966c-18246af01a70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\DirectX">
+      <UniqueIdentifier>{be6887e0-039f-42d5-a6dd-d4efb3b0dc73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\DirectX\Header Files">
+      <UniqueIdentifier>{3266e5a9-51cb-48d2-9069-7cf79c492e5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\DirectX\Source Files">
+      <UniqueIdentifier>{c95220e5-753d-40bd-9e33-7f5d36407982}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ImGUI">
+      <UniqueIdentifier>{dba11a1f-056f-4e17-aa2c-a6c3f93f3740}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ImGUI\Header Files">
+      <UniqueIdentifier>{d382aa36-e9df-44e0-b78f-a0d1931a5cdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ImGUI\Source Files">
+      <UniqueIdentifier>{cf4d2f16-efa0-47e6-aae6-d2bb71952d94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\SceneRenderers">
+      <UniqueIdentifier>{a1207419-f13f-4505-8338-9fcfbc13a001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\SceneRenderers\Header Files">
+      <UniqueIdentifier>{9e708502-d12f-49a2-afdc-bd7d06a15d1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\SceneRenderers\Source Files">
+      <UniqueIdentifier>{f120e65f-22d7-426e-9dde-f8afee8f0718}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Models">
+      <UniqueIdentifier>{79ff63f4-1118-4a89-bd05-f8fd2bd3c5a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders">
+      <UniqueIdentifier>{85896f33-5a5c-4d26-bcdd-c31952273554}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders\HF">
+      <UniqueIdentifier>{3d5f16ad-f439-4368-8a8c-4d5d212992f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders\CS">
+      <UniqueIdentifier>{f660570c-2b53-48e6-8113-5e198003e26e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders\GS">
+      <UniqueIdentifier>{f78f680f-450a-4816-b8bb-54b604dad4f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders\VS">
+      <UniqueIdentifier>{78243fd3-2491-4ca5-85ae-7a02cfcf0a9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Graphics\Shaders\PS">
+      <UniqueIdentifier>{d9d9148e-aa05-4ae7-93c5-b3c3b38f918b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="UWPVoxelConeTracingMain.cpp" />
+    <ClCompile Include="Source\Graphics\ImGUI\imBezierCurve.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imCurveEditor.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_demo.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_draw.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_impl_dx12.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_impl_UWP.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_tables.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ImGUI\imgui_widgets.cpp">
+      <Filter>Source\ImGUI\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\DX12Buffer.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\DX12DescriptorHeap.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\DXRSGraphics.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\RootSignature.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.cpp">
+      <Filter>Source\Graphics\DirectX\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.cpp">
+      <Filter>Source\Graphics\SceneRenderers\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Camera.cpp">
+      <Filter>Source\Scene\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Mesh.cpp">
+      <Filter>Source\Scene\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Model.cpp">
+      <Filter>Source\Scene\Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="UWPVoxelConeTracingMain.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Source\Graphics\ImGUI\imBezierCurve.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imCurveEditor.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imgui.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imgui_impl_UWP.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imgui_impl_dx12.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imgui_internal.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imstb_truetype.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imstb_textedit.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imstb_rectpack.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ImGUI\imconfig.h">
+      <Filter>Source\ImGUI\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\d3dx12.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\DX12Buffer.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\DX12DescriptorHeap.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\DXRSGraphics.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\RootSignature.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.h">
+      <Filter>Source\Graphics\DirectX\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.h">
+      <Filter>Source\Graphics\SceneRenderers\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.h">
+      <Filter>Source\Graphics\SceneRenderers\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Camera.h">
+      <Filter>Source\Scene\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Mesh.h">
+      <Filter>Source\Scene\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Model.h">
+      <Filter>Source\Scene\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Common.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pch.cpp" />
+    <None Include="dxcompiler.dll" />
+    <None Include="dxil.dll" />
+    <None Include="vcruntime140.dll" />
+    <None Include="vcruntime140_1.dll" />
+    <None Include="libfbxsdk.dll" />
+    <None Include="packages.config" />
+    <None Include="Source\Graphics\Shaders\HF\Common_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\Composite_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\GBuffer_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\Lighting_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\ShadowMapping_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracing_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelizationDebug_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ShaderGlobalsGPU.hlsli">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.cpp">
+      <Filter>Source\Graphics\SceneRenderers\Source Files</Filter>
+    </None>
+    <None Include="Assets\Models\block.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\bunny.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\cube.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\dragon.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\plane.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\room.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\sphere_big.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\sphere_medium.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\sphere_small.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Assets\Models\torus.fbx">
+      <Filter>Assets\Models</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\Common.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\Composite.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\GBuffer.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\Hit.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\Lighting.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\LPVInjection.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\LPVPropagation.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\Miss.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\RayGen.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ReflectiveShadowMappingCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ReflectiveShadowMappingPS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\RSMDownsampleCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\RSMDownsamplePS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\ShadowMapping.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\UpsampleBlurCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingAnisoMipmapMainCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingAnisoMipmapPrepareCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingCS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingPS.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingVoxelization.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\VoxelConeTracingVoxelizationDebug.hlsl">
+      <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Source\Graphics\Shaders\CS\UpsampleBlur_CS.hlsl">
+      <Filter>Source\Graphics\Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracing_CS.hlsl">
+      <Filter>Source\Graphics\Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisoMipmapMain_CS.hlsl">
+      <Filter>Source\Graphics\Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisoMipmapPrepare_CS.hlsl">
+      <Filter>Source\Graphics\Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\GS\VoxelConeTracingVoxelization_GS.hlsl">
+      <Filter>Source\Graphics\Shaders\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\GS\VoxelConeTracingVoxelizationDebug_GS.hlsl">
+      <Filter>Source\Graphics\Shaders\GS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\Composite_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\GBuffer_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\Lighting_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracing_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelization_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelizationDebug_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\Composite_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\GBuffer_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\Lighting_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\ShadowMapping_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracing_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingVoxelization_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingVoxelizationDebug_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
