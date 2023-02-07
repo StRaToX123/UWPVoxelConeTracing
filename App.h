@@ -3,11 +3,9 @@
 #include "UWPVoxelConeTracingMain.h"
 #include <ppltasks.h>
 
-namespace UWPVoxelConeTracing
+// Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
+ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
 {
-	// Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
-	ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
-	{
 	public:
 		App();
 
@@ -54,11 +52,10 @@ namespace UWPVoxelConeTracing
 		std::unique_ptr<UWPVoxelConeTracingMain> m_main;
 		bool m_windowClosed;
 		bool m_windowVisible;
-	};
-}
+};
 
 ref class Direct3DApplicationSource sealed : Windows::ApplicationModel::Core::IFrameworkViewSource
 {
-public:
-	virtual Windows::ApplicationModel::Core::IFrameworkView^ CreateView();
+	public:
+		virtual Windows::ApplicationModel::Core::IFrameworkView^ CreateView();
 };

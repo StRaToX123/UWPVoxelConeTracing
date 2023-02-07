@@ -5,10 +5,6 @@
 cbuffer GPrepassCB : register(b0)
 {
 	float4x4 ViewProjection;
-	float4x4 InverseViewProjection;
-	float4 CameraPosition;
-	float4 ScreenSize;
-	float4 LightColor;
 };
 
 cbuffer perModelInstanceCB : register(b1)

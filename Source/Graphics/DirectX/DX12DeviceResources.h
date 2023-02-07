@@ -22,11 +22,11 @@
 using namespace Microsoft::WRL;
 
 
-class DXRSGraphics
+class DX12DeviceResources
 {
     public:
-        DXRSGraphics(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, UINT backBufferCount = 2, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, unsigned int flags = 0);
-        ~DXRSGraphics();
+        DX12DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, UINT backBufferCount = 2, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, unsigned int flags = 0);
+        ~DX12DeviceResources();
 
         void CreateResources();
         void FinalizeResources();
@@ -85,15 +85,13 @@ class DXRSGraphics
         static const size_t                 MAX_BACK_BUFFER_COUNT = 3;
         static UINT                         mBackBufferIndex;
 
-        std::string GetFilePath(const std::string& input);
-        std::wstring GetFilePath(const std::wstring& input);
         bool IsRaytracingSupported() { return mRaytracingTierAvailable; }
         Platform::Agile<Windows::UI::Core::CoreWindow> mAppWindow;
     private:
 
-        DXRSGraphics(const DXRSGraphics& rhs);
+        DX12DeviceResources(const DX12DeviceResources& rhs);
    
-        DXRSGraphics& operator=(const DXRSGraphics& rhs);
+        DX12DeviceResources& operator=(const DX12DeviceResources& rhs);
         void MoveToNextFrame();
         void GetAdapter(IDXGIAdapter1** ppAdapter);
     

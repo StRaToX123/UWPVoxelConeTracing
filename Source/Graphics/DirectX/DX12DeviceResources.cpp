@@ -1,11 +1,11 @@
 //DirectX 12 wrapper with useful functions like device creation etc.
 
-#include "Graphics\DirectX\DXRSGraphics.h"
+#include "Graphics\DirectX\DX12DeviceResources.h"
 
 
-UINT DXRSGraphics::mBackBufferIndex = 0;
+UINT DX12DeviceResources::mBackBufferIndex = 0;
 
-DXRSGraphics::DXRSGraphics(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, UINT backBufferCount, D3D_FEATURE_LEVEL minFeatureLevel, unsigned int flags)
+DX12DeviceResources::DX12DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, UINT backBufferCount, D3D_FEATURE_LEVEL minFeatureLevel, unsigned int flags)
     :
     mFenceValuesGraphics{},
     mBackBufferFormat(backBufferFormat),
@@ -26,13 +26,13 @@ DXRSGraphics::DXRSGraphics(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBuffer
     mCurrentPath = std::filesystem::current_path();
 }
 
-DXRSGraphics::~DXRSGraphics()
+DX12DeviceResources::~DX12DeviceResources()
 {
     WaitForGpu();
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void DXRSGraphics::CreateResources()
+void DX12DeviceResources::CreateResources()
 {
 #if defined(_DEBUG)
     {
@@ -191,7 +191,7 @@ void DXRSGraphics::CreateResources()
 }
 
 // Close and flush command list after initialization 
-void DXRSGraphics::FinalizeResources()
+void DX12DeviceResources::FinalizeResources()
 {
     ThrowIfFailed(mCommandListGraphics[0]->Close());
     ID3D12CommandList* ppCommandLists[] = { mCommandListGraphics[0].Get() };
@@ -219,7 +219,7 @@ void DXRSGraphics::FinalizeResources()
 
 }
 
-void DXRSGraphics::CreateFullscreenQuadBuffers()
+void DX12DeviceResources::CreateFullscreenQuadBuffers()
 {
     {
         struct FullscreenVertex
@@ -280,7 +280,7 @@ void DXRSGraphics::CreateFullscreenQuadBuffers()
     }
 }
 
-void DXRSGraphics::CreateWindowResources()
+void DX12DeviceResources::CreateWindowResources()
 {
     if (mAppWindow == NULL)
     {
@@ -417,7 +417,7 @@ void DXRSGraphics::CreateWindowResources()
     mScissorRect.bottom = static_cast<LONG>(backBufferHeight);
 }
 
-void DXRSGraphics::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
+void DX12DeviceResources::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
 {
     mAppWindow = coreWindow;
 
@@ -426,7 +426,7 @@ void DXRSGraphics::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
     mOutputSize.bottom = coreWindow->Bounds.Height;
 }
 
-bool DXRSGraphics::WindowSizeChanged()
+bool DX12DeviceResources::WindowSizeChanged()
 {
     RECT newRc;
     newRc.left = newRc.top = 0;
@@ -445,7 +445,7 @@ bool DXRSGraphics::WindowSizeChanged()
     return true;
 }
 
-void DXRSGraphics::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
+void DX12DeviceResources::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
 {
     ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
     ThrowIfFailed(mCommandListGraphics[0]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][0].Get(), nullptr));
@@ -459,7 +459,7 @@ void DXRSGraphics::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQR
     }
 }
 
-void DXRSGraphics::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
+void DX12DeviceResources::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
 {
 	if (beforeState != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
@@ -468,7 +468,7 @@ void DXRSGraphics::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RE
         cmdList->ResourceBarrier(1, &barrier);
 	}
 }
-void DXRSGraphics::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCmdList)
+void DX12DeviceResources::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCmdList)
 {
     if (needExecuteCmdList) {
 
@@ -505,7 +505,7 @@ void DXRSGraphics::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCm
     }
 }
 
-void DXRSGraphics::WaitForComputeToFinish()
+void DX12DeviceResources::WaitForComputeToFinish()
 {
     assert(mCommandQueueGraphics && mFenceCompute/* && mFenceEventCompute.IsValid()*/);
 
@@ -523,26 +523,26 @@ void DXRSGraphics::WaitForComputeToFinish()
 
 }
 
-void DXRSGraphics::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
+void DX12DeviceResources::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
 {
 	assert(aQueue && mFenceGraphics2);
     aQueue->Wait(mFenceGraphics2.Get(), (previousFrame) ? (mFenceValuesGraphics2 - 1) : mFenceValuesGraphics2);
 }
 
-void DXRSGraphics::SignalGraphicsFence2()
+void DX12DeviceResources::SignalGraphicsFence2()
 {
 	UINT64 fenceValue = mFenceValuesGraphics2;
 	mCommandQueueGraphics->Signal(mFenceGraphics2.Get(), fenceValue);
 	mFenceValuesGraphics2++;
 }
 
-void DXRSGraphics::WaitForGraphicsToFinish()
+void DX12DeviceResources::WaitForGraphicsToFinish()
 {
 	assert(mCommandQueueCompute && mFenceGraphics/* && mFenceEventCompute.IsValid()*/);
     mCommandQueueCompute->Wait(mFenceGraphics.Get(), mFenceValuesGraphics[mBackBufferIndex] - 1);
 }
 
-void DXRSGraphics::PresentCompute()
+void DX12DeviceResources::PresentCompute()
 {
     mCommandListCompute->Close();
 
@@ -554,7 +554,7 @@ void DXRSGraphics::PresentCompute()
     mFenceValuesCompute++;
 }
 
-void DXRSGraphics::WaitForGpu() 
+void DX12DeviceResources::WaitForGpu() 
 {
     if (mCommandQueueGraphics && mFenceGraphics && mFenceEventGraphics.IsValid())
     {
@@ -574,7 +574,7 @@ void DXRSGraphics::WaitForGpu()
     }
 }
 
-void DXRSGraphics::MoveToNextFrame()
+void DX12DeviceResources::MoveToNextFrame()
 {
     // Schedule a Signal command in the queue.
     const UINT64 currentFenceValue = mFenceValuesGraphics[mBackBufferIndex];
@@ -594,7 +594,7 @@ void DXRSGraphics::MoveToNextFrame()
     mFenceValuesGraphics[mBackBufferIndex] = currentFenceValue + 1;
 }
 
-void DXRSGraphics::GetAdapter(IDXGIAdapter1** ppAdapter)
+void DX12DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter)
 {
     *ppAdapter = nullptr;
 
@@ -686,7 +686,7 @@ void DXRSGraphics::GetAdapter(IDXGIAdapter1** ppAdapter)
 }
 
 // Compile a HLSL file into a DXIL library
-IDxcBlob* DXRSGraphics::CompileShaderLibrary(LPCWSTR fileName)
+IDxcBlob* DX12DeviceResources::CompileShaderLibrary(LPCWSTR fileName)
 {
     static IDxcCompiler* pCompiler = nullptr;
     static IDxcLibrary* pLibrary = nullptr;
@@ -749,35 +749,5 @@ IDxcBlob* DXRSGraphics::CompileShaderLibrary(LPCWSTR fileName)
     IDxcBlob* pBlob;
     ThrowIfFailed(pResult->GetResult(&pBlob));
     return pBlob;
-}
-
-std::wstring DXRSGraphics::ExecutableDirectory()
-{
-    WCHAR buffer[MAX_PATH];
-    GetModuleFileName(nullptr, buffer, MAX_PATH);
-
-    return std::wstring(buffer);
-}
-
-std::string DXRSGraphics::GetFilePath(const std::string& input)
-{
-    std::wstring exeDirL = ExecutableDirectory();
-    std::string exeDir = std::string(exeDirL.begin(), exeDirL.end());
-    std::string key("\\");
-    exeDir = exeDir.substr(0, exeDir.rfind(key));
-    exeDir.append(key);
-    exeDir.append(input);
-
-    return exeDir;
-}
-std::wstring DXRSGraphics::GetFilePath(const std::wstring& input)
-{
-    std::wstring exeDir = ExecutableDirectory();
-    std::wstring key(L"\\");
-    exeDir = exeDir.substr(0, exeDir.rfind(key));
-    exeDir.append(key);
-    exeDir.append(input);
-
-    return exeDir;
 }
 

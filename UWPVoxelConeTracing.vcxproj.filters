@@ -107,6 +107,12 @@
     <Filter Include="Source\Graphics\Shaders\PS">
       <UniqueIdentifier>{d9d9148e-aa05-4ae7-93c5-b3c3b38f918b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Utility\FileSystem">
+      <UniqueIdentifier>{80c4fd41-5ece-485f-a0cb-77965ef178fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Utility\FileSystem\Header Files">
+      <UniqueIdentifier>{ad99d1bc-862f-496e-b340-70f0caf59298}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -147,7 +153,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\DXRSGraphics.cpp">
+    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResources.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp">
@@ -165,7 +171,7 @@
     <ClCompile Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.cpp">
+    <ClCompile Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.cpp">
       <Filter>Source\Graphics\SceneRenderers\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Camera.cpp">
@@ -175,6 +181,12 @@
       <Filter>Source\Scene\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Model.cpp">
+      <Filter>Source\Scene\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Lights.cpp">
+      <Filter>Source\Scene\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\SceneObject.cpp">
       <Filter>Source\Scene\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -224,7 +236,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\DXRSGraphics.h">
+    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResources.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h">
@@ -242,10 +254,7 @@
     <ClInclude Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.h">
-      <Filter>Source\Graphics\SceneRenderers\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.h">
+    <ClInclude Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h">
       <Filter>Source\Graphics\SceneRenderers\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Camera.h">
@@ -259,6 +268,18 @@
     </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utility\Debug\DebugMessage.h">
+      <Filter>Source\Utility\Debug\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utility\FileSystem\FilePath.h">
+      <Filter>Source\Utility\FileSystem\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Lights.h">
+      <Filter>Source\Scene\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\SceneObject.h">
+      <Filter>Source\Scene\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -301,9 +322,6 @@
     </None>
     <None Include="Source\Graphics\Shaders\ShaderGlobalsGPU.hlsli">
       <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.cpp">
-      <Filter>Source\Graphics\SceneRenderers\Source Files</Filter>
     </None>
     <None Include="Assets\Models\block.fbx">
       <Filter>Assets\Models</Filter>

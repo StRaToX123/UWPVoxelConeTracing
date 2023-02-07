@@ -2,7 +2,6 @@
 #include "App.h"
 
 
-using namespace UWPVoxelConeTracing;
 using namespace concurrency;
 using namespace Windows::ApplicationModel;
 using namespace Windows::ApplicationModel::Core;
@@ -16,7 +15,6 @@ using namespace Windows::Graphics::Display;
 using Microsoft::WRL::ComPtr;
 
 // The DirectX 12 Application template is documented at https://go.microsoft.com/fwlink/?LinkID=613670&clcid=0x409
-
 // The main function is only used to initialize our IFrameworkView class.
 [Platform::MTAThread]
 int main(Platform::Array<Platform::String^>^)
@@ -129,7 +127,7 @@ void App::Run()
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
 			m_main->Update();
-			//m_main->Render();
+			m_main->Render();
 		}
 		else
 		{
@@ -220,18 +218,12 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 
 void App::OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	if (m_main->show_imGui == true)
-	{
-		//ImGui_ImplUWP_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
-	}
+	//ImGui_ImplUWP_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
 }
 
 void App::OnMouseMoved(Windows::Devices::Input::MouseDevice^ mouseDevice, Windows::Devices::Input::MouseEventArgs^ args)
 {
-	if (m_main->show_imGui == false)
-	{
-		m_main->HandleMouseMovementCallback(args->MouseDelta.X, args->MouseDelta.Y);
-	}
+	m_main->HandleMouseMovementCallback(args->MouseDelta.X, args->MouseDelta.Y);
 }
 
 void App::OnPointerEntered(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
@@ -270,12 +262,12 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 		keyDown = true;
 	}
 
-	m_main->HandleKeyboardInput(args->VirtualKey, keyDown);
-	if (m_main->show_imGui == true)
+	bool handled = m_main->HandleKeyboardInput(args->VirtualKey, keyDown);
+	if (handled == false)
 	{
-		//ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
+		ImGui_ImplUWP_KeyEvent_Callback(static_cast<int>(args->VirtualKey), keyDown);
 	}
-
+	
 	args->Handled = true;
 }
 

@@ -2,7 +2,7 @@
 
 #include "Model.h"
 
-DXRSModel::DXRSModel(DXRSGraphics* _dxrsGraphics,
+Model::Model(DeviceResources* _dxrsGraphics,
 	DX12DescriptorHeapManager* _descriptorHeapManager,
 	XMMATRIX transformWorld,
 	XMFLOAT4 color,
@@ -30,7 +30,7 @@ DXRSModel::DXRSModel(DXRSGraphics* _dxrsGraphics,
 	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
 }
 
-DXRSModel::DXRSModel(DXRSGraphics* _dxrsGraphics, 
+Model::Model(DeviceResources* _dxrsGraphics, 
 	DX12DescriptorHeapManager* _descriptorHeapManager, 
 	const std::string& filename, 
 	XMMATRIX transformWorld, 
@@ -103,7 +103,7 @@ DXRSModel::DXRSModel(DXRSGraphics* _dxrsGraphics,
 	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
 }
 
-DXRSModel::~DXRSModel()
+Model::~Model()
 {
 	if (referenced_meshes == false)
 	{
@@ -116,7 +116,7 @@ DXRSModel::~DXRSModel()
 	delete mBufferCB;
 }
 
-void DXRSModel::UpdateWorldMatrix(XMMATRIX matrix)
+void Model::UpdateWorldMatrix(XMMATRIX matrix)
 {
 	mWorldMatrix = matrix;
 
@@ -126,18 +126,18 @@ void DXRSModel::UpdateWorldMatrix(XMMATRIX matrix)
 	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
 }
 
-bool DXRSModel::HasMeshes() const
+bool Model::HasMeshes() const
 {
 	return (mMeshes.size() > 0);
 }
 
-bool DXRSModel::HasMaterials() const
+bool Model::HasMaterials() const
 {
 	//return (mMaterials.size() > 0);
 	return false;
 }
 
-void DXRSModel::Render(ID3D12GraphicsCommandList* commandList)
+void Model::Render(ID3D12GraphicsCommandList* commandList)
 {
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -149,7 +149,7 @@ void DXRSModel::Render(ID3D12GraphicsCommandList* commandList)
 	}
 }
 
-const std::vector<Mesh*>& DXRSModel::Meshes() const
+const std::vector<Mesh*>& Model::Meshes() const
 {
 	return mMeshes;
 }
@@ -159,7 +159,7 @@ const std::vector<Mesh*>& DXRSModel::Meshes() const
 //	return mMaterials;
 //}
 
-std::vector<XMFLOAT3> DXRSModel::GenerateAABB()
+std::vector<XMFLOAT3> Model::GenerateAABB()
 {
 	std::vector<XMFLOAT3> vertices;
 
@@ -195,7 +195,7 @@ std::vector<XMFLOAT3> DXRSModel::GenerateAABB()
 	return AABB;
 }
 
-XMFLOAT3 DXRSModel::GetTranslation() {
+XMFLOAT3 Model::GetTranslation() {
 	XMVECTOR translation, rot, scale;
 	XMMatrixDecompose(&scale, &rot, &translation, mWorldMatrix);
 
@@ -204,7 +204,7 @@ XMFLOAT3 DXRSModel::GetTranslation() {
 	return translationF;
 }
 
-DXRSModel& DXRSModel::operator=(const DXRSModel& rhs)
+Model& Model::operator=(const Model& rhs)
 {
 	this->mMeshes = rhs.mMeshes;
 	this->mFilename = rhs.mFilename;

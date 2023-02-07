@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Graphics/DirectXTK12/Inc/DirectXHelpers.h"
-#include "Graphics/DirectX/DXRSGraphics.h"
+#include "Graphics/DirectX/DX12DeviceResources.h"
 
 using namespace Microsoft::WRL;
 
@@ -107,12 +107,12 @@ class DX12DescriptorHeapManager
 
 		DX12DescriptorHeapGPU* GetGPUHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType)
 		{
-			return mGPUDescriptorHeaps[DXRSGraphics::mBackBufferIndex][heapType];
+			return mGPUDescriptorHeaps[DX12DeviceResources::mBackBufferIndex][heapType];
 		}
 
 	private:
 		DX12DescriptorHeapCPU* mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-		DX12DescriptorHeapGPU* mGPUDescriptorHeaps[DXRSGraphics::MAX_BACK_BUFFER_COUNT][D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		DX12DescriptorHeapGPU* mGPUDescriptorHeaps[DX12DeviceResources::MAX_BACK_BUFFER_COUNT][D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
 };
 

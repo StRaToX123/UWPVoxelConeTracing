@@ -9,6 +9,22 @@
 #define LPV_DIM_INVERSE 0.03125f
 #define LPV_SCALE 0.25f
 
+
+
+
+struct ShaderStructureGPUDirectionalLight
+{
+	float4x4 view_projection;
+	float4 inverse_direction_world_space; // Vector pointing towards the light
+	float4 color;
+	float intensity;
+	float3 padding;
+};
+
+
+
+
+
 static const float FLT_MAX = asfloat(0x7F7FFFFF);
 
 float3 ReconstructWorldPosFromDepth(float2 uv, float depth, float4x4 invProj, float4x4 invView)

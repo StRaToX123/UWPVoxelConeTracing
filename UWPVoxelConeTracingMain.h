@@ -1,12 +1,9 @@
 ﻿#pragma once
 
-#include "Graphics/SceneRenderers/DXRSExampleGIScene.h"
 #include <wrl.h>
-//#include "Common\DirectXHelper.h"
-//#include "Common\StepTimer.h"
-//#include "Common\DeviceResources.h"
-//#include "Content\Sample3DSceneRenderer.h"
-
+#include "Scene/Lights.h"
+#include "Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h"
+#include "Utility/Debug/DebugMessage.h"
 
 #define GAMEPAD_TRIGGER_THRESHOLD 0.2
 
@@ -15,12 +12,11 @@ using namespace Windows::System::Threading;
 using namespace Concurrency;
 
 
-
-
 class UWPVoxelConeTracingMain
 {
 	public:
 		UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ coreWindow);
+		~UWPVoxelConeTracingMain();
 
 		void Update();
 		bool Render();
@@ -28,19 +24,19 @@ class UWPVoxelConeTracingMain
 		void OnSuspending();
 		void OnResuming();
 		void OnDeviceRemoved();
-		void HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
-		void HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
+		bool HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
+		bool HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
 		void UpdateCameraControllerPitchAndYaw(float mouseDeltaX, float mouseDeltaY);
 		void OnGamepadConnectedDisconnectedCallback();
 
-		bool show_imGui;
-
 	private:
 		Windows::UI::Core::CoreWindow^ core_window;
-		DXRSTimer mTimer;
+		DX12DeviceResources device_resources;
+
+		DXRSTimer timer;
+
 		Windows::Gaming::Input::Gamepad^ gamepad;
 		Camera camera;
-		XMFLOAT2 mouse_delta;
 		float camera_controller_translation_multiplier;
 		float camera_controller_rotation_multiplier;
 		float camera_controller_forward;
@@ -52,5 +48,16 @@ class UWPVoxelConeTracingMain
 		float camera_controller_pitch;
 		float camera_controller_pitch_limit;
 		float camera_controller_yaw;
-		DXRSExampleGIScene scene_renderer;
+
+		DirectLightingVoxelGIandAOrenderer scene_renderer;
+
+		DX12DescriptorHeapManager descriptor_heap_manager;
+		std::vector<Model*> scene;
+
+		DirectionalLight directional_light;
+		float directional_light_animation_angle = 0.0f;
+		float directional_light_animation_speed = 1.0f;
+
+
+		bool show_imGui;
 };

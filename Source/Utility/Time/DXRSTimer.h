@@ -60,7 +60,7 @@ public:
     }
 
     template<typename TUpdate>
-    void Run(const TUpdate& update)
+    void Tick(const TUpdate& update)
     {
         // Query the current time.
         LARGE_INTEGER currentTime;

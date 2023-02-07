@@ -262,7 +262,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DX12Buffer.h" />
     <ClInclude Include="Source\Graphics\DirectX\DX12DescriptorHeap.h" />
     <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h" />
-    <ClInclude Include="Source\Graphics\DirectX\DXRSGraphics.h" />
+    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResources.h" />
     <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h" />
     <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h" />
     <ClInclude Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.h" />
@@ -278,14 +278,17 @@
     <ClInclude Include="Source\Graphics\ImGUI\imstb_rectpack.h" />
     <ClInclude Include="Source\Graphics\ImGUI\imstb_textedit.h" />
     <ClInclude Include="Source\Graphics\ImGUI\imstb_truetype.h" />
-    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.h" />
-    <ClInclude Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.h" />
+    <ClInclude Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h" />
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
     <ClInclude Include="Source\Scene\Camera.h" />
+    <ClInclude Include="Source\Scene\Lights.h" />
     <ClInclude Include="Source\Scene\Mesh.h" />
     <ClInclude Include="Source\Scene\Model.h" />
+    <ClInclude Include="Source\Scene\SceneObject.h" />
+    <ClInclude Include="Source\Utility\Debug\DebugMessage.h" />
+    <ClInclude Include="Source\Utility\FileSystem\FilePath.h" />
     <ClInclude Include="UWPVoxelConeTracingMain.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
@@ -304,7 +307,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DX12Buffer.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DX12DescriptorHeap.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp" />
-    <ClCompile Include="Source\Graphics\DirectX\DXRSGraphics.cpp" />
+    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResources.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.cpp" />
@@ -319,11 +322,12 @@
     <ClCompile Include="Source\Graphics\ImGUI\imgui_impl_UWP.cpp" />
     <ClCompile Include="Source\Graphics\ImGUI\imgui_tables.cpp" />
     <ClCompile Include="Source\Graphics\ImGUI\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Graphics\SceneRenderers\DXRSExampleGIScene.cpp" />
-    <None Include="Source\Graphics\SceneRenderers\DXRSExampleRTScene.cpp" />
+    <ClCompile Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.cpp" />
     <ClCompile Include="Source\Scene\Camera.cpp" />
+    <ClCompile Include="Source\Scene\Lights.cpp" />
     <ClCompile Include="Source\Scene\Mesh.cpp" />
     <ClCompile Include="Source\Scene\Model.cpp" />
+    <ClCompile Include="Source\Scene\SceneObject.cpp" />
     <ClCompile Include="UWPVoxelConeTracingMain.cpp" />
     <None Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

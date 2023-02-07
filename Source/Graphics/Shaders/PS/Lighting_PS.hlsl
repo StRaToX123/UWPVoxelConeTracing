@@ -28,15 +28,9 @@ cbuffer IlluminationFlagsBuffer : register(b2)
 {
 	int useDirect;
 	int useShadows;
-	int useRSM;
-	int useLPV;
 	int useVCT;
 	int useVCTDebug;
-	int useDXR;
-	float rsmGIPower;
-	float lpvGIPower;
 	float vctGIPower;
-	float dxrReflectionsBlend;
 	int showOnlyAO;
 }
 
@@ -163,8 +157,6 @@ PixelShaderOutputLighting main(PixelShaderInputLighting input)
 {
 	PixelShaderOutputLighting output = (PixelShaderOutputLighting) 0;
 	float2 inPos = input.position.xy;
-    
-	//float depth = depthBuffer[inPos].x;
 	float3 normal = normalize(normalBuffer[inPos].rgb);
 	float4 albedo = albedoBuffer[inPos];
 	float4 worldPos = worldPosBuffer[inPos];
@@ -189,7 +181,9 @@ PixelShaderOutputLighting main(PixelShaderInputLighting input)
         
 		indirectLighting += vct.rgb * vctGIPower;
 		if (!useVCTDebug)
+		{
 			ao = 1.0f - vct.a;
+		}
 	}
     
 	float shadow = 1.0f;
