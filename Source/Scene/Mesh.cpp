@@ -3,7 +3,7 @@
 #include "Mesh.h"
 
 
-Mesh::Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
+Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
 {
 	_mesh->GenerateTangentsDataForAllUVSets();
 	UINT counter = 0;
@@ -114,11 +114,12 @@ Mesh::Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapMana
 	const UINT vertexBufferSize = static_cast<UINT>(mVertices.size()) * sizeof(Vertex);
 	const UINT indexBufferSize = mNumOfIndices * sizeof(mIndices[0]);
 
+	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
 	// Note: using upload heaps to transfer static data like vert buffers is not 
 	// recommended. Every time the GPU needs it, the upload heap will be marshalled 
 	// over. Please read up on Default Heap usage. An upload heap is used here for 
 	// code simplicity and because there are very few verts to actually transfer.
-	ThrowIfFailed(_device->CreateCommittedResource(
+	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
@@ -139,7 +140,7 @@ Mesh::Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapMana
 	mVertexBufferView.StrideInBytes = sizeof(Vertex);
 	mVertexBufferView.SizeInBytes = vertexBufferSize;
 
-	ThrowIfFailed(_device->CreateCommittedResource(
+	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
@@ -166,7 +167,7 @@ Mesh::Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapMana
 	SRVDesc.Buffer.NumElements = mNumOfIndices;
 	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 	mIndexBufferSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_device->CreateShaderResourceView(mIndexBuffer.Get(), &SRVDesc, mIndexBufferSRV.GetCPUHandle());
+	_d3dDevice->CreateShaderResourceView(mIndexBuffer.Get(), &SRVDesc, mIndexBufferSRV.GetCPUHandle());
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescVB = {};
 	SRVDescVB.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -176,7 +177,7 @@ Mesh::Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapMana
 	SRVDescVB.Buffer.StructureByteStride = sizeof(Vertex);
 	SRVDescVB.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 	mVertexBufferSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_device->CreateShaderResourceView(mVertexBuffer.Get(), &SRVDescVB, mVertexBufferSRV.GetCPUHandle());
+	_d3dDevice->CreateShaderResourceView(mVertexBuffer.Get(), &SRVDescVB, mVertexBufferSRV.GetCPUHandle());
 }
 
 Mesh::~Mesh()

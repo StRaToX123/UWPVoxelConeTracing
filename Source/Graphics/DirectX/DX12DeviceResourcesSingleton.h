@@ -22,12 +22,14 @@
 using namespace Microsoft::WRL;
 
 
-class DX12DeviceResources
+class DX12DeviceResourcesSingleton
 {
     public:
-        DX12DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, UINT backBufferCount = 2, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, unsigned int flags = 0);
-        ~DX12DeviceResources();
+        DX12DeviceResourcesSingleton(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, UINT backBufferCount = 2, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, unsigned int flags = 0);
+        ~DX12DeviceResourcesSingleton();
 
+        static void Initialize(Windows::UI::Core::CoreWindow^ coreWindow);
+        static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
         void CreateResources();
         void FinalizeResources();
         void CreateWindowResources();
@@ -89,9 +91,9 @@ class DX12DeviceResources
         Platform::Agile<Windows::UI::Core::CoreWindow> mAppWindow;
     private:
 
-        DX12DeviceResources(const DX12DeviceResources& rhs);
+        DX12DeviceResourcesSingleton(const DX12DeviceResourcesSingleton& rhs);
    
-        DX12DeviceResources& operator=(const DX12DeviceResources& rhs);
+        DX12DeviceResourcesSingleton& operator=(const DX12DeviceResourcesSingleton& rhs);
         void MoveToNextFrame();
         void GetAdapter(IDXGIAdapter1** ppAdapter);
     

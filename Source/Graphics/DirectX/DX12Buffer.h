@@ -45,14 +45,18 @@ class DX12Buffer
 			{}
 		};
 
-		DX12Buffer(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList, Description& description, LPCWSTR name = nullptr);
+		DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager, 
+			ID3D12GraphicsCommandList* _commandList, 
+			Description& description,
+			bool createPerFrameDuplicates = false,
+			LPCWSTR name = nullptr);
 		DX12Buffer() {}
 		virtual ~DX12Buffer();
 
 		ID3D12Resource* GetResource() { return mBuffer.Get(); }
 
-		DX12DescriptorHandle& GetSRV() { return mDescriptorSRV; }
-		DX12DescriptorHandle& GetCBV() { return mDescriptorCBV; }
+		virtual DX12DescriptorHandleBlock& GetSRV() { return mDescriptorSRV; }
+		virtual DX12DescriptorHandleBlock& GetCBV() { return mDescriptorCBV; }
 
 		unsigned char* Map()
 		{
@@ -65,7 +69,7 @@ class DX12Buffer
 			return mCBVMappedData;
 		}
 
-	private:
+	protected:
 		Description mDescription;
 
 		UINT mBufferSize;
@@ -74,9 +78,11 @@ class DX12Buffer
 		ComPtr<ID3D12Resource> mBuffer;
 		ComPtr<ID3D12Resource> mBufferUpload;
 
-		DX12DescriptorHandle mDescriptorCBV;
-		DX12DescriptorHandle mDescriptorSRV;
+		DX12DescriptorHandleBlock mDescriptorCBV;
+		DX12DescriptorHandleBlock mDescriptorSRV;
 
-		void CreateResources(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList);
+		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
+			ID3D12GraphicsCommandList* _commandList,
+			bool createPerFrameDuplicates = false);
 };
 

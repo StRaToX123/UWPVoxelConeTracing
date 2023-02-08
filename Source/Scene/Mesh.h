@@ -26,7 +26,7 @@ class Mesh
 			XMFLOAT4 color;
 		};
 
-		Mesh(ID3D12Device* _device, DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh);
+		Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh);
 		
 
 		ID3D12Resource* GetVertexBuffer() { return mVertexBuffer.Get(); }
@@ -44,8 +44,8 @@ class Mesh
 
 		UINT GetIndicesNum() { return mIndices.size(); }
 
-		DX12DescriptorHandle& GetIndexBufferSRV() { return mIndexBufferSRV; }
-		DX12DescriptorHandle& GetVertexBufferSRV() { return mVertexBufferSRV; }
+		DX12DescriptorHandleBlock& GetIndexBufferSRV() { return mIndexBufferSRV; }
+		DX12DescriptorHandleBlock& GetVertexBufferSRV() { return mVertexBufferSRV; }
 
 	private:
 		std::vector<Vertex> mVertices;
@@ -64,6 +64,6 @@ class Mesh
 		D3D12_VERTEX_BUFFER_VIEW mVertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW mIndexBufferView;
 
-		DX12DescriptorHandle mIndexBufferSRV;
-		DX12DescriptorHandle mVertexBufferSRV;
+		DX12DescriptorHandleBlock mIndexBufferSRV;
+		DX12DescriptorHandleBlock mVertexBufferSRV;
 };

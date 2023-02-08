@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "Scene\Camera.h"
 
 
 Camera::Camera() :
@@ -8,7 +8,7 @@ Camera::Camera() :
     aspect_ratio(1.0f),
     z_near(0.1f),
     z_far(100.0f),
-    view_projection_constant_mapped_buffer(nullptr),
+    p_constant_buffer(nullptr),
     is_initialized(false)
 {
     
@@ -19,117 +19,54 @@ Camera::~Camera()
 {
     if (is_initialized == true)
     {
-        _aligned_free(p_data);
-        view_projection_constant_buffer->Unmap(0, nullptr);
-        view_projection_constant_mapped_buffer = nullptr;
+        delete p_constant_buffer;
     }
 }
 
-void Camera::Initialize(/*const std::shared_ptr<DeviceResources>& deviceResources*/)
+void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
 {
-    //device_resources = deviceResources;
-    p_data = (AlignedData*)_aligned_malloc(sizeof(AlignedData), 16);
-    p_data->translation = XMVectorZero();
-    p_data->rotation_quaternion = XMQuaternionIdentity();
+    position_world_space = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+    rotation_local_space_quaternion = DirectX::XMQuaternionIdentity();
 
-    //std::ZeroMemory(&view_projection_constant_buffer_data, sizeof(view_projection_constant_buffer_data));
-
-    //auto d3dDevice = device_resources->GetD3DDevice();
-    //// Create this cameras descriptor heap
-    //D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    //heapDesc.NumDescriptors = c_frame_count;
-    //heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    //heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    //ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav)));
-    //NAME_D3D12_OBJECT(descriptor_heap_cbv_srv_uav);
-
-    //#pragma region Camera View Projection Buffer
-    //// Create the camera view projection constant buffer
-    //CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(c_frame_count * c_aligned_view_projection_matrix_constant_buffer);
-    //ThrowIfFailed(d3dDevice->CreateCommittedResource(
-    //    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-    //    D3D12_HEAP_FLAG_NONE,
-    //    &constantBufferDesc,
-    //    D3D12_RESOURCE_STATE_GENERIC_READ,
-    //    nullptr,
-    //    IID_PPV_ARGS(&view_projection_constant_buffer)));
-
-
-    //NAME_D3D12_OBJECT(view_projection_constant_buffer);
-
-    //// Create constant buffer views to access the upload buffer.
-    //D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = view_projection_constant_buffer->GetGPUVirtualAddress();
-    //CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHeapCpuHandle;
-    //descriptorHeapCpuHandle.InitOffsetted(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), 0);
-    //for (int n = 0; n < c_frame_count; n++)
-    //{
-    //    D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
-    //    desc.BufferLocation = cbvGpuAddress;
-    //    desc.SizeInBytes = c_aligned_view_projection_matrix_constant_buffer;
-    //    d3dDevice->CreateConstantBufferView(&desc, descriptorHeapCpuHandle);
-
-    //    cbvGpuAddress += desc.SizeInBytes;
-    //    descriptorHeapCpuHandle.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-    //}
-
-    //// Map the constant buffers.
-    //// We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
-    //ThrowIfFailed(view_projection_constant_buffer->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&view_projection_constant_mapped_buffer)));
-    //std::ZeroMemory(view_projection_constant_mapped_buffer, c_frame_count * c_aligned_view_projection_matrix_constant_buffer);
-    //#pragma endregion
+    DX12DeviceResourcesSingleton* _dx12DeviceResourcesSingleton = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+    DX12Buffer::Description constantBufferDescriptor;
+    constantBufferDescriptor.mElementSize = c_aligned_shader_structure_cpu_camera;
+    constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
+    constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
+    p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
+        _dx12DeviceResourcesSingleton->GetCommandListGraphics(),
+        constantBufferDescriptor, 
+        true, // <- we need a copy of the constant buffer per frame
+        L"Camera Constant Buffer");
 
     is_initialized = true;
 }
 
-//void Camera::AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute)
-//{
-//    if (assignCompute == false)
-//    {
-//        // Asign the constant buffer
-//        descriptorHandle.Offset(device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-//        _commandList->SetGraphicsRootDescriptorTable(rootParameterIndex, descriptorHandle);
-//        descriptorHandle.Offset((c_frame_count - device_resources->GetCurrentFrameIndex()) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-//    }
-//    else
-//    {
-//        // Asign the constant buffer
-//        descriptorHandle.Offset(device_resources->GetCurrentFrameIndex() * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-//        _commandList->SetComputeRootDescriptorTable(rootParameterIndex, descriptorHandle);
-//        descriptorHandle.Offset((c_frame_count - device_resources->GetCurrentFrameIndex()) * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-//    }
-//}
-//
-//void Camera::CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle)
-//{
-//    CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(descriptor_heap_cbv_srv_uav->GetCPUDescriptorHandleForHeapStart(), 0);
-//    device_resources->GetD3DDevice()->CopyDescriptorsSimple(c_frame_count, destinationDescriptorHandle, cpuHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-//    destinationDescriptorHandle.Offset(c_frame_count * device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
-//}
 
-//void Camera::UpdateGPUBuffers()
-//{
-//    // Update the mapped viewProjection constant buffer
-//    if (is_dirty_view_matrix == true)
-//    {
-//        UpdateViewMatrix();
-//    }
-//
-//    if (is_dirty_projection_matrix == true)
-//    {
-//        UpdateProjectionMatrix();
-//    }
-//
-//    UINT8* _destination = view_projection_constant_mapped_buffer + (device_resources->GetCurrentFrameIndex() * c_aligned_view_projection_matrix_constant_buffer);
-//    std::memcpy(_destination, &view_projection_constant_buffer_data, sizeof(ShaderStructureCPUViewProjectionBuffer));
-//}
-
-void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up)
+void Camera::UpdateBuffers()
 {
-    p_data->view_matrix = DirectX::XMMatrixLookAtLH(eye, target, up);
-    p_data->translation = eye;
-    p_data->rotation_quaternion = DirectX::XMQuaternionRotationMatrix(DirectX::XMMatrixTranspose(p_data->view_matrix));
-    is_dirty_view_matrix = false;
+    if (is_dirty_projection_matrix == true)
+    {
+        UpdateProjectionMatrix();
+    }
+
+
+    // Update the mapped viewProjection constant buffer
+    if (is_dirty_view_matrix == true)
+    {
+        UpdateViewMatrix();
+    }
+
+    memcpy(p_constant_buffer->Map() + (DX12DeviceResourcesSingleton::mBackBufferIndex * c_aligned_shader_structure_cpu_camera), &shader_structure_cpu_camera, sizeof(ShaderStructureCPUCamera));
 }
+
+//void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up)
+//{
+//    p_data->view_matrix = DirectX::XMMatrixLookAtLH(eye, target, up);
+//    p_data->translation = eye;
+//    p_data->rotation_quaternion = DirectX::XMQuaternionRotationMatrix(DirectX::XMMatrixTranspose(p_data->view_matrix));
+//    is_dirty_view_matrix = false;
+//}
 
 XMMATRIX Camera::GetViewMatrix()
 {
@@ -137,7 +74,7 @@ XMMATRIX Camera::GetViewMatrix()
     {
         UpdateViewMatrix();
     }
-    return p_data->view_matrix;
+    return ;
 }
 
 
@@ -150,18 +87,18 @@ void Camera::SetProjection(float fovy, float aspect, float zNear, float zFar)
     is_dirty_projection_matrix = true;
 }
 
-XMMATRIX Camera::GetProjectionMatrix()
+DirectX::XMMATRIX Camera::GetProjectionMatrix()
 {
     if (is_dirty_projection_matrix)
     {
         UpdateProjectionMatrix();
     }
 
-    return p_data->projection_matrix;
+    return projection_matrix;
 }
 
 
-void Camera::SetFoV(float fovyInDegrees)
+void Camera::SetFoVYDeggrees(float fovyInDegrees)
 {
     if (vertical_fov_degrees != fovyInDegrees)
     {
@@ -170,77 +107,74 @@ void Camera::SetFoV(float fovyInDegrees)
     }
 }
 
-float Camera::GetFoV() const
+float Camera::GetFoVYDegrees() const
 {
     return vertical_fov_degrees;
 }
 
 
-void XM_CALLCONV Camera::SetTranslation(FXMVECTOR translation)
+void XM_CALLCONV Camera::SetPositionWorldSpace(DirectX::XMVECTOR positionWorldSpace)
 {
-    p_data->translation = translation;
+    position_world_space = positionWorldSpace;
     is_dirty_view_matrix = true;
 }
 
-XMVECTOR Camera::GetTranslation() const
+XMVECTOR Camera::GetPositionWorldSpace() const
 {
-    return p_data->translation;
+    return position_world_space;
 }
 
-void Camera::SetRotation(FXMVECTOR quaternion)
+void Camera::SetRotationLocalSpaceQuaternion(FXMVECTOR rotationLocalSpaceQuaternion)
 {
-    p_data->rotation_quaternion = quaternion;
+    rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
     is_dirty_view_matrix = true;
 }
 
-XMVECTOR Camera::GetRotationQuaternion() const
+XMVECTOR Camera::GetRotationLocalSpaceQuaternion() const
 {
-    return p_data->rotation_quaternion;
+    return rotation_local_space_quaternion;
 }
 
 void XM_CALLCONV Camera::Translate(FXMVECTOR translation, Space space)
 {
     switch ( space )
     {
-    case Space::Local:
+        case Space::Local:
         {
-            p_data->translation += DirectX::XMVector3Rotate( translation, p_data->rotation_quaternion );
-        }
-        break;
-    case Space::World:
+            position_world_space += DirectX::XMVector3Rotate(translation, rotation_local_space_quaternion);
+            break;
+        }  
+        case Space::World:
         {
-            p_data->translation += translation;
+            position_world_space += translation;
+            break;
         }
-        break;
     }
 
-    p_data->translation = DirectX::XMVectorSetW( p_data->translation, 1.0f );
     is_dirty_view_matrix = true;
 }
 
-void Camera::Rotate(FXMVECTOR quaternion)
-{
-    p_data->rotation_quaternion = DirectX::XMQuaternionMultiply(p_data->rotation_quaternion, quaternion);
-    is_dirty_view_matrix = true;
-}
+//void Camera::Rotate(FXMVECTOR quaternion)
+//{
+//    p_data->rotation_quaternion = DirectX::XMQuaternionMultiply(p_data->rotation_quaternion, quaternion);
+//    is_dirty_view_matrix = true;
+//}
 
 void Camera::UpdateViewMatrix()
 {
-    XMMATRIX rotationMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationQuaternion(p_data->rotation_quaternion));
-    XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(-(p_data->translation));
+    XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(rotation_local_space_quaternion);
+    //XMMATRIX inverseRotationMatrix = rotationMatrix; // We dont use the camera->worldSpace matrix
+    rotationMatrix = DirectX::XMMatrixTranspose(rotationMatrix);
+    XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(-(position_world_space));
+    //XMMATRIX inverseTranslationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space); // We dont use the camera->worldSpace matrix
+    view_matrix = DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix);
 
-    XMMATRIX inverseRotationMatrix = DirectX::XMMatrixRotationQuaternion(p_data->rotation_quaternion);
-    XMMATRIX inverseTranslationMatrix = DirectX::XMMatrixTranslationFromVector(p_data->translation);
-
-    p_data->view_matrix = translationMatrix * rotationMatrix;
-    //DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.view, DirectX::XMMatrixTranspose(p_data->view_matrix));
-    //DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.ivnerse_view, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(inverseRotationMatrix, inverseTranslationMatrix)));
+    DirectX::XMStoreFloat4x4(&shader_structure_cpu_camera.view_projection, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(view_matrix, projection_matrix)));
     is_dirty_view_matrix = false;
 }
 
 void Camera::UpdateProjectionMatrix()
 {
-    p_data->projection_matrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(vertical_fov_degrees), aspect_ratio, z_near, z_far);
-    //DirectX::XMStoreFloat4x4(&view_projection_constant_buffer_data.projection, DirectX::XMMatrixTranspose(p_data->projection_matrix));
+    projection_matrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(vertical_fov_degrees), aspect_ratio, z_near, z_far);
     is_dirty_projection_matrix = false;
 }

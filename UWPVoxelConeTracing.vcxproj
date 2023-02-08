@@ -262,7 +262,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DX12Buffer.h" />
     <ClInclude Include="Source\Graphics\DirectX\DX12DescriptorHeap.h" />
     <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h" />
-    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResources.h" />
+    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.h" />
     <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h" />
     <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h" />
     <ClInclude Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.h" />
@@ -278,7 +278,7 @@
     <ClInclude Include="Source\Graphics\ImGUI\imstb_rectpack.h" />
     <ClInclude Include="Source\Graphics\ImGUI\imstb_textedit.h" />
     <ClInclude Include="Source\Graphics\ImGUI\imstb_truetype.h" />
-    <ClInclude Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h" />
+    <ClInclude Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h" />
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
@@ -307,7 +307,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DX12Buffer.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DX12DescriptorHeap.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp" />
-    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResources.cpp" />
+    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.cpp" />
@@ -322,7 +322,7 @@
     <ClCompile Include="Source\Graphics\ImGUI\imgui_impl_UWP.cpp" />
     <ClCompile Include="Source\Graphics\ImGUI\imgui_tables.cpp" />
     <ClCompile Include="Source\Graphics\ImGUI\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.cpp" />
+    <ClCompile Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.cpp" />
     <ClCompile Include="Source\Scene\Camera.cpp" />
     <ClCompile Include="Source\Scene\Lights.cpp" />
     <ClCompile Include="Source\Scene\Mesh.cpp" />

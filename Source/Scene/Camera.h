@@ -1,15 +1,10 @@
 #pragma once
 
-#include "Common.h"
+#include <d3d12.h>
+#include <DirectXMath.h>
+#include "Graphics\DirectX\DX12Buffer.h"
 
 
-
-struct ShaderStructureCPUViewProjectionBuffer
-{
-    DirectX::XMFLOAT4X4 view;
-    DirectX::XMFLOAT4X4 projection;
-    DirectX::XMFLOAT4X4 ivnerse_view;
-};
 
 // When performing transformations on the camera, 
 // it is sometimes useful to express which space this 
@@ -26,61 +21,38 @@ class Camera
         Camera();
         ~Camera();
 
-        void Initialize(/*const std::shared_ptr<DeviceResources>& deviceResources*/);
-        void XM_CALLCONV SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up );
-        XMMATRIX GetViewMatrix();
-        /*
-        Set the camera to a perspective projection matrix.
-        @param fovy The vertical field of view in degrees.
-        @param aspect The aspect ratio of the screen.
-        @param zNear The distance to the near clipping plane.
-        @param zFar The distance to the far clipping plane.
-        */
+        void Initialize(DX12DescriptorHeapManager* _descriptorHeapManager);
+        //void XM_CALLCONV SetLookAt(DirectX::FXMVECTOR eye, DirectX::FXMVECTOR target, DirectX::FXMVECTOR up );
+        DirectX::XMMATRIX GetViewMatrix();
         void SetProjection(float fovy, float aspect, float zNear, float zFar);
-        XMMATRIX GetProjectionMatrix();
-        // Set the field of view in degrees.
-        void SetFoV(float fovyInDegrees);
-        //Get the field of view in degrees.
-        float GetFoV() const;
-        //Set the camera's position in world-space.
-        void XM_CALLCONV SetTranslation(FXMVECTOR translation);
-        XMVECTOR GetTranslation() const;
-        /*
-        Set the camera's rotation in world-space.
-        @param rotation The rotation quaternion.
-        */
-        void XM_CALLCONV SetRotation(FXMVECTOR quaternion);
-        /*
-        Query the camera's rotation.
-        @returns The camera's rotation quaternion.
-        */
-        XMVECTOR GetRotationQuaternion() const;
-        void XM_CALLCONV Translate(FXMVECTOR translation, Space space = Space::Local );
-        void Rotate(FXMVECTOR quaternion );
+        DirectX::XMMATRIX GetProjectionMatrix();
+        void SetFoVYDeggrees(float fovyInDegrees);
+        float GetFoVYDegrees() const;
+        void XM_CALLCONV SetPositionWorldSpace(DirectX::XMVECTOR positionWorldSpace);
+        DirectX::XMVECTOR GetPositionWorldSpace() const;
+        void XM_CALLCONV SetRotationLocalSpaceQuaternion(DirectX::FXMVECTOR rotationLocalSpaceQuaternion);
+        DirectX::XMVECTOR GetRotationLocalSpaceQuaternion() const;
+        void XM_CALLCONV Translate(DirectX::FXMVECTOR translation, Space space = Space::Local);
+        //void Rotate(DirectX::FXMVECTOR quaternion);
+        void UpdateBuffers();
 
-        void UpdateGPUBuffers();
-        void AssignDescriptors(ID3D12GraphicsCommandList* _commandList, CD3DX12_GPU_DESCRIPTOR_HANDLE& descriptorHandle, UINT rootParameterIndex, bool assignCompute);
-        void CopyDescriptorsIntoDescriptorHeap(CD3DX12_CPU_DESCRIPTOR_HANDLE& destinationDescriptorHandle);
-
-        ShaderStructureCPUViewProjectionBuffer view_projection_constant_buffer_data;
-    private:
-        bool is_initialized;
-        // This data must be aligned otherwise the SSE intrinsics fail
-        // and throw exceptions.
-        __declspec(align(16)) struct AlignedData
+        struct ShaderStructureCPUCamera
         {
-            // World-space position of the camera.
-            XMVECTOR translation;
-            // World-space rotation of the camera.
-            XMVECTOR rotation_quaternion;
-            XMMATRIX view_matrix;
-            XMMATRIX projection_matrix;
+            DirectX::XMFLOAT4X4 view_projection;
+            //DirectX::XMFLOAT4X4 view;
+            //DirectX::XMFLOAT4X4 projection;
+            //DirectX::XMFLOAT4X4 inverse_view;
         };
-        AlignedData* p_data;
-
+    private:
         void UpdateViewMatrix();
         void UpdateProjectionMatrix();
 
+        bool is_initialized;
+
+        XMVECTOR position_world_space;
+        XMVECTOR rotation_local_space_quaternion;
+        XMMATRIX view_matrix;
+        XMMATRIX projection_matrix;
         // projection parameters
         float vertical_fov_degrees;   // Vertical field of view.
         float aspect_ratio; // Aspect ratio
@@ -91,11 +63,7 @@ class Camera
         // True if the projection matrix needs to be updated.
         bool is_dirty_projection_matrix;
 
-        //std::shared_ptr<DeviceResources> device_resources;
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_uav;
-        Microsoft::WRL::ComPtr<ID3D12Resource> view_projection_constant_buffer;
-        static const UINT c_aligned_view_projection_matrix_constant_buffer = (sizeof(ShaderStructureCPUViewProjectionBuffer) + 255) & ~255;
-        UINT8* view_projection_constant_mapped_buffer;
-        bool update_view_projection_constant_buffer_view_matrix;
-        bool update_view_projection_constant_buffer_projection_matrix;
+        DX12Buffer* p_constant_buffer;
+        static const UINT c_aligned_shader_structure_cpu_camera = (sizeof(ShaderStructureCPUCamera) + 255) & ~255;
+        ShaderStructureCPUCamera shader_structure_cpu_camera;
 };

@@ -16,17 +16,17 @@ public:
 	void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
 	D3D12_RESOURCE_STATES GetCurrentState() { return mCurrentResourceState; }
 
-	DX12DescriptorHandle& GetRTV(int mip = 0)
+	DX12DescriptorHandleBlock& GetRTV(int mip = 0)
 	{
 		return mDescriptorRTVMipsHandles[mip];
 	}
 
-	DX12DescriptorHandle& GetSRV()
+	DX12DescriptorHandleBlock& GetSRV()
 	{
 		return mDescriptorSRV;
 	}
 
-	DX12DescriptorHandle& GetUAV(int mip = 0)
+	DX12DescriptorHandleBlock& GetUAV(int mip = 0)
 	{
 		return mDescriptorUAVMipsHandles[mip];
 	}
@@ -38,10 +38,10 @@ private:
 	D3D12_RESOURCE_STATES mCurrentResourceState;
 
 	//DX12DescriptorHandle mDescriptorUAV;
-	DX12DescriptorHandle mDescriptorSRV;
+	DX12DescriptorHandleBlock mDescriptorSRV;
 	//DX12DescriptorHandle mDescriptorRTV;
 	ComPtr<ID3D12Resource> mRenderTarget;
 
-	std::vector<DX12DescriptorHandle> mDescriptorUAVMipsHandles;
-	std::vector<DX12DescriptorHandle> mDescriptorRTVMipsHandles;
+	std::vector<DX12DescriptorHandleBlock> mDescriptorUAVMipsHandles;
+	std::vector<DX12DescriptorHandleBlock> mDescriptorRTVMipsHandles;
 };

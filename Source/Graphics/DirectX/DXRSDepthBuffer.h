@@ -12,12 +12,12 @@ public:
 	DXGI_FORMAT GetFormat() { return mFormat; }
 	void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
 
-	DX12DescriptorHandle GetDSV()
+	DX12DescriptorHandleBlock GetDSV()
 	{
 		return mDescriptorDSV;
 	}
 
-	DX12DescriptorHandle& GetSRV()
+	DX12DescriptorHandleBlock& GetSRV()
 	{
 		return mDescriptorSRV;
 	}
@@ -31,7 +31,7 @@ private:
 	DXGI_FORMAT mFormat;
 	D3D12_RESOURCE_STATES mCurrentResourceState;
 
-	DX12DescriptorHandle mDescriptorDSV;
-	DX12DescriptorHandle mDescriptorSRV;
+	DX12DescriptorHandleBlock mDescriptorDSV;
+	DX12DescriptorHandleBlock mDescriptorSRV;
 	ComPtr<ID3D12Resource> mDepthStencilResource;
 };

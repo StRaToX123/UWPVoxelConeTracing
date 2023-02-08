@@ -2,7 +2,7 @@
 
 #include <wrl.h>
 #include "Scene/Lights.h"
-#include "Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h"
+#include "Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h"
 #include "Utility/Debug/DebugMessage.h"
 
 #define GAMEPAD_TRIGGER_THRESHOLD 0.2
@@ -31,7 +31,7 @@ class UWPVoxelConeTracingMain
 
 	private:
 		Windows::UI::Core::CoreWindow^ core_window;
-		DX12DeviceResources device_resources;
+		DX12DeviceResourcesSingleton device_resources;
 
 		DXRSTimer timer;
 
@@ -49,7 +49,7 @@ class UWPVoxelConeTracingMain
 		float camera_controller_pitch_limit;
 		float camera_controller_yaw;
 
-		DirectLightingVoxelGIandAOrenderer scene_renderer;
+		SceneRendererDirectLightingVoxelGIandAO scene_renderer;
 
 		DX12DescriptorHeapManager descriptor_heap_manager;
 		std::vector<Model*> scene;

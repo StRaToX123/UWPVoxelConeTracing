@@ -16,12 +16,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	core_window = coreWindow;
 	show_imGui = true;
 
-	// Initialize Device Resources
-	device_resources.SetWindow(coreWindow);
-	device_resources.CreateResources();
-	device_resources.CreateFullscreenQuadBuffers();
-	device_resources.FinalizeResources();
-
+	DX12DeviceResourcesSingleton::Initialize(coreWindow);
 	scene_renderer.Initialize(coreWindow, &device_resources);
 
 	#pragma region Initialize The Camera
@@ -40,50 +35,91 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	auto size = device_resources.GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);
 
-	camera.Initialize();
 	camera.SetProjection(60.0f, aspectRatio, 0.01f, 500.0f);
-	camera.SetTranslation(XMVectorSet(0.0f, 7.0f, 33.0f, 1.0f));
+	camera.SetPositionWorldSpace(XMVectorSet(0.0f, 7.0f, 33.0f, 1.0f));
+	camera.Initialize(&descriptor_heap_manager);
 	#pragma endregion
 
 	#pragma region Initialize The Scene
 	descriptor_heap_manager.Initialize(device_resources.GetD3DDevice());
-	Model* model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\room.fbx"), XMMatrixRotationX(-XM_PIDIV2), XMFLOAT4(0.7, 0.7, 0.7, 0.0));
+	Model* model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\room.fbx"),
+		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2), 
+		DirectX::XMFLOAT4(0.7, 0.7, 0.7, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\dragon.fbx"), XMMatrixTranslation(1.5f, 0.0f, -7.0f), XMFLOAT4(0.044f, 0.627f, 0, 0.0));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\dragon.fbx"), 
+		DirectX::XMVectorSet(1.5f, 0.0f, -7.0f, 1.0f),
+		DirectX::XMQuaternionIdentity(),
+		DirectX::XMFLOAT4(0.044f, 0.627f, 0, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\bunny.fbx"), XMMatrixIdentity() * XMMatrixRotationY(-0.3752457f) * XMMatrixTranslation(21.0f, 13.9f, -19.0f), XMFLOAT4(0.8f, 0.71f, 0, 0.0));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\bunny.fbx"), 
+		DirectX::XMVectorSet(21.0f, 13.9f, -19.0f, 1.0f),
+		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), -0.3752457f), 
+		DirectX::XMFLOAT4(0.8f, 0.71f, 0, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\torus.fbx"), XMMatrixIdentity() * XMMatrixRotationX(-XM_PIDIV2) * XMMatrixRotationX(1.099557f) * XMMatrixTranslation(21.0f, 4.0f, -9.6f), XMFLOAT4(0.329f, 0.26f, 0.8f, 0.8f));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\torus.fbx"), 
+		DirectX::XMVectorSet(21.0f, 4.0f, -9.6f, 1.0f),
+		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2) * DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), 1.099557f),
+		DirectX::XMFLOAT4(0.329f, 0.26f, 0.8f, 0.8f));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\sphere_big.fbx"), XMMatrixIdentity() * XMMatrixTranslation(-17.25f, -1.15f, -24.15f), XMFLOAT4(0.692f, 0.215f, 0.0f, 0.6f));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\sphere_big.fbx"),
+		DirectX::XMVectorSet(-17.25f, -1.15f, -24.15f, 1.0f),
+		DirectX::XMQuaternionIdentity(),
+		DirectX::XMFLOAT4(0.692f, 0.215f, 0.0f, 0.6f));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\sphere_medium.fbx"), XMMatrixIdentity() * XMMatrixTranslation(-21.0f, -0.95f, -13.20f), XMFLOAT4(0.005, 0.8, 0.426, 0.7f));
+	model = new Model(&descriptor_heap_manager,
+		GetFilePath("Assets\\Models\\sphere_medium.fbx"), 
+		DirectX::XMVectorSet(-21.0f, -0.95f, -13.20f, 1.0f),
+		DirectX::XMQuaternionIdentity(),
+		DirectX::XMFLOAT4(0.005, 0.8, 0.426, 0.7f));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\sphere_small.fbx"), XMMatrixIdentity() * XMMatrixTranslation(-11.25f, -0.45f, -16.20f), XMFLOAT4(0.01, 0.0, 0.8, 0.75f));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\sphere_small.fbx"),
+		DirectX::XMVectorSet(-11.25f, -0.45f, -16.20f, 1.0f),
+		DirectX::XMQuaternionIdentity(),
+		DirectX::XMFLOAT4(0.01, 0.0, 0.8, 0.75f));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\block.fbx"), XMMatrixIdentity() * XMMatrixRotationX(-XM_PIDIV2) * XMMatrixTranslation(3.0f, 8.0f, -30.0f), XMFLOAT4(0.9, 0.15, 1.0, 0.0));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\block.fbx"), 
+		DirectX::XMVectorSet(3.0f, 8.0f, -30.0f, 1.0f),
+		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2),
+		DirectX::XMFLOAT4(0.9, 0.15, 1.0, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\cube.fbx"), XMMatrixIdentity() * XMMatrixRotationX(-XM_PIDIV2) * XMMatrixRotationY(-0.907571f) * XMMatrixTranslation(21.0f, 5.0f, -19.0f), XMFLOAT4(0.1, 0.75, 0.8, 0.0));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\cube.fbx"), 
+		DirectX::XMVectorSet(21.0f, 5.0f, -19.0f, 1.0f), 
+		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2) * DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), -0.907571f),
+		XMFLOAT4(0.1, 0.75, 0.8, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&device_resources, &descriptor_heap_manager, GetFilePath("Assets\\Models\\sphere_medium.fbx"), XMMatrixIdentity() * XMMatrixTranslation(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f)), XMFLOAT4(RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), 0.8), true, RandomFloat(-1.0f, 1.0f), RandomFloat(1.0f, 5.0f));
+	model = new Model(&descriptor_heap_manager, 
+		GetFilePath("Assets\\Models\\sphere_medium.fbx"), 
+		DirectX::XMVectorSet(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f), 1.0f),
+		DirectX::XMQuaternionIdentity(),
+		XMFLOAT4(RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), 0.8), RandomFloat(1.0f, 5.0f));
 	scene.emplace_back(model);
 	for (int i = 0; i < NUM_DYNAMIC_OBJECTS - 1; i++)
 	{
-		Model* modelCopy = new Model(&device_resources,
-			&descriptor_heap_manager,
-			XMMatrixIdentity() * XMMatrixTranslation(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f)),
+		Model* modelCopy = new Model(&descriptor_heap_manager,
+			DirectX::XMVectorSet(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f), 1.0f),
+			DirectX::XMQuaternionIdentity(), 
 			XMFLOAT4(RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), 0.8),
 			true,
-			RandomFloat(-1.0f, 1.0f), RandomFloat(1.0f, 5.0f));
+			RandomFloat(-1.0f, 1.0f), 
+			RandomFloat(1.0f, 5.0f));
 		*modelCopy = *model;
 		scene.emplace_back(modelCopy);
 	}
@@ -91,7 +127,6 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	// Initialize the directional light
 	directional_light.Initialize(&device_resources, &descriptor_heap_manager);
 	#pragma endregion
-	
 
 	OnWindowSizeChanged();
 }
@@ -269,155 +304,147 @@ void UWPVoxelConeTracingMain::OnGamepadConnectedDisconnectedCallback()
 // Updates the application state once per frame.
 void UWPVoxelConeTracingMain::Update()
 {
-	
-
-//if (mUseDynamicObjects && !mStopDynamicObjects)
-//{
 	timer.Tick([&]()
 	{
-		#pragma region Update The Camera
-		// Update the camera
-		// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
-		if (gamepad != nullptr)
+		if (show_imGui == false)
 		{
-
-			// Update the camera using the gamepad
-			Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
-			// Toggle ImGui on the gamepad menu key press
-			// We need to guard this against key spam which occurs when the key is held down,
-			// otherwise the show_ImGui boolean will toggle rapidly and flash the UI on and off
-			static bool gamepadMenuKeySpamGuard = false;
-			if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu))
+			#pragma region Update The Camera
+			// Update the camera
+			// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
+			if (gamepad != nullptr)
 			{
-				if (gamepadMenuKeySpamGuard == false)
-				{
-					gamepadMenuKeySpamGuard = true;
-					show_imGui = !show_imGui;
-				}
-			}
-			else
-			{
-				gamepadMenuKeySpamGuard = false;
-			}
 
-			if (show_imGui == true)
-			{
-				ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
-			}
-			else
-			{
-				camera_controller_rotation_multiplier = 1.0f;
-				// Update the camera controller variables		
-				// We use camera_controller_left to store the leftThumbStickX value
-				// and the camera_controller_forward to store the leftThumbStickY value
-				// this makes camera_controller_right and camera_controller_down obsolete
-				camera_controller_right = 0.0f;
-				camera_controller_down = 0.0f;
-				if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
-					|| (gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
+				// Update the camera using the gamepad
+				Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
+				// Toggle ImGui on the gamepad menu key press
+				// We need to guard this against key spam which occurs when the key is held down,
+				// otherwise the show_ImGui boolean will toggle rapidly and flash the UI on and off
+				static bool gamepadMenuKeySpamGuard = false;
+				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu))
 				{
-					camera_controller_left = gamepadReading.LeftThumbstickX;
-				}
-				else
-				{
-					camera_controller_left = 0.0f;
-				}
-
-				if ((gamepadReading.LeftThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD)
-					|| (gamepadReading.LeftThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD))
-				{
-					camera_controller_forward = gamepadReading.LeftThumbstickY;
-				}
-				else
-				{
-					camera_controller_forward = 0.0f;
-				}
-
-				UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
-					((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
-
-				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
-				{
-					camera_controller_up = 1.0f;
-				}
-				else
-				{
-					camera_controller_up = 0.0f;
-				}
-
-				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::B))
-				{
-					camera_controller_down = 1.0f;
-				}
-				else
-				{
-					camera_controller_down = 0.0f;
-				}
-
-				// Update the camera 
-				XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
-				camera.SetRotation(cameraRotation);
-				XMVECTOR cameraTranslate = XMVectorSet(camera_controller_left,
-					camera_controller_up - camera_controller_down,
-					camera_controller_forward,
-					1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
-				camera.Translate(cameraTranslate, Space::Local);
-			}
-		}
-		else
-		{
-			// Keyboard and mouse controlls (SPACE key cannot be handled by the HandleKeyboardInput callback, so we will have to check for it each frame, here in the update function)
-			if (show_imGui == false)
-			{
-				camera_controller_rotation_multiplier = 0.03f;
-				static bool spaceKeySpamGuard = false;
-				// Sheck space key status
-				// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
-				// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
-				if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-				{
-					if (spaceKeySpamGuard == false)
+					if (gamepadMenuKeySpamGuard == false)
 					{
-						spaceKeySpamGuard = true;
+						gamepadMenuKeySpamGuard = true;
+						show_imGui = !show_imGui;
+					}
+				}
+				else
+				{
+					gamepadMenuKeySpamGuard = false;
+				}
+
+				if (show_imGui == true)
+				{
+					ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
+				}
+				else
+				{
+					camera_controller_rotation_multiplier = 1.0f;
+					// Update the camera controller variables		
+					// We use camera_controller_left to store the leftThumbStickX value
+					// and the camera_controller_forward to store the leftThumbStickY value
+					// this makes camera_controller_right and camera_controller_down obsolete
+					camera_controller_right = 0.0f;
+					camera_controller_down = 0.0f;
+					if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
+						|| (gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
+					{
+						camera_controller_left = gamepadReading.LeftThumbstickX;
+					}
+					else
+					{
+						camera_controller_left = 0.0f;
+					}
+
+					if ((gamepadReading.LeftThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD)
+						|| (gamepadReading.LeftThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD))
+					{
+						camera_controller_forward = gamepadReading.LeftThumbstickY;
+					}
+					else
+					{
+						camera_controller_forward = 0.0f;
+					}
+
+					UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
+						((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
+
+					if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
+					{
 						camera_controller_up = 1.0f;
 					}
-				}
-				else
-				{
-					if (spaceKeySpamGuard == true)
+					else
 					{
-						spaceKeySpamGuard = false;
 						camera_controller_up = 0.0f;
 					}
+
+					if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::B))
+					{
+						camera_controller_down = 1.0f;
+					}
+					else
+					{
+						camera_controller_down = 0.0f;
+					}
+
+					// Update the camera 
+					XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+					camera.SetRotationLocalSpaceQuaternion(cameraRotation);
+					XMVECTOR cameraTranslate = XMVectorSet(camera_controller_left,
+						camera_controller_up - camera_controller_down,
+						camera_controller_forward,
+						1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
+					camera.Translate(cameraTranslate, Space::Local);
 				}
-
-				// Update the camera 
-				XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
-				camera.SetRotation(cameraRotation);
-				XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
-					camera_controller_up - camera_controller_down,
-					camera_controller_forward - camera_controller_backward,
-					1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
-				camera.Translate(cameraTranslate, Space::Local);
-				DisplayDebugMessage("X: %f Y: %f Z: %f\n", XMVectorGetX(cameraTranslate), XMVectorGetY(cameraTranslate), XMVectorGetZ(cameraTranslate));
-
 			}
-		}
+			else
+			{
+				// Keyboard and mouse controlls (SPACE key cannot be handled by the HandleKeyboardInput callback, so we will have to check for it each frame, here in the update function)
+				if (show_imGui == false)
+				{
+					camera_controller_rotation_multiplier = 0.03f;
+					static bool spaceKeySpamGuard = false;
+					// Sheck space key status
+					// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
+					// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
+					if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+					{
+						if (spaceKeySpamGuard == false)
+						{
+							spaceKeySpamGuard = true;
+							camera_controller_up = 1.0f;
+						}
+					}
+					else
+					{
+						if (spaceKeySpamGuard == true)
+						{
+							spaceKeySpamGuard = false;
+							camera_controller_up = 0.0f;
+						}
+					}
 
-		//camera.UpdateGPUBuffers();
-		#pragma endregion
+					// Update the camera 
+					XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+					camera.SetRotationLocalSpaceQuaternion(cameraRotation);
+					XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
+						camera_controller_up - camera_controller_down,
+						camera_controller_forward - camera_controller_backward,
+						1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
+					camera.Translate(cameraTranslate, Space::Local);
+					DisplayDebugMessage("X: %f Y: %f Z: %f\n", XMVectorGetX(cameraTranslate), XMVectorGetY(cameraTranslate), XMVectorGetZ(cameraTranslate));
+
+				}
+			}
+			#pragma endregion
+		}
 
 		// Update the scene
 		for (auto& model : scene)
 		{
 			if (model->GetIsDynamic())
-			{
-				XMFLOAT3 trans = model->GetTranslation();
-				model->UpdateWorldMatrix(XMMatrixTranslation(
-					trans.x,
-					trans.y + sin(timer.GetTotalSeconds() * model->GetAmplitude()) * model->GetSpeed(),
-					trans.z
-				));
+			{	
+				model->position_world_space = DirectX::XMVectorSetY(model->position_world_space, DirectX::XMVectorGetY(model->position_world_space) + sin(timer.GetTotalSeconds() * model->GetAmplitude()) * model->GetSpeed());
 			}
 		}
 
@@ -431,9 +458,27 @@ void UWPVoxelConeTracingMain::Update()
 			}
 
 			directional_light.direction_world_space.x = 0.6f * cos(directional_light_animation_angle * (3.14f / 180.0f));
-			directional_light.UpdateBuffers();
 		}
 	});	
+
+	// Update all the buffers once
+	if (show_imGui == false)
+	{
+		camera.UpdateBuffers();
+	}
+
+	for (auto& model : scene)
+	{
+		if (model->GetIsDynamic())
+		{
+			model->UpdateBuffers();
+		}
+	}
+
+	if (directional_light.is_static == false)
+	{
+		directional_light.UpdateBuffers();
+	}
 }
 
 // Renders the current frame according to the current application state.

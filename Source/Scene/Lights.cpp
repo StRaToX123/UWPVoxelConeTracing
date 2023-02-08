@@ -4,15 +4,18 @@
 
 DirectionalLight::DirectionalLight()
 {
-	
+	p_constant_buffer = nullptr;
 }
 
 DirectionalLight::~DirectionalLight()
 {
-
+	if (p_constant_buffer != nullptr)
+	{
+		delete p_constant_buffer;
+	}
 }
 
-void DirectionalLight::Initialize(DX12DeviceResources* _deviceResources, 
+void DirectionalLight::Initialize(DX12DeviceResourcesSingleton* _deviceResources, 
 	DX12DescriptorHeapManager* _descriptorHeapManager,
 	DirectX::XMFLOAT4 directionWorldSpace,
 	DirectX::XMFLOAT4 color,

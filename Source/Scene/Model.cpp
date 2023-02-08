@@ -2,38 +2,40 @@
 
 #include "Model.h"
 
-Model::Model(DeviceResources* _dxrsGraphics,
-	DX12DescriptorHeapManager* _descriptorHeapManager,
-	XMMATRIX transformWorld,
-	XMFLOAT4 color,
+Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
+	DirectX::XMVECTOR positionWorldSpace,
+	DirectX::XMVECTOR rotationLocalSpaceQuaternion,
+	DirectX::XMFLOAT4 color,
 	bool isDynamic,
 	float speed,
 	float amplitude)
 {
 	referenced_meshes = false;
-	mWorldMatrix = transformWorld;
+	position_world_space = positionWorldSpace;
+	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
 	mIsDynamic = isDynamic;
 	mSpeed = speed;
 	mAmplitude = amplitude;
 	mDiffuseColor = color;
 
 	DX12Buffer::Description desc;
-	desc.mElementSize = sizeof(ModelConstantBuffer);
+	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
 	desc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-	mBufferCB = new DX12Buffer(_dxrsGraphics->GetD3DDevice(), _descriptorHeapManager, _dxrsGraphics->GetCommandListGraphics(), desc, L"Model CB");
-
-	ModelConstantBuffer cbData = {};
-	XMStoreFloat4x4(&cbData.World, XMMatrixTranspose(mWorldMatrix));
-	cbData.DiffuseColor = color;
-	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
+	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		desc, 
+		true, // <- We want per frame copy of the models data
+		L"Model CB");
+	
+	UpdateBuffers();
 }
 
-Model::Model(DeviceResources* _dxrsGraphics, 
-	DX12DescriptorHeapManager* _descriptorHeapManager, 
+Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager, 
 	const std::string& filename, 
-	XMMATRIX transformWorld, 
+	DirectX::XMVECTOR positionWorldSpace,
+	DirectX::XMVECTOR rotationLocalSpaceQuaternion,
 	XMFLOAT4 color,
 	bool isDynamic, 
 	float speed, 
@@ -41,7 +43,8 @@ Model::Model(DeviceResources* _dxrsGraphics,
 {
 	referenced_meshes = false;
 	mFilename = filename;
-	mWorldMatrix = transformWorld;
+	position_world_space = positionWorldSpace;
+	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
 	mIsDynamic = isDynamic;
 	mSpeed = speed;
 	mAmplitude = amplitude;
@@ -82,25 +85,24 @@ Model::Model(DeviceResources* _dxrsGraphics,
 	{
 		for (UINT i = 0; i < pScene->GetGeometryCount(); i++)
 		{
-			Mesh* pMesh = new Mesh(_dxrsGraphics->GetD3DDevice(), _descriptorHeapManager, static_cast<FbxMesh*>(fbxGeomConverter.Triangulate(static_cast<FbxNodeAttribute*>(pScene->GetGeometry(i)), true, true)));
+			Mesh* pMesh = new Mesh(_descriptorHeapManager, static_cast<FbxMesh*>(fbxGeomConverter.Triangulate(static_cast<FbxNodeAttribute*>(pScene->GetGeometry(i)), true, true)));
 			mMeshes.push_back(pMesh);
 		}
 	}
 
 
-
-
 	DX12Buffer::Description desc;
-	desc.mElementSize = sizeof(ModelConstantBuffer);
+	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
 	desc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-	mBufferCB = new DX12Buffer(_dxrsGraphics->GetD3DDevice(), _descriptorHeapManager, _dxrsGraphics->GetCommandListGraphics(), desc, L"Model CB");
+	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		desc,
+		true, // <- We want per frame copy of the models data
+		L"Model CB");
 
-	ModelConstantBuffer cbData = {};
-	XMStoreFloat4x4(&cbData.World, XMMatrixTranspose(mWorldMatrix));
-	cbData.DiffuseColor = color;
-	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
+	UpdateBuffers();
 }
 
 Model::~Model()
@@ -113,17 +115,19 @@ Model::~Model()
 		}
 	}
 	
-	delete mBufferCB;
+	if (p_constant_buffer != nullptr)
+	{
+		delete p_constant_buffer;
+	}
 }
 
-void Model::UpdateWorldMatrix(XMMATRIX matrix)
+void Model::UpdateBuffers()
 {
-	mWorldMatrix = matrix;
+	XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(rotation_local_space_quaternion);
+	XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space);
+	DirectX::XMStoreFloat4x4(&shader_structure_cpu_model_data.model, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix)));
 
-	ModelConstantBuffer cbData = {};
-	XMStoreFloat4x4(&cbData.World, XMMatrixTranspose(mWorldMatrix));
-	cbData.DiffuseColor = mDiffuseColor;
-	memcpy(mBufferCB->Map(), &cbData, sizeof(cbData));
+	memcpy(p_constant_buffer->Map() + (DX12DeviceResourcesSingleton::mBackBufferIndex * c_aligned_shader_structure_cpu_model_data), &shader_structure_cpu_model_data, sizeof(ShaderStructureCPUModelData));
 }
 
 bool Model::HasMeshes() const
@@ -195,14 +199,6 @@ std::vector<XMFLOAT3> Model::GenerateAABB()
 	return AABB;
 }
 
-XMFLOAT3 Model::GetTranslation() {
-	XMVECTOR translation, rot, scale;
-	XMMatrixDecompose(&scale, &rot, &translation, mWorldMatrix);
-
-	XMFLOAT3 translationF;
-	XMStoreFloat3(&translationF, translation);
-	return translationF;
-}
 
 Model& Model::operator=(const Model& rhs)
 {

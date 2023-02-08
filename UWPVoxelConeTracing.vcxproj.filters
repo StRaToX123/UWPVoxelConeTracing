@@ -153,7 +153,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResources.cpp">
+    <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp">
@@ -171,7 +171,7 @@
     <ClCompile Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.cpp">
+    <ClCompile Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.cpp">
       <Filter>Source\Graphics\SceneRenderers\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\Camera.cpp">
@@ -236,7 +236,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResources.h">
+    <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h">
@@ -254,7 +254,7 @@
     <ClInclude Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\SceneRenderers\DirectLightingVoxelGIandAOrenderer.h">
+    <ClInclude Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h">
       <Filter>Source\Graphics\SceneRenderers\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Camera.h">

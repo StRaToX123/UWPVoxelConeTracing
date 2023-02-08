@@ -1,11 +1,13 @@
 //DirectX 12 wrapper with useful functions like device creation etc.
 
-#include "Graphics\DirectX\DX12DeviceResources.h"
+#include "Graphics\DirectX\DX12DeviceResourcesSingleton.h"
 
 
-UINT DX12DeviceResources::mBackBufferIndex = 0;
+UINT DX12DeviceResourcesSingleton::mBackBufferIndex = 0;
+static DX12DeviceResourcesSingleton gs_dx12_device_resources;
 
-DX12DeviceResources::DX12DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, UINT backBufferCount, D3D_FEATURE_LEVEL minFeatureLevel, unsigned int flags)
+
+DX12DeviceResourcesSingleton::DX12DeviceResourcesSingleton(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, UINT backBufferCount, D3D_FEATURE_LEVEL minFeatureLevel, unsigned int flags)
     :
     mFenceValuesGraphics{},
     mBackBufferFormat(backBufferFormat),
@@ -26,13 +28,26 @@ DX12DeviceResources::DX12DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORM
     mCurrentPath = std::filesystem::current_path();
 }
 
-DX12DeviceResources::~DX12DeviceResources()
+DX12DeviceResourcesSingleton::~DX12DeviceResourcesSingleton()
 {
     WaitForGpu();
 }
 
+DX12DeviceResourcesSingleton* DX12DeviceResourcesSingleton::GetDX12DeviceResources()
+{
+    return &gs_dx12_device_resources;
+}
+
+void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ coreWindow)
+{
+    gs_dx12_device_resources.SetWindow(coreWindow);
+    gs_dx12_device_resources.CreateResources();
+    gs_dx12_device_resources.CreateFullscreenQuadBuffers();
+    gs_dx12_device_resources.FinalizeResources();
+}
+
 // Configures the Direct3D device, and stores handles to it and the device context.
-void DX12DeviceResources::CreateResources()
+void DX12DeviceResourcesSingleton::CreateResources()
 {
 #if defined(_DEBUG)
     {
@@ -191,7 +206,7 @@ void DX12DeviceResources::CreateResources()
 }
 
 // Close and flush command list after initialization 
-void DX12DeviceResources::FinalizeResources()
+void DX12DeviceResourcesSingleton::FinalizeResources()
 {
     ThrowIfFailed(mCommandListGraphics[0]->Close());
     ID3D12CommandList* ppCommandLists[] = { mCommandListGraphics[0].Get() };
@@ -219,7 +234,7 @@ void DX12DeviceResources::FinalizeResources()
 
 }
 
-void DX12DeviceResources::CreateFullscreenQuadBuffers()
+void DX12DeviceResourcesSingleton::CreateFullscreenQuadBuffers()
 {
     {
         struct FullscreenVertex
@@ -280,7 +295,7 @@ void DX12DeviceResources::CreateFullscreenQuadBuffers()
     }
 }
 
-void DX12DeviceResources::CreateWindowResources()
+void DX12DeviceResourcesSingleton::CreateWindowResources()
 {
     if (mAppWindow == NULL)
     {
@@ -417,7 +432,7 @@ void DX12DeviceResources::CreateWindowResources()
     mScissorRect.bottom = static_cast<LONG>(backBufferHeight);
 }
 
-void DX12DeviceResources::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
+void DX12DeviceResourcesSingleton::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
 {
     mAppWindow = coreWindow;
 
@@ -426,7 +441,7 @@ void DX12DeviceResources::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
     mOutputSize.bottom = coreWindow->Bounds.Height;
 }
 
-bool DX12DeviceResources::WindowSizeChanged()
+bool DX12DeviceResourcesSingleton::WindowSizeChanged()
 {
     RECT newRc;
     newRc.left = newRc.top = 0;
@@ -445,7 +460,7 @@ bool DX12DeviceResources::WindowSizeChanged()
     return true;
 }
 
-void DX12DeviceResources::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
+void DX12DeviceResourcesSingleton::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
 {
     ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
     ThrowIfFailed(mCommandListGraphics[0]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][0].Get(), nullptr));
@@ -459,7 +474,7 @@ void DX12DeviceResources::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipCo
     }
 }
 
-void DX12DeviceResources::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
+void DX12DeviceResourcesSingleton::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
 {
 	if (beforeState != D3D12_RESOURCE_STATE_RENDER_TARGET)
 	{
@@ -468,7 +483,7 @@ void DX12DeviceResources::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D
         cmdList->ResourceBarrier(1, &barrier);
 	}
 }
-void DX12DeviceResources::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCmdList)
+void DX12DeviceResourcesSingleton::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCmdList)
 {
     if (needExecuteCmdList) {
 
@@ -505,7 +520,7 @@ void DX12DeviceResources::Present(D3D12_RESOURCE_STATES beforeState, bool needEx
     }
 }
 
-void DX12DeviceResources::WaitForComputeToFinish()
+void DX12DeviceResourcesSingleton::WaitForComputeToFinish()
 {
     assert(mCommandQueueGraphics && mFenceCompute/* && mFenceEventCompute.IsValid()*/);
 
@@ -523,26 +538,26 @@ void DX12DeviceResources::WaitForComputeToFinish()
 
 }
 
-void DX12DeviceResources::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
+void DX12DeviceResourcesSingleton::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
 {
 	assert(aQueue && mFenceGraphics2);
     aQueue->Wait(mFenceGraphics2.Get(), (previousFrame) ? (mFenceValuesGraphics2 - 1) : mFenceValuesGraphics2);
 }
 
-void DX12DeviceResources::SignalGraphicsFence2()
+void DX12DeviceResourcesSingleton::SignalGraphicsFence2()
 {
 	UINT64 fenceValue = mFenceValuesGraphics2;
 	mCommandQueueGraphics->Signal(mFenceGraphics2.Get(), fenceValue);
 	mFenceValuesGraphics2++;
 }
 
-void DX12DeviceResources::WaitForGraphicsToFinish()
+void DX12DeviceResourcesSingleton::WaitForGraphicsToFinish()
 {
 	assert(mCommandQueueCompute && mFenceGraphics/* && mFenceEventCompute.IsValid()*/);
     mCommandQueueCompute->Wait(mFenceGraphics.Get(), mFenceValuesGraphics[mBackBufferIndex] - 1);
 }
 
-void DX12DeviceResources::PresentCompute()
+void DX12DeviceResourcesSingleton::PresentCompute()
 {
     mCommandListCompute->Close();
 
@@ -554,7 +569,7 @@ void DX12DeviceResources::PresentCompute()
     mFenceValuesCompute++;
 }
 
-void DX12DeviceResources::WaitForGpu() 
+void DX12DeviceResourcesSingleton::WaitForGpu() 
 {
     if (mCommandQueueGraphics && mFenceGraphics && mFenceEventGraphics.IsValid())
     {
@@ -574,7 +589,7 @@ void DX12DeviceResources::WaitForGpu()
     }
 }
 
-void DX12DeviceResources::MoveToNextFrame()
+void DX12DeviceResourcesSingleton::MoveToNextFrame()
 {
     // Schedule a Signal command in the queue.
     const UINT64 currentFenceValue = mFenceValuesGraphics[mBackBufferIndex];
@@ -594,7 +609,7 @@ void DX12DeviceResources::MoveToNextFrame()
     mFenceValuesGraphics[mBackBufferIndex] = currentFenceValue + 1;
 }
 
-void DX12DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter)
+void DX12DeviceResourcesSingleton::GetAdapter(IDXGIAdapter1** ppAdapter)
 {
     *ppAdapter = nullptr;
 
@@ -686,7 +701,7 @@ void DX12DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter)
 }
 
 // Compile a HLSL file into a DXIL library
-IDxcBlob* DX12DeviceResources::CompileShaderLibrary(LPCWSTR fileName)
+IDxcBlob* DX12DeviceResourcesSingleton::CompileShaderLibrary(LPCWSTR fileName)
 {
     static IDxcCompiler* pCompiler = nullptr;
     static IDxcLibrary* pLibrary = nullptr;

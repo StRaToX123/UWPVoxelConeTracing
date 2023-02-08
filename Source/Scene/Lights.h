@@ -10,7 +10,7 @@ class DirectionalLight
 		DirectionalLight();
 		~DirectionalLight();
 
-		void Initialize(DX12DeviceResources* _deviceResources,
+		void Initialize(DX12DeviceResourcesSingleton* _deviceResources,
 			DX12DescriptorHeapManager* _descriptorHeapManager,
 			DirectX::XMFLOAT4 directionWorldSpace = { -0.191, -1.0f, -0.574f, 1.0 },
 			DirectX::XMFLOAT4 color = { 0.9, 0.9, 0.9, 1.0 },
