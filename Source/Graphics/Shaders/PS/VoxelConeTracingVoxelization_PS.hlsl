@@ -1,27 +1,18 @@
-
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli"
+#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
 RWTexture3D<float4> outputTexture : register(u0);
 Texture2D<float> shadowBuffer : register(t0);
 SamplerComparisonState PcfShadowMapSampler : register(s0);
-cbuffer perModelInstanceCB : register(b1)
-{
-	float4x4 World;
-	float4 DiffuseColor;
-};
+ConstantBuffer<ShaderStructureGPUVoxelizationData> voxelization_data : register(b0);
+ConstantBuffer<ShaderStructureGPUDirectionalLightData> directional_light_data : register(b1);
+ConstantBuffer<ShaderStructureGPUModelData> model_data : register(b2);
 
-cbuffer VoxelizationCB : register(b0)
-{
-	float4x4 WorldVoxelCube;
-	float4x4 ViewProjection;
-	float4x4 ShadowViewProjection;
-	float WorldVoxelScale;
-};
 
 float3 VoxelToWorld(float3 pos)
 {
 	float3 result = pos;
-	result *= WorldVoxelScale;
+	result *= voxelization_data.voxel_scale;
 
 	return result * 0.5f;
 }
@@ -37,11 +28,11 @@ void main(PixelShaderInputVoxelConeTracingVoxelization input)
 	voxelPos.y = -voxelPos.y;
     
 	int3 finalVoxelPos = width * float3(0.5f * voxelPos + float3(0.5f, 0.5f, 0.5f));
-	float4 colorRes = float4(DiffuseColor.rgb, 1.0f);
+	float4 colorRes = float4(model_data.diffuse_color.rgb, 1.0f);
 	voxelPos.y = -voxelPos.y;
     
 	float4 worldPos = float4(VoxelToWorld(voxelPos), 1.0f);
-	float4 lightSpacePos = mul(worldPos, ShadowViewProjection);
+	float4 lightSpacePos = mul(worldPos, directional_light_data.view_projection);
 	float4 shadowcoord = lightSpacePos / lightSpacePos.w;
 	shadowcoord.rg = shadowcoord.rg * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
 	float shadow = shadowBuffer.SampleCmpLevelZero(PcfShadowMapSampler, shadowcoord.xy, shadowcoord.z);

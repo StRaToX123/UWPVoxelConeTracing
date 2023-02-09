@@ -39,7 +39,8 @@ class DirectionalLight
 		DirectX::XMFLOAT4 position_world_space;
 		DirectX::XMFLOAT4 direction_world_space;
 		DirectX::XMMATRIX projection_matrix;
-		ShaderStructureCPUDirectionalLight data;
+		ShaderStructureCPUDirectionalLight shader_structure_cpu_directional_light_data;
+		static const UINT c_aligned_shader_structure_cpu_directional_light_data = (sizeof(ShaderStructureCPUDirectionalLight) + 255) & ~255;
 		DX12Buffer* p_constant_buffer;
 };
 

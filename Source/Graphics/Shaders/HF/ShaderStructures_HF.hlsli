@@ -12,7 +12,7 @@
 
 
 
-struct ShaderStructureGPUDirectionalLight
+struct ShaderStructureGPUDirectionalLightData
 {
 	float4x4 view_projection;
 	float4 inverse_direction_world_space; // Vector pointing towards the light
@@ -37,6 +37,42 @@ struct ShaderStructureGPUModelData
 {
 	float4x4 model;
 	float4 diffuse_color;
+};
+
+struct ShaderStructureGPUVoxelizationData
+{
+	float4x4 voxel_grid_space;
+	float voxel_scale;
+	float3 padding;
+};
+
+struct ShaderStructureGPUMipMappingData
+{
+	int mip_dimension;
+	int mip_level;
+	float2 padding;
+};
+
+struct ShaderStructureCPUVCTMainData
+{
+	float2 upsample_ratio;
+	float indirect_diffuse_strength;
+	float indirect_specular_strength;
+	float max_cone_trace_distance;
+	float ao_falloff;
+	float sampling_factor;
+	float voxel_sample_offset;
+};
+
+struct ShaderStructureCPUIlluminationFlagsData
+{
+	int use_direct;
+	int use_shadows;
+	int use_vct;
+	int use_vct_debug;
+	float vct_gi_power;
+	int show_only_ao;
+	float2 padding;
 };
 
 

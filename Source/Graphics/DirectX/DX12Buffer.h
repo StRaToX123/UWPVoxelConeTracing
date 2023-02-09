@@ -54,20 +54,9 @@ class DX12Buffer
 		virtual ~DX12Buffer();
 
 		ID3D12Resource* GetResource() { return mBuffer.Get(); }
-
-		virtual DX12DescriptorHandleBlock& GetSRV() { return mDescriptorSRV; }
-		virtual DX12DescriptorHandleBlock& GetCBV() { return mDescriptorCBV; }
-
-		unsigned char* Map()
-		{
-			if (mCBVMappedData == nullptr && mDescription.mDescriptorType & DescriptorType::CBV)
-			{
-				CD3DX12_RANGE readRange(0, 0);
-				ThrowIfFailed(mBuffer->Map(0, &readRange, reinterpret_cast<void**>(&mCBVMappedData)));
-			}
-
-			return mCBVMappedData;
-		}
+		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV();
+		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV();
+		unsigned char* GetMappedData();
 
 	protected:
 		Description mDescription;
@@ -80,6 +69,8 @@ class DX12Buffer
 
 		DX12DescriptorHandleBlock mDescriptorCBV;
 		DX12DescriptorHandleBlock mDescriptorSRV;
+
+		bool contains_per_frame_duplicates;
 
 		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
 			ID3D12GraphicsCommandList* _commandList,

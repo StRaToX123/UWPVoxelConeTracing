@@ -1,3 +1,5 @@
+#include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+
 Texture3D<float4> voxelTexture : register(t0);
 
 //unfortunately, there is no "RWTexture3DArray"
@@ -8,14 +10,9 @@ RWTexture3D<float4> voxelTextureResultNegY : register(u3);
 RWTexture3D<float4> voxelTextureResultPosZ : register(u4);
 RWTexture3D<float4> voxelTextureResultNegZ : register(u5);
 
-cbuffer MipmapCB : register(b0)
-{
-	int MipDimension;
-	int MipLevel;
-}
+ConstantBuffer<ShaderStructureGPUMipMappingData> mip_mapping_data : register(b0);
 
-static const int3 anisoOffsets[8] =
-{
+static const int3 anisoOffsets[8] = {
 	int3(1, 1, 1),
 	int3(1, 1, 0),
 	int3(1, 0, 1),
@@ -29,8 +26,10 @@ static const int3 anisoOffsets[8] =
 [numthreads(8, 8, 8)]
 void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
-	if (DTid.x >= MipDimension || DTid.y >= MipDimension || DTid.z >= MipDimension)
+	if (DTid.x >= mip_mapping_data.mip_dimension || DTid.y >= mip_mapping_data.mip_dimension || DTid.z >= mip_mapping_data.mip_dimension)
+	{
 		return;
+	}	
     
 	float4 values[8];
     

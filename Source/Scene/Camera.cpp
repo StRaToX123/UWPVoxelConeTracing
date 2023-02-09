@@ -57,7 +57,7 @@ void Camera::UpdateBuffers()
         UpdateViewMatrix();
     }
 
-    memcpy(p_constant_buffer->Map() + (DX12DeviceResourcesSingleton::mBackBufferIndex * c_aligned_shader_structure_cpu_camera), &shader_structure_cpu_camera, sizeof(ShaderStructureCPUCamera));
+    memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_camera, sizeof(ShaderStructureCPUCamera));
 }
 
 //void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up)

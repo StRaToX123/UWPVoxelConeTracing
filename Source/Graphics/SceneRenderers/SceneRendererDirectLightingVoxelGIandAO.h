@@ -56,13 +56,12 @@ class SceneRendererDirectLightingVoxelGIandAO
 		void Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera);
 	private:
 		void Clear(DX12DeviceResourcesSingleton* _deviceResources, ID3D12GraphicsCommandList* cmdList);
-		void UpdateBuffers();
 		void UpdateImGui();
 	
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitVoxelConeTracing(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitLighting(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
+		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
+		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitComposite(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 
 	
@@ -81,7 +80,14 @@ class SceneRendererDirectLightingVoxelGIandAO
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& directionalLightDataDescriptorHeapBlock);
-		void RenderVoxelConeTracing(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, RenderQueue aQueue = GRAPHICS_QUEUE);
+		void RenderVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources,
+			ID3D12Device* device,
+			ID3D12GraphicsCommandList* commandList,
+			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			std::vector<Model*>& scene,
+			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
+			RenderQueue aQueue = GRAPHICS_QUEUE);
 		void RenderLighting(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
 		void RenderComposite(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
 
@@ -124,29 +130,38 @@ class SceneRendererDirectLightingVoxelGIandAO
 		DXRSRenderTarget* mVCTMainUpsampleAndBlurRT;
 		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinPrepare3DRTs;
 		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinMain3DRTs;
-		__declspec(align(16)) struct VCTVoxelizationCBData
+		__declspec(align(16)) struct ShaderStructureCPUVoxelizationData
 		{
-			XMMATRIX WorldVoxelCube;
-			XMMATRIX ViewProjection;
-			XMMATRIX ShadowViewProjection;
-			float WorldVoxelScale;
+			DirectX::XMFLOAT4X4 voxel_grid_space;
+			float voxel_scale;
+			DirectX::XMFLOAT3 padding;
 		};
-		__declspec(align(16)) struct VCTAnisoMipmappingCBData
+
+		ShaderStructureCPUVoxelizationData shader_structure_cpu_voxelization_data;
+		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUMipMappingData
 		{
-			int MipDimension;
-			int MipLevel;
+			int mip_dimension;
+			int mip_level;
+			DirectX::XMFLOAT2 padding;
 		};
-		__declspec(align(16)) struct VCTMainCBData
+
+		ShaderStructureCPUMipMappingData shader_structure_cpu_mip_mapping_data;
+		static const UINT c_aligned_shader_structure_cpu_mip_mapping_data = (sizeof(ShaderStructureCPUMipMappingData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUVCTMainData
 		{
-			XMFLOAT4 CameraPos;
-			XMFLOAT2 UpsampleRatio;
-			float IndirectDiffuseStrength;
-			float IndirectSpecularStrength;
-			float MaxConeTraceDistance;
-			float AOFalloff;
-			float SamplingFactor;
-			float VoxelSampleOffset;
+			DirectX::XMFLOAT2 upsample_ratio;
+			float indirect_diffuse_strength;
+			float indirect_specular_strength;
+			float max_cone_trace_distance;
+			float ao_falloff;
+			float sampling_factor;
+			float voxel_sample_offset;
 		};
+
+		ShaderStructureCPUVCTMainData shader_structure_cpu_vct_main_data;
+		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
+
 		DX12Buffer* mVCTVoxelizationCB;
 		DX12Buffer* mVCTAnisoMipmappingCB;
 		DX12Buffer* mVCTMainCB;
@@ -181,15 +196,21 @@ class SceneRendererDirectLightingVoxelGIandAO
 			DirectX::XMFLOAT2 padding;
 		};
 
-		__declspec(align(16)) struct IlluminationFlagsCBData
+		ShaderSTructureCPULightingData shader_structure_cpu_lighting_data;
+		static const UINT c_aligned_shader_structure_cpu_lighting_data = (sizeof(ShaderSTructureCPULightingData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUIlluminationFlagsData
 		{
-			int useDirect;
-			int useShadows;
-			int useVCT;
-			int useVCTDebug;
-			float vctGIPower;
-			int showOnlyAO;
+			int use_direct;
+			int use_shadows;
+			int use_vct;
+			int use_vct_debug;
+			float vct_gi_power;
+			int show_only_ao;
+			DirectX::XMFLOAT2 padding;
 		};
+
+		ShaderStructureCPUIlluminationFlagsData shader_structure_cpu_illumination_flags_data;
+		static const UINT c_aligned_shader_structure_cpu_illumination_flags_data = (sizeof(ShaderStructureCPUIlluminationFlagsData) + 255) & ~255;
 
 		DX12Buffer* mLightingCB;
 		DX12Buffer* mIlluminationFlagsCB;
@@ -216,7 +237,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 			bool Upsample;
 		};
 		DX12Buffer* mGIUpsampleAndBlurBuffer;
-		DX12Buffer* mDXRBlurBuffer;
 
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRW;
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRead;

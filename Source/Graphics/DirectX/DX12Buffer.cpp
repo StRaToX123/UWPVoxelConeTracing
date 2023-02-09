@@ -11,8 +11,9 @@ DX12Buffer::DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
 	bool createPerFrameDuplicates,
 	LPCWSTR name)
 
-	: mDescription(description)
-	, mCBVMappedData(nullptr)
+	: mDescription(description),
+	mCBVMappedData(nullptr),
+	contains_per_frame_duplicates(createPerFrameDuplicates)
 {
 	mBufferSize = mDescription.mNumElements * mDescription.mElementSize;
 
@@ -146,5 +147,44 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 			cpuDescriptorHandle.ptr += descriptorIncrementSize;
 			resourceGPUAddress += cbvDesc.SizeInBytes;
 		}
+
+		CD3DX12_RANGE readRange(0, 0);
+		ThrowIfFailed(mBuffer->Map(0, &readRange, reinterpret_cast<void**>(&mCBVMappedData)));
+	}
+}
+
+unsigned char* DX12Buffer::GetMappedData()
+{
+	if (contains_per_frame_duplicates == true)
+	{
+		return mCBVMappedData + (DX12DeviceResourcesSingleton::mBackBufferIndex * mDescription.mElementSize);
+	}
+	else
+	{
+		return mCBVMappedData;
+	}
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetSRV()
+{ 
+	if (contains_per_frame_duplicates == true)
+	{
+		return mDescriptorSRV.GetCPUHandle().Offset(DX12DeviceResourcesSingleton::mBackBufferIndex, mDescriptorSRV.GetDescriptorSize());
+	}
+	else
+	{
+		return mDescriptorSRV.GetCPUHandle();
+	}
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetCBV()
+{ 
+	if (contains_per_frame_duplicates == true)
+	{
+		return mDescriptorCBV.GetCPUHandle().Offset(DX12DeviceResourcesSingleton::mBackBufferIndex, mDescriptorCBV.GetDescriptorSize());
+	}
+	else
+	{
+		return mDescriptorCBV.GetCPUHandle();
 	}
 }

@@ -1,13 +1,7 @@
-
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli"
+#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
-cbuffer VoxelizationCB : register(b0)
-{
-	float4x4 WorldVoxelCube;
-	float4x4 ViewProjection;
-	float4x4 ShadowViewProjection;
-	float WorldVoxelScale;
-};
+ConstantBuffer<ShaderStructureGPUVoxelizationData> voxelization_data : register(b0);
 
 [maxvertexcount(3)]
 void main(triangle GeometryShaderInputVoxelConeTracingVoxelization input[3], inout TriangleStream<PixelShaderInputVoxelConeTracingVoxelization> OutputStream)
@@ -26,18 +20,25 @@ void main(triangle GeometryShaderInputVoxelConeTracingVoxelization input[3], ino
     [unroll]
 	for (uint i = 0; i < 3; i++)
 	{
-		output[0].voxelPos = input[i].position.xyz / WorldVoxelScale * 2.0f;
-		output[1].voxelPos = input[i].position.xyz / WorldVoxelScale * 2.0f;
-		output[2].voxelPos = input[i].position.xyz / WorldVoxelScale * 2.0f;
+		output[0].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
+		output[1].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
+		output[2].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
 		if (axis == n.z)
+		{
 			output[i].position = float4(output[i].voxelPos.x, output[i].voxelPos.y, 0, 1);
+		}
 		else if (axis == n.x)
+		{
 			output[i].position = float4(output[i].voxelPos.y, output[i].voxelPos.z, 0, 1);
+		}
 		else
+		{
 			output[i].position = float4(output[i].voxelPos.x, output[i].voxelPos.z, 0, 1);
-    
+		}
+			
         //output[i].normal = input[i].normal;
 		OutputStream.Append(output[i]);
 	}
+	
 	OutputStream.RestartStrip();
 }
