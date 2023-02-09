@@ -35,6 +35,7 @@ class Camera
         void XM_CALLCONV Translate(DirectX::FXMVECTOR translation, Space space = Space::Local);
         //void Rotate(DirectX::FXMVECTOR quaternion);
         void UpdateBuffers();
+        DX12Buffer* GetCB() const { return p_constant_buffer; };
 
         struct ShaderStructureCPUCamera
         {

@@ -293,7 +293,7 @@
     <None Include="vcruntime140_1.dll" />
     <None Include="libfbxsdk.dll" />
     <None Include="packages.config" />
-    <None Include="Source\Graphics\Shaders\HF\Common_HF.hlsli">
+    <None Include="Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli">
       <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
     <None Include="Source\Graphics\Shaders\HF\Composite_HF.hlsli">

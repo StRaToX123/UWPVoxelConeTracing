@@ -27,6 +27,17 @@ struct ShaderSTructureGPULightingData
 	float2 padding;
 };
 
+struct ShaderStructureGPUCameraData
+{
+	float4x4 view_projection;
+};
+
+
+struct ShaderStructureGPUModelData
+{
+	float4x4 model;
+	float4 diffuse_color;
+};
 
 
 static const float FLT_MAX = asfloat(0x7F7FFFFF);

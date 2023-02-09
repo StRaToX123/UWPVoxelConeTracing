@@ -67,8 +67,20 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 	
 
-		void RenderGbuffer(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, Camera& camera);
-		void RenderShadowMapping(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, DirectionalLight& directionalLight);
+		void RenderGbuffer(DX12DeviceResourcesSingleton* _deviceResources,
+			ID3D12Device* device,
+			ID3D12GraphicsCommandList* commandList,
+			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			std::vector<Model*>& scene,
+			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock);
+		void RenderShadowMapping(DX12DeviceResourcesSingleton* _deviceResources,
+			ID3D12Device* device,
+			ID3D12GraphicsCommandList* commandList,
+			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			std::vector<Model*>& scene,
+			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& directionalLightDataDescriptorHeapBlock);
 		void RenderVoxelConeTracing(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, RenderQueue aQueue = GRAPHICS_QUEUE);
 		void RenderLighting(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
 		void RenderComposite(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);

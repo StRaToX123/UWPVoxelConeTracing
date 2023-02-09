@@ -24,6 +24,7 @@ class DirectionalLight
 			float zNear = -256.0f,
 			float zFar = 256.0f);
 		void UpdateBuffers();
+		DX12Buffer* GetCB() const { return p_constant_buffer; }
 
 		__declspec(align(16)) struct ShaderStructureCPUDirectionalLight
 		{
