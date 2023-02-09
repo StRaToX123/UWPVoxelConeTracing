@@ -42,6 +42,7 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
 {
     gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
+    gs_dx12_device_resources.CreateWindowResources();
     gs_dx12_device_resources.CreateFullscreenQuadBuffers();
     gs_dx12_device_resources.FinalizeResources();
 }

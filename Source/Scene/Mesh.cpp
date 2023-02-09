@@ -23,66 +23,66 @@ Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
 			DirectX::XMFLOAT3 tangent;
 			switch (fbxTangent->GetMappingMode())
 			{
-			case FbxGeometryElement::eByControlPoint:
-			{
-				switch (fbxTangent->GetReferenceMode())
+				case FbxGeometryElement::eByControlPoint:
 				{
-				case FbxGeometryElement::eDirect:
-				{
-					tangent.x = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[0];
-					tangent.y = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[1];
-					tangent.z = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[2];
+					switch (fbxTangent->GetReferenceMode())
+					{
+						case FbxGeometryElement::eDirect:
+						{
+							tangent.x = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[0];
+							tangent.y = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[1];
+							tangent.z = (float)fbxTangent->GetDirectArray().GetAt(controlPointIndex).mData[2];
+							break;
+						}
+
+
+						case FbxGeometryElement::eIndexToDirect:
+						{
+							int index = fbxTangent->GetIndexArray().GetAt(controlPointIndex);
+							tangent.x = (float)fbxTangent->GetDirectArray().GetAt(index).mData[0];
+							tangent.y = (float)fbxTangent->GetDirectArray().GetAt(index).mData[1];
+							tangent.z = (float)fbxTangent->GetDirectArray().GetAt(index).mData[2];
+							break;
+						}
+
+						default:
+						{
+							throw std::exception("Invalid Reference");
+						}
+					}
+
 					break;
 				}
 
-
-				case FbxGeometryElement::eIndexToDirect:
+				case FbxGeometryElement::eByPolygonVertex:
 				{
-					int index = fbxTangent->GetIndexArray().GetAt(controlPointIndex);
-					tangent.x = (float)fbxTangent->GetDirectArray().GetAt(index).mData[0];
-					tangent.y = (float)fbxTangent->GetDirectArray().GetAt(index).mData[1];
-					tangent.z = (float)fbxTangent->GetDirectArray().GetAt(index).mData[2];
+					switch (fbxTangent->GetReferenceMode())
+					{
+						case FbxGeometryElement::eDirect:
+						{
+							tangent.x = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[0];
+							tangent.y = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[1];
+							tangent.z = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[2];
+							break;
+						}
+
+						case FbxGeometryElement::eIndexToDirect:
+						{
+							int index = fbxTangent->GetIndexArray().GetAt(vertexIndex);
+							tangent.x = (float)fbxTangent->GetDirectArray().GetAt(index).mData[0];
+							tangent.y = (float)fbxTangent->GetDirectArray().GetAt(index).mData[1];
+							tangent.z = (float)fbxTangent->GetDirectArray().GetAt(index).mData[2];
+							break;
+						}
+
+						default:
+						{
+							throw std::exception("Invalid Reference");
+						}
+					}
+
 					break;
 				}
-
-				default:
-				{
-					throw std::exception("Invalid Reference");
-				}
-				}
-
-				break;
-			}
-
-			case FbxGeometryElement::eByPolygonVertex:
-			{
-				switch (fbxTangent->GetReferenceMode())
-				{
-				case FbxGeometryElement::eDirect:
-				{
-					tangent.x = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[0];
-					tangent.y = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[1];
-					tangent.z = (float)fbxTangent->GetDirectArray().GetAt(vertexIndex).mData[2];
-					break;
-				}
-
-				case FbxGeometryElement::eIndexToDirect:
-				{
-					int index = fbxTangent->GetIndexArray().GetAt(vertexIndex);
-					tangent.x = (float)fbxTangent->GetDirectArray().GetAt(index).mData[0];
-					tangent.y = (float)fbxTangent->GetDirectArray().GetAt(index).mData[1];
-					tangent.z = (float)fbxTangent->GetDirectArray().GetAt(index).mData[2];
-					break;
-				}
-
-				default:
-				{
-					throw std::exception("Invalid Reference");
-				}
-				}
-
-				break;
-			}
 
 			}
 

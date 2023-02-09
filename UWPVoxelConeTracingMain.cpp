@@ -17,7 +17,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	show_imGui = true;
 
 	DX12DeviceResourcesSingleton::Initialize(coreWindow);
-	scene_renderer.Initialize(coreWindow, &device_resources);
+	scene_renderer.Initialize(coreWindow);
 
 	#pragma region Initialize The Camera
 	camera_controller_translation_multiplier = 12.0f;
@@ -32,7 +32,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	camera_controller_pitch_limit = 89.99f;
 	camera_controller_yaw = 0.0f;
 
-	auto size = device_resources.GetOutputSize();
+	auto size = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);
 
 	camera.SetProjection(60.0f, aspectRatio, 0.01f, 500.0f);
@@ -41,7 +41,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	#pragma endregion
 
 	#pragma region Initialize The Scene
-	descriptor_heap_manager.Initialize(device_resources.GetD3DDevice());
+	descriptor_heap_manager.Initialize();
 	Model* model = new Model(&descriptor_heap_manager, 
 		GetFilePath("Assets\\Models\\room.fbx"),
 		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
@@ -125,7 +125,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	}
 
 	// Initialize the directional light
-	directional_light.Initialize(&device_resources, &descriptor_heap_manager);
+	directional_light.Initialize(&descriptor_heap_manager);
 	#pragma endregion
 
 	OnWindowSizeChanged();
@@ -133,7 +133,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
 {
-	device_resources.WaitForGpu();
+	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->WaitForGpu();
 }
 
 bool UWPVoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)
@@ -492,9 +492,25 @@ bool UWPVoxelConeTracingMain::Render()
 // Updates application state when the window's size changes (e.g. device orientation change)
 void UWPVoxelConeTracingMain::OnWindowSizeChanged()
 {
-	// TODO: Replace this with the size-dependent initialization of your app's content.
-	//m_sceneRenderer->CreateWindowSizeDependentResources();
-	scene_renderer.OnWindowSizeChanged(camera);
+	DX12DeviceResourcesSingleton* _dx12DeviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	if (!_dx12DeviceResources->WindowSizeChanged())
+	{
+		return;
+	}
+
+	float aspectRatio = _dx12DeviceResources->mAppWindow->Bounds.Width / _dx12DeviceResources->mAppWindow->Bounds.Height;
+	// This is a simple example of a change that can be made when the app is in
+	// portrait or snapped view.
+	if (aspectRatio < 1.0f)
+	{
+		camera.SetFoVYDeggrees(60.0f * 2.0f);
+	}
+	else
+	{
+		camera.SetFoVYDeggrees(60.0f);
+	}
+
+	camera.SetProjection(camera.GetFoVYDegrees(), aspectRatio, 0.01f, 500.0f);
 }
 
 // Notifies the app that it is being suspended.

@@ -50,17 +50,13 @@ class SceneRendererDirectLightingVoxelGIandAO
 		SceneRendererDirectLightingVoxelGIandAO();
 		~SceneRendererDirectLightingVoxelGIandAO();
 
-		void Initialize(Windows::UI::Core::CoreWindow^ coreWindow, DX12DeviceResourcesSingleton* _deviceResources);
+		void Initialize(Windows::UI::Core::CoreWindow^ coreWindow);
 	
 		void OnWindowSizeChanged(Camera& camera);
 		void Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera);
 	private:
-		void Clear(ID3D12GraphicsCommandList* cmdList);
-		void Update(DXRSTimer const& timer, Camera& camera);
-		void UpdateTransforms(DXRSTimer const& timer);
-		void UpdateBuffers(DXRSTimer const& timer);
-		//void UpdateLights(DXRSTimer const& timer);
-		void UpdateCamera(DXRSTimer const& timer, Camera& camera);
+		void Clear(DX12DeviceResourcesSingleton* _deviceResources, ID3D12GraphicsCommandList* cmdList);
+		void UpdateBuffers();
 		void UpdateImGui();
 	
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
@@ -71,7 +67,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 	
 
-		void RenderGbuffer(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, Camera& camera);
+		void RenderGbuffer(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, Camera& camera);
 		void RenderShadowMapping(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, DirectionalLight& directionalLight);
 		void RenderVoxelConeTracing(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap, std::vector<Model*>& scene, RenderQueue aQueue = GRAPHICS_QUEUE);
 		void RenderLighting(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
@@ -79,8 +75,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 		void ThrowFailedErrorBlob(ID3DBlob* blob);
 
-	
-		DX12DeviceResourcesSingleton* _device_resources;
 		DX12DescriptorHeapManager descriptor_heap_manager;
 		std::vector<CD3DX12_RESOURCE_BARRIER> mBarriers;
 	
@@ -93,12 +87,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 		std::vector<DXRSRenderTarget*> mGbufferRTs;
 		GraphicsPSO mGbufferPSO;
 		DXRSDepthBuffer* mDepthStencil;
-		__declspec(align(16)) struct GBufferCBData
-		{
-			XMMATRIX ViewProjection;
-		};
-
-		DX12Buffer* mGbufferCB;
 
 		// Voxel Cone Tracing
 		CD3DX12_VIEWPORT viewport_voxel_cone_tracing_voxelization;
@@ -175,15 +163,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 		RootSignature mLightingRS;
 		std::vector<DXRSRenderTarget*> mLightingRTs;
 		GraphicsPSO mLightingPSO;
-		__declspec(align(16)) struct LightingCBData
+		__declspec(align(16)) struct ShaderSTructureCPULightingData
 		{
-			XMMATRIX InvViewProjection;
-			XMMATRIX ShadowViewProjection;
-			XMFLOAT4 CameraPos;
-			XMFLOAT4 ScreenSize;
-			XMFLOAT2 ShadowTexelSize;
-			float ShadowIntensity;
-			float pad;
+			DirectX::XMFLOAT2 shadow_texel_size;
+			DirectX::XMFLOAT2 padding;
 		};
 
 		__declspec(align(16)) struct IlluminationFlagsCBData

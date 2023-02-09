@@ -4,17 +4,7 @@
 SamplerState BilinearSampler : register(s0);
 SamplerComparisonState PcfShadowMapSampler : register(s1);
 SamplerState samplerLPV : register(s2);
-
-cbuffer LightingConstantBuffer : register(b0)
-{
-	float4x4 InvViewProjection;
-	float4x4 ShadowViewProjection;
-	float4 CameraPos;
-	float4 ScreenSize;
-	float2 ShadowTexelSize;
-	float ShadowIntensity;
-	float pad0;
-};
+ConstantBuffer<ShaderSTructureGPULightingData> lighting_data : register(b0);
 
 cbuffer LightsConstantBuffer : register(b1)
 {
@@ -43,10 +33,10 @@ Texture2D<float4> vctBuffer : register(t4);
 float CalculateShadow(float3 ShadowCoord)
 {
 	const float Dilation = 2.0;
-	float d1 = Dilation * ShadowTexelSize.x * 0.125;
-	float d2 = Dilation * ShadowTexelSize.x * 0.875;
-	float d3 = Dilation * ShadowTexelSize.x * 0.625;
-	float d4 = Dilation * ShadowTexelSize.x * 0.375;
+	float d1 = Dilation * lighting_data.shadow_texel_size.x * 0.125;
+	float d2 = Dilation * lighting_data.shadow_texel_size.x * 0.875;
+	float d3 = Dilation * lighting_data.shadow_texel_size.x * 0.625;
+	float d4 = Dilation * lighting_data.shadow_texel_size.x * 0.375;
 	float result = (
         2.0 *
             shadowBuffer.SampleCmpLevelZero(PcfShadowMapSampler, ShadowCoord.xy, ShadowCoord.z) +

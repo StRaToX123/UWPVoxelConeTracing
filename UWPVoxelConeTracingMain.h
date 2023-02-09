@@ -31,10 +31,7 @@ class UWPVoxelConeTracingMain
 
 	private:
 		Windows::UI::Core::CoreWindow^ core_window;
-		DX12DeviceResourcesSingleton device_resources;
-
 		DXRSTimer timer;
-
 		Windows::Gaming::Input::Gamepad^ gamepad;
 		Camera camera;
 		float camera_controller_translation_multiplier;

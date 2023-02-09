@@ -15,8 +15,7 @@ DirectionalLight::~DirectionalLight()
 	}
 }
 
-void DirectionalLight::Initialize(DX12DeviceResourcesSingleton* _deviceResources, 
-	DX12DescriptorHeapManager* _descriptorHeapManager,
+void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager,
 	DirectX::XMFLOAT4 directionWorldSpace,
 	DirectX::XMFLOAT4 color,
 	float intensity,
@@ -37,7 +36,11 @@ void DirectionalLight::Initialize(DX12DeviceResourcesSingleton* _deviceResources
 	constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 	constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-	p_constant_buffer = new DX12Buffer(_deviceResources->GetD3DDevice(), _descriptorHeapManager, _deviceResources->GetCommandListGraphics(), constantBufferDescriptor, L"Lighting Pass CB");
+	p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		constantBufferDescriptor, 
+		true, // <- We need per frame data for the light
+		L"Lighting Pass CB");
 	UpdateBuffers();
 }
 

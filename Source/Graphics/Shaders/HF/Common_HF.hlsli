@@ -21,7 +21,11 @@ struct ShaderStructureGPUDirectionalLight
 	float3 padding;
 };
 
-
+struct ShaderSTructureGPULightingData
+{
+	float2 shadow_texel_size;
+	float2 padding;
+};
 
 
 
