@@ -148,7 +148,7 @@ void RootSignature::Finalize(ID3D12Device* device, const std::wstring& name, D3D
         ThrowIfFailed(D3D12SerializeRootSignature(&RootDesc, D3D_ROOT_SIGNATURE_VERSION_1,
             pOutBlob.GetAddressOf(), pErrorBlob.GetAddressOf()));
 
-        HRESULT result = /*ThrowIfFailed(*/device->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_Signature))/*)*/;
+            HRESULT result = /*ThrowIfFailed(*/device->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_Signature))/*)*/;
 
         if (pErrorBlob.Get() != NULL)
         {

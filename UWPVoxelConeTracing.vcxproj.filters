@@ -320,9 +320,6 @@
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
       <Filter>Source\Graphics\Shaders</Filter>
     </None>
-    <None Include="Source\Graphics\Shaders\ShaderGlobalsGPU.hlsli">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
     <None Include="Assets\Models\block.fbx">
       <Filter>Assets\Models</Filter>
     </None>
@@ -353,70 +350,7 @@
     <None Include="Assets\Models\torus.fbx">
       <Filter>Assets\Models</Filter>
     </None>
-    <None Include="Source\Graphics\Shaders\Common.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\Composite.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\GBuffer.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\Hit.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\Lighting.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\LPVInjection.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\LPVPropagation.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\Miss.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\RayGen.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\ReflectiveShadowMappingCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\ReflectiveShadowMappingPS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\RSMDownsampleCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\RSMDownsamplePS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\ShadowMapping.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\UpsampleBlurCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingAnisoMipmapMainCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingAnisoMipmapPrepareCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingCS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingPS.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingVoxelization.hlsl">
-      <Filter>Source\Graphics\Shaders</Filter>
-    </None>
-    <None Include="Source\Graphics\Shaders\VoxelConeTracingVoxelizationDebug.hlsl">
       <Filter>Source\Graphics\Shaders</Filter>
     </None>
   </ItemGroup>

@@ -1,7 +1,7 @@
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShadowMapping_HF.hlsli"
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
-ConstantBuffer<ShaderStructureGPUDirectionalLight> directional_light_data : register(b0);
+ConstantBuffer<ShaderStructureGPUDirectionalLightData> directional_light_data : register(b0);
 ConstantBuffer<ShaderStructureGPUModelData> model_data : register(b1);
 
 float4 main(VertexShaderInputShadowMapping input) : SV_Position

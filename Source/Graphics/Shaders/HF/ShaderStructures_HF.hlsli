@@ -30,6 +30,8 @@ struct ShaderSTructureGPULightingData
 struct ShaderStructureGPUCameraData
 {
 	float4x4 view_projection;
+	float3 position_world_space;
+	float padding;
 };
 
 
@@ -53,7 +55,7 @@ struct ShaderStructureGPUMipMappingData
 	float2 padding;
 };
 
-struct ShaderStructureCPUVCTMainData
+struct ShaderStructureGPUVCTMainData
 {
 	float2 upsample_ratio;
 	float indirect_diffuse_strength;
@@ -64,7 +66,7 @@ struct ShaderStructureCPUVCTMainData
 	float voxel_sample_offset;
 };
 
-struct ShaderStructureCPUIlluminationFlagsData
+struct ShaderStructureGPUIlluminationFlagsData
 {
 	int use_direct;
 	int use_shadows;

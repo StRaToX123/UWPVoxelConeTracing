@@ -14,7 +14,7 @@ public:
         mElapsedTicks(0),
         mTotalTicks(0),
         mLeftOverTicks(0),
-        mFrameCount(0),
+        mFrameCount(-1),
         mFramesPerSecond(0),
         mFramesThisSecond(0),
         mQPCSecondCounter(0),
@@ -149,8 +149,8 @@ private:
 
     uint64_t mElapsedTicks;
     uint64_t mTotalTicks;
-    uint64_t mLeftOverTicks;
-    uint32_t mFrameCount;
+    int mLeftOverTicks;
+    uint64_t mFrameCount;
     uint32_t mFramesPerSecond;
     uint32_t mFramesThisSecond;
     uint64_t mTargetElapsedTicks;

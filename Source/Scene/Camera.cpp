@@ -57,7 +57,8 @@ void Camera::UpdateBuffers()
         UpdateViewMatrix();
     }
 
-    memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_camera, sizeof(ShaderStructureCPUCamera));
+    DirectX::XMStoreFloat3(&shader_structure_cpu_camera_data.position_world_space, position_world_space);
+    memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_camera_data, sizeof(ShaderStructureCPUCamera));
 }
 
 //void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up)
@@ -74,7 +75,7 @@ XMMATRIX Camera::GetViewMatrix()
     {
         UpdateViewMatrix();
     }
-    return ;
+    return view_matrix;
 }
 
 
@@ -169,7 +170,7 @@ void Camera::UpdateViewMatrix()
     //XMMATRIX inverseTranslationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space); // We dont use the camera->worldSpace matrix
     view_matrix = DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix);
 
-    DirectX::XMStoreFloat4x4(&shader_structure_cpu_camera.view_projection, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(view_matrix, projection_matrix)));
+    DirectX::XMStoreFloat4x4(&shader_structure_cpu_camera_data.view_projection, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(view_matrix, projection_matrix)));
     is_dirty_view_matrix = false;
 }
 

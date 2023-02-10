@@ -127,7 +127,7 @@ void Model::UpdateBuffers()
 	XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space);
 	DirectX::XMStoreFloat4x4(&shader_structure_cpu_model_data.model, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix)));
 
-	memcpy(p_constant_buffer->Map() + (DX12DeviceResourcesSingleton::mBackBufferIndex * c_aligned_shader_structure_cpu_model_data), &shader_structure_cpu_model_data, sizeof(ShaderStructureCPUModelData));
+	memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_model_data, sizeof(ShaderStructureCPUModelData));
 }
 
 bool Model::HasMeshes() const

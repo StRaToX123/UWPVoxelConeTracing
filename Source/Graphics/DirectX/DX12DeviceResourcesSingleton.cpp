@@ -466,7 +466,8 @@ void DX12DeviceResourcesSingleton::Prepare(D3D12_RESOURCE_STATES beforeState, bo
     ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
     ThrowIfFailed(mCommandListGraphics[0]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][0].Get(), nullptr));
 
-    if (!skipComputeQReset) {
+    if (!skipComputeQReset) 
+    {
         ThrowIfFailed(mCommandAllocatorsCompute[mBackBufferIndex]->Reset());
         ThrowIfFailed(mCommandListCompute->Reset(mCommandAllocatorsCompute[mBackBufferIndex].Get(), nullptr));
 
@@ -486,7 +487,8 @@ void DX12DeviceResourcesSingleton::TransitionMainRT(ID3D12GraphicsCommandList* c
 }
 void DX12DeviceResourcesSingleton::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCmdList)
 {
-    if (needExecuteCmdList) {
+    if (needExecuteCmdList) 
+    {
 
         if (beforeState != D3D12_RESOURCE_STATE_PRESENT)
         {

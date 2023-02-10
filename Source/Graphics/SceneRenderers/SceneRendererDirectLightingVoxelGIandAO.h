@@ -62,7 +62,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		void InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitComposite(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
+		void InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 
 	
 
@@ -87,9 +87,19 @@ class SceneRendererDirectLightingVoxelGIandAO
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& shadowDepthDescriptorhandleBlock,
+			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
 			RenderQueue aQueue = GRAPHICS_QUEUE);
-		void RenderLighting(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
-		void RenderComposite(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DX12DescriptorHeapGPU* gpuDescriptorHeap);
+		void RenderLighting(DX12DeviceResourcesSingleton* _deviceResources, 
+			ID3D12Device* device, 
+			ID3D12GraphicsCommandList* commandList,
+			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock);
+		void RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
+			ID3D12Device* device, 
+			ID3D12GraphicsCommandList* commandList, 
+			DX12DescriptorHeapGPU* gpuDescriptorHeap);
 
 		void ThrowFailedErrorBlob(ID3DBlob* blob);
 
@@ -232,11 +242,14 @@ class SceneRendererDirectLightingVoxelGIandAO
 		float mShadowIntensity = 0.5f;
 
 		// Upsample & Blur
-		__declspec(align(16)) struct UpsampleAndBlurBuffer
+		/*__declspec(align(16)) struct ShaderStructureCPUUpsampleAndBlurData
 		{
 			bool Upsample;
 		};
-		DX12Buffer* mGIUpsampleAndBlurBuffer;
+
+		ShaderStructureCPUUpsampleAndBlurData shader_structure_cpu_upsample_and_blur_data;
+		static const UINT c_aligned_shader_structure_cpu_upsample_and_blur_data = (sizeof(ShaderStructureCPUUpsampleAndBlurData) + 255) & ~255;
+		DX12Buffer* mGIUpsampleAndBlurBuffer;*/
 
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRW;
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRead;

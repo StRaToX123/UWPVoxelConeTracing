@@ -9,9 +9,8 @@
 #include "fbxsdk/scene/fbxaxissystem.h"
 #include "fbxsdk/utils/fbxgeometryconverter.h"
 #include <map>
-
-// Windows Runtime Library. Needed for Microsoft::WRL::ComPtr<> template class.
 #include <wrl.h>
+
 using namespace Microsoft::WRL;
 using namespace DirectX;
 

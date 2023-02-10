@@ -40,6 +40,8 @@ class Camera
         struct ShaderStructureCPUCamera
         {
             DirectX::XMFLOAT4X4 view_projection;
+            DirectX::XMFLOAT3 position_world_space;
+            float padding;
             //DirectX::XMFLOAT4X4 view;
             //DirectX::XMFLOAT4X4 projection;
             //DirectX::XMFLOAT4X4 inverse_view;
@@ -66,5 +68,5 @@ class Camera
 
         DX12Buffer* p_constant_buffer;
         static const UINT c_aligned_shader_structure_cpu_camera = (sizeof(ShaderStructureCPUCamera) + 255) & ~255;
-        ShaderStructureCPUCamera shader_structure_cpu_camera;
+        ShaderStructureCPUCamera shader_structure_cpu_camera_data;
 };

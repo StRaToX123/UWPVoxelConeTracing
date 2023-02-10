@@ -1,29 +1,13 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\Common_HF.hlsli"
 #include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\Lighting_HF.hlsli"
+#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
 SamplerState BilinearSampler : register(s0);
 SamplerComparisonState PcfShadowMapSampler : register(s1);
 SamplerState samplerLPV : register(s2);
 ConstantBuffer<ShaderSTructureGPULightingData> lighting_data : register(b0);
-
-cbuffer LightsConstantBuffer : register(b1)
-{
-	float4 inverse_light_dir_world_space; // Direction pointing to the light
-	float4 LightColor;
-	float LightIntensity;
-	float3 pad1;
-};
-
-cbuffer IlluminationFlagsBuffer : register(b2)
-{
-	int useDirect;
-	int useShadows;
-	int useVCT;
-	int useVCTDebug;
-	float vctGIPower;
-	int showOnlyAO;
-}
-
+ConstantBuffer<ShaderStructureGPUIlluminationFlagsData> illumination_flags_data : register(b1);
+ConstantBuffer<ShaderStructureGPUDirectionalLightData> directional_light_data : register(b2);
+ConstantBuffer<ShaderStructureGPUCameraData> camera_data : register(b3);
 Texture2D<float4> albedoBuffer : register(t0);
 Texture2D<float4> normalBuffer : register(t1);
 Texture2D<float4> worldPosBuffer : register(t2);
@@ -162,50 +146,52 @@ PixelShaderOutputLighting main(PixelShaderInputLighting input)
     
 	float ao = 1.0f;
     //VCT
-	if (useVCT)
+	if (illumination_flags_data.use_vct)
 	{
 		uint gWidth = 0;
 		uint gHeight = 0;
 		albedoBuffer.GetDimensions(gWidth, gHeight);
 		float4 vct = vctBuffer.Sample(BilinearSampler, inPos * float2(1.0f / gWidth, 1.0f / gHeight));
         
-		indirectLighting += vct.rgb * vctGIPower;
-		if (!useVCTDebug)
+		indirectLighting += vct.rgb * illumination_flags_data.vct_gi_power;
+		if (!illumination_flags_data.use_vct_debug)
 		{
 			ao = 1.0f - vct.a;
 		}
 	}
     
 	float shadow = 1.0f;
-	if (useShadows)
+	if (illumination_flags_data.use_shadows)
 	{
-		float4 lightSpacePos = mul(worldPos, ShadowViewProjection);
+		float4 lightSpacePos = mul(worldPos, directional_light_data.view_projection);
 		float4 shadowcoord = lightSpacePos / lightSpacePos.w;
 		shadowcoord.rg = shadowcoord.rg * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
 		shadow = CalculateShadow(shadowcoord.rgb);
 	}
     
-	if (useDirect)
+	if (illumination_flags_data.use_direct)
 	{
-		float3 viewDir = normalize(CameraPos.xyz - worldPos.xyz);
-		float3 lightColor = LightColor.xyz;
-		float lightIntensity = LightIntensity;
-		float NdotL = saturate(dot(normal.xyz, inverse_light_dir_world_space.xyz));
+		float3 viewDir = normalize(camera_data.position_world_space.xyz - worldPos.xyz);
+		float3 lightColor = directional_light_data.color.xyz;
+		float lightIntensity = directional_light_data.intensity;
+		float NdotL = saturate(dot(normal.xyz, directional_light_data.inverse_direction_world_space.xyz));
             
 		float roughness = albedo.a;
 		float metalness = (roughness > 0.0f) ? 0.7f : 0.0f;
 		float3 F0 = float3(0.04, 0.04, 0.04);
 		F0 = lerp(F0, albedo.rgb, metalness);
         
-		float3 direct = DirectDiffuseBRDF(albedo.rgb, inverse_light_dir_world_space.xyz, viewDir, F0, metalness) + DirectSpecularBRDF(normal.xyz, inverse_light_dir_world_space.xyz, viewDir, 1.0f - roughness, F0);
+		float3 direct = DirectDiffuseBRDF(albedo.rgb, directional_light_data.inverse_direction_world_space.xyz, viewDir, F0, metalness) + DirectSpecularBRDF(normal.xyz, directional_light_data.inverse_direction_world_space.xyz, viewDir, 1.0f - roughness, F0);
         
 		directLighting = max(direct, 0.0f) * NdotL * lightIntensity * lightColor;
 	}
     
 	output.diffuse.rgb = ao * indirectLighting + (directLighting * shadow);
 	output.diffuse.rgb = saturate(output.diffuse.rgb);
-	if (showOnlyAO)
+	if (illumination_flags_data.show_only_ao)
+	{
 		output.diffuse.rgb = float3(ao, ao, ao);
-    
+	}
+		
 	return output;
 }

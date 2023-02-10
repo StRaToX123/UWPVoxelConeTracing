@@ -17,6 +17,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	show_imGui = true;
 
 	DX12DeviceResourcesSingleton::Initialize(coreWindow);
+	descriptor_heap_manager.Initialize();
 	scene_renderer.Initialize(coreWindow);
 
 	#pragma region Initialize The Camera
@@ -41,7 +42,6 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	#pragma endregion
 
 	#pragma region Initialize The Scene
-	descriptor_heap_manager.Initialize();
 	Model* model = new Model(&descriptor_heap_manager, 
 		GetFilePath("Assets\\Models\\room.fbx"),
 		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
