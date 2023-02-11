@@ -55,7 +55,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 		void OnWindowSizeChanged(Camera& camera);
 		void Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera);
 	private:
-		void Clear(DX12DeviceResourcesSingleton* _deviceResources, ID3D12GraphicsCommandList* cmdList);
 		void UpdateImGui();
 	
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);

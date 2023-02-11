@@ -11,18 +11,19 @@ void DX12DescriptorHandleBlock::Add(DX12DescriptorHandleBlock& sourceCPUHandleBl
 		throw std::exception("Exceeded block size");
 	}
 
-	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->CopyDescriptorsSimple(sourceCPUHandleBlock.GetBlockSize(), CD3DX12_CPU_DESCRIPTOR_HANDLE(mCPUHandle, unassigned_descriptor_block_index, descriptor_size), sourceCPUHandleBlock.GetCPUHandle(), heap_type);;
+	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->CopyDescriptorsSimple(sourceCPUHandleBlock.GetBlockSize(), CD3DX12_CPU_DESCRIPTOR_HANDLE(mCPUHandle, unassigned_descriptor_block_index, descriptor_size), sourceCPUHandleBlock.GetCPUHandle(), heap_type);
 	unassigned_descriptor_block_index += sourceCPUHandleBlock.GetBlockSize();
 }
 
 void DX12DescriptorHandleBlock::Add(D3D12_CPU_DESCRIPTOR_HANDLE& sourceCPUHandle)
 {
-	if ((unassigned_descriptor_block_index + 1) == (block_size - 1))
+	if (unassigned_descriptor_block_index == block_size)
 	{
 		throw std::exception("Exceeded block size");
 	}
 
-	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->CopyDescriptorsSimple(1, CD3DX12_CPU_DESCRIPTOR_HANDLE(mCPUHandle, unassigned_descriptor_block_index, descriptor_size), sourceCPUHandle, heap_type);;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCPUHandle, unassigned_descriptor_block_index, descriptor_size);
+	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->CopyDescriptorsSimple(1, CD3DX12_CPU_DESCRIPTOR_HANDLE(mCPUHandle, unassigned_descriptor_block_index, descriptor_size), sourceCPUHandle, heap_type);
 	unassigned_descriptor_block_index += 1;
 }
 

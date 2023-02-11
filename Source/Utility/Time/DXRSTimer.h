@@ -85,7 +85,7 @@ public:
         timeDelta *= TicksPerSecond;
         timeDelta /= static_cast<uint64_t>(mQPCFrequency.QuadPart);
 
-        uint32_t lastFrameCount = mFrameCount;
+        uint64_t lastFrameCount = mFrameCount;
 
         if (mIsFixedTimeStep)
         {
@@ -97,7 +97,6 @@ public:
             // fixed update, running with vsync enabled on a 59.94 NTSC display, would eventually
             // accumulate enough tiny errors that it would drop a frame. It is better to just round
             // small deviations down to zero to leave things running smoothly.
-
             if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(timeDelta - mTargetElapsedTicks))) < TicksPerSecond / 4000)
             {
                 timeDelta = mTargetElapsedTicks;

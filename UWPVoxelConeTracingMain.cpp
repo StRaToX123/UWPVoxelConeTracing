@@ -49,7 +49,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 		DirectX::XMFLOAT4(0.7, 0.7, 0.7, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&descriptor_heap_manager, 
+	/*model = new Model(&descriptor_heap_manager, 
 		GetFilePath("Assets\\Models\\dragon.fbx"), 
 		DirectX::XMVectorSet(1.5f, 0.0f, -7.0f, 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -103,9 +103,9 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 		DirectX::XMVectorSet(21.0f, 5.0f, -19.0f, 1.0f), 
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2) * DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), -0.907571f),
 		XMFLOAT4(0.1, 0.75, 0.8, 0.0));
-	scene.emplace_back(model);
+	scene.emplace_back(model);*/
 
-	model = new Model(&descriptor_heap_manager, 
+	/*model = new Model(&descriptor_heap_manager, 
 		GetFilePath("Assets\\Models\\sphere_medium.fbx"), 
 		DirectX::XMVectorSet(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f), 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -122,7 +122,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 			RandomFloat(1.0f, 5.0f));
 		*modelCopy = *model;
 		scene.emplace_back(modelCopy);
-	}
+	}*/
 
 	// Initialize the directional light
 	directional_light.Initialize(&descriptor_heap_manager);

@@ -25,10 +25,15 @@ using namespace Microsoft::WRL;
 class DX12DeviceResourcesSingleton
 {
     public:
-        DX12DeviceResourcesSingleton(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, UINT backBufferCount = 2, D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, unsigned int flags = 0);
+        DX12DeviceResourcesSingleton();
         ~DX12DeviceResourcesSingleton();
 
-        static void Initialize(Windows::UI::Core::CoreWindow^ coreWindow);
+        static void Initialize(Windows::UI::Core::CoreWindow^ coreWindow, 
+            DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, 
+            DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, 
+            UINT backBufferCount = 2, 
+            D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, 
+            unsigned int flags = 0);
         static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
         void CreateResources();
         void FinalizeResources();
@@ -41,7 +46,7 @@ class DX12DeviceResourcesSingleton
         void PresentCompute();
         void WaitForComputeToFinish();
         void WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame = false);
-        void SignalGraphicsFence2();
+        void SignalGraphicsFence();
         void WaitForGraphicsToFinish();
         void WaitForGpu();
         void TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState);
@@ -53,8 +58,8 @@ class DX12DeviceResourcesSingleton
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return mD3DFeatureLevel; }
     
         ID3D12CommandQueue*         GetCommandQueueGraphics() const { return mCommandQueueGraphics.Get(); }
-        ID3D12CommandAllocator*     GetCommandAllocatorGraphics(int i = 0) const { return mCommandAllocatorsGraphics[mBackBufferIndex][i].Get(); }
-        ID3D12GraphicsCommandList*  GetCommandListGraphics(int i = 0) const { return mCommandListGraphics[i].Get(); }
+        ID3D12CommandAllocator*     GetCommandAllocatorGraphics() const { return mCommandAllocatorsGraphics[mBackBufferIndex].Get(); }
+        ID3D12GraphicsCommandList*  GetCommandListGraphics() const { return mCommandListGraphics.Get(); }
 
 	    ID3D12CommandQueue*         GetCommandQueueCompute() const { return mCommandQueueCompute.Get(); }
 	    ID3D12CommandAllocator*     GetCommandAllocatorCompute() const { return mCommandAllocatorsCompute[mBackBufferIndex].Get(); }
@@ -102,8 +107,8 @@ class DX12DeviceResourcesSingleton
         ComPtr<ID3D12Device>                mDevice;
 
         ComPtr<ID3D12CommandQueue>          mCommandQueueGraphics;
-        ComPtr<ID3D12GraphicsCommandList>   mCommandListGraphics[2];
-        ComPtr<ID3D12CommandAllocator>      mCommandAllocatorsGraphics[MAX_BACK_BUFFER_COUNT][2];
+        ComPtr<ID3D12GraphicsCommandList>   mCommandListGraphics;
+        ComPtr<ID3D12CommandAllocator>      mCommandAllocatorsGraphics[MAX_BACK_BUFFER_COUNT];
 
 	    ComPtr<ID3D12CommandQueue>          mCommandQueueCompute;
 	    ComPtr<ID3D12GraphicsCommandList>   mCommandListCompute;

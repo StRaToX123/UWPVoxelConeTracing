@@ -7,25 +7,9 @@ UINT DX12DeviceResourcesSingleton::mBackBufferIndex = 0;
 static DX12DeviceResourcesSingleton gs_dx12_device_resources;
 
 
-DX12DeviceResourcesSingleton::DX12DeviceResourcesSingleton(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, UINT backBufferCount, D3D_FEATURE_LEVEL minFeatureLevel, unsigned int flags)
-    :
-    mFenceValuesGraphics{},
-    mBackBufferFormat(backBufferFormat),
-    mDepthBufferFormat(depthBufferFormat),
-    mBackBufferCount(backBufferCount),
-    mD3DMinimumFeatureLevel(minFeatureLevel),
-    mD3DFeatureLevel(D3D_FEATURE_LEVEL_11_0),
-    mRTVDescriptorSize(0),
-    mDXGIFactoryFlags(0),
-    mAppWindow(nullptr),
-    mScreenViewport{},
-    mScissorRect{},
-    mOutputSize{ 0, 0, 1, 1 }
+DX12DeviceResourcesSingleton::DX12DeviceResourcesSingleton()
 {
-    //assert(backBufferCount > MAX_BACK_BUFFER_COUNT);
-    //assert(minFeatureLevel < D3D_FEATURE_LEVEL_11_0);
 
-    mCurrentPath = std::filesystem::current_path();
 }
 
 DX12DeviceResourcesSingleton::~DX12DeviceResourcesSingleton()
@@ -38,8 +22,33 @@ DX12DeviceResourcesSingleton* DX12DeviceResourcesSingleton::GetDX12DeviceResourc
     return &gs_dx12_device_resources;
 }
 
-void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ coreWindow)
+void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ coreWindow,
+    DXGI_FORMAT backBufferFormat, 
+    DXGI_FORMAT depthBufferFormat, 
+    UINT backBufferCount, 
+    D3D_FEATURE_LEVEL minFeatureLevel, 
+    unsigned int flags)
 {
+    gs_dx12_device_resources.mCurrentPath = std::filesystem::current_path();
+    for (UINT i = 0; i < backBufferCount; i++)
+    {
+        gs_dx12_device_resources.mFenceValuesGraphics[i] = 0;
+    }
+
+    gs_dx12_device_resources.mFenceValuesGraphics2 = 0;
+    gs_dx12_device_resources.mFenceValuesCompute = 0;
+    gs_dx12_device_resources.mBackBufferFormat = backBufferFormat;
+    gs_dx12_device_resources.mDepthBufferFormat = depthBufferFormat;
+    gs_dx12_device_resources.mBackBufferCount = backBufferCount;
+    gs_dx12_device_resources.mD3DMinimumFeatureLevel = minFeatureLevel;
+    gs_dx12_device_resources.mD3DFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+    gs_dx12_device_resources.mRTVDescriptorSize = 0;
+    gs_dx12_device_resources.mDXGIFactoryFlags = 0;
+    gs_dx12_device_resources.mAppWindow = nullptr;
+    gs_dx12_device_resources.mScreenViewport = {};
+    gs_dx12_device_resources.mScissorRect = {};
+    gs_dx12_device_resources.mOutputSize = { 0, 0, 1, 1 };
+
     gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
     gs_dx12_device_resources.CreateWindowResources();
@@ -169,15 +178,14 @@ void DX12DeviceResourcesSingleton::CreateResources()
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < mBackBufferCount; n++)
         {
-            ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n][0].ReleaseAndGetAddressOf())));
-            ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n][1].ReleaseAndGetAddressOf())));
+            ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n].ReleaseAndGetAddressOf())));
+            //ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n][1].ReleaseAndGetAddressOf())));
         }
 
         // Create a command list for recording graphics commands.
-        ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0][0].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics[0].ReleaseAndGetAddressOf())));
-        ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0][1].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics[1].ReleaseAndGetAddressOf())));
-		ThrowIfFailed(mCommandListGraphics[1]->Close());
-
+        ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics.ReleaseAndGetAddressOf())));
+        //ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0][1].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics[1].ReleaseAndGetAddressOf())));
+        //ThrowIfFailed(mCommandListGraphics->Close());
     }
     // Create async compute data
     {
@@ -187,8 +195,10 @@ void DX12DeviceResourcesSingleton::CreateResources()
 
 		ThrowIfFailed(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(mCommandQueueCompute.ReleaseAndGetAddressOf())));
 
-		for (UINT n = 0; n < mBackBufferCount; n++)
-			ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(mCommandAllocatorsCompute[n].ReleaseAndGetAddressOf())));
+        for (UINT n = 0; n < mBackBufferCount; n++)
+        {
+            ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(mCommandAllocatorsCompute[n].ReleaseAndGetAddressOf())));
+        }
 
         ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, mCommandAllocatorsCompute[0].Get(), nullptr, IID_PPV_ARGS(mCommandListCompute.ReleaseAndGetAddressOf())));
 		ThrowIfFailed(mCommandListCompute->Close());
@@ -209,8 +219,8 @@ void DX12DeviceResourcesSingleton::CreateResources()
 // Close and flush command list after initialization 
 void DX12DeviceResourcesSingleton::FinalizeResources()
 {
-    ThrowIfFailed(mCommandListGraphics[0]->Close());
-    ID3D12CommandList* ppCommandLists[] = { mCommandListGraphics[0].Get() };
+    ThrowIfFailed(mCommandListGraphics->Close());
+    ID3D12CommandList* ppCommandLists[] = { mCommandListGraphics.Get() };
     mCommandQueueGraphics->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // Create a fence for tracking GPU execution progress.
@@ -223,15 +233,17 @@ void DX12DeviceResourcesSingleton::FinalizeResources()
     }
     mFenceGraphics->SetName(L"Graphics fence #1 (main)");
 
-	// Create a fence 2 for tracking GPU execution progress.
-	ThrowIfFailed(mDevice->CreateFence(mFenceValuesGraphics2, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFenceGraphics2.ReleaseAndGetAddressOf())));
-    mFenceValuesGraphics2++;
-	mFenceEventGraphics2.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-	if (!mFenceEventGraphics2.IsValid())
-	{
-		throw std::exception("CreateEvent");
-	}
-    mFenceGraphics2->SetName(L"Graphics fence #2");
+    WaitForGpu();
+
+	//// Create a fence 2 for tracking GPU execution progress.
+	//ThrowIfFailed(mDevice->CreateFence(mFenceValuesGraphics2, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFenceGraphics2.ReleaseAndGetAddressOf())));
+ //   mFenceValuesGraphics2++;
+	//mFenceEventGraphics2.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+	//if (!mFenceEventGraphics2.IsValid())
+	//{
+	//	throw std::exception("CreateEvent");
+	//}
+ //   mFenceGraphics2->SetName(L"Graphics fence #2");
 
 }
 
@@ -278,8 +290,8 @@ void DX12DeviceResourcesSingleton::CreateFullscreenQuadBuffers()
         vertexData.RowPitch = vertexBufferSize;
         vertexData.SlicePitch = vertexData.RowPitch;
 
-        UpdateSubresources<1>(mCommandListGraphics[0].Get(), mFullscreenQuadVertexBuffer.Get(), mFullscreenQuadVertexBufferUpload.Get(), 0, 0, 1, &vertexData);
-        mCommandListGraphics[0]->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mFullscreenQuadVertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+        UpdateSubresources<1>(mCommandListGraphics.Get(), mFullscreenQuadVertexBuffer.Get(), mFullscreenQuadVertexBufferUpload.Get(), 0, 0, 1, &vertexData);
+        mCommandListGraphics->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mFullscreenQuadVertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
         // Copy buffer - simple way with UPLOAD HEAP TYPE
         //UINT8* pVertexDataBegin;
@@ -303,14 +315,11 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
         throw std::exception("Call SetWindow with a valid Win32 window handle");
     }
 
-    // Wait until all previous GPU work is complete.
-    WaitForGpu();
 
     // Release resources that are tied to the swap chain and update fence values.
     for (UINT n = 0; n < mBackBufferCount; n++)
     {
         mRenderTargets[n].Reset();
-        mFenceValuesGraphics[n] = mFenceValuesGraphics[mBackBufferIndex];
     }
 
     // Determine the render target size in pixels.
@@ -463,7 +472,7 @@ bool DX12DeviceResourcesSingleton::WindowSizeChanged()
 
 void DX12DeviceResourcesSingleton::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
 {
-    ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
+    /*ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
     ThrowIfFailed(mCommandListGraphics[0]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][0].Get(), nullptr));
 
     if (!skipComputeQReset) 
@@ -473,7 +482,7 @@ void DX12DeviceResourcesSingleton::Prepare(D3D12_RESOURCE_STATES beforeState, bo
 
 		ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][1]->Reset());
 		ThrowIfFailed(mCommandListGraphics[1]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][1].Get(), nullptr));
-    }
+    }*/
 }
 
 void DX12DeviceResourcesSingleton::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
@@ -493,16 +502,15 @@ void DX12DeviceResourcesSingleton::Present(D3D12_RESOURCE_STATES beforeState, bo
         if (beforeState != D3D12_RESOURCE_STATE_PRESENT)
         {
             D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargets[mBackBufferIndex].Get(), beforeState, D3D12_RESOURCE_STATE_PRESENT);
-            mCommandListGraphics[0]->ResourceBarrier(1, &barrier);
+            mCommandListGraphics->ResourceBarrier(1, &barrier);
         }
 
-        ThrowIfFailed(mCommandListGraphics[0]->Close());
-        mCommandQueueGraphics->ExecuteCommandLists(1, CommandListCast(mCommandListGraphics[0].GetAddressOf()));
+        ThrowIfFailed(mCommandListGraphics->Close());
+        mCommandQueueGraphics->ExecuteCommandLists(1, CommandListCast(mCommandListGraphics.GetAddressOf()));
     }
 
     HRESULT hr;
     hr = mSwapChain->Present(1, 0);
-
     // If the device was reset we must completely reinitialize the renderer.
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {
@@ -547,11 +555,11 @@ void DX12DeviceResourcesSingleton::WaitForGraphicsFence2ToFinish(ID3D12CommandQu
     aQueue->Wait(mFenceGraphics2.Get(), (previousFrame) ? (mFenceValuesGraphics2 - 1) : mFenceValuesGraphics2);
 }
 
-void DX12DeviceResourcesSingleton::SignalGraphicsFence2()
+void DX12DeviceResourcesSingleton::SignalGraphicsFence()
 {
-	UINT64 fenceValue = mFenceValuesGraphics2;
-	mCommandQueueGraphics->Signal(mFenceGraphics2.Get(), fenceValue);
-	mFenceValuesGraphics2++;
+	UINT64 fenceValue = mFenceValuesGraphics[mBackBufferIndex];
+	mCommandQueueGraphics->Signal(mFenceGraphics.Get(), fenceValue);
+    mFenceValuesGraphics[mBackBufferIndex]++;
 }
 
 void DX12DeviceResourcesSingleton::WaitForGraphicsToFinish()
