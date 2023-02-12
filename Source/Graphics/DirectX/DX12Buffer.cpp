@@ -8,12 +8,12 @@
 DX12Buffer::DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
 	ID3D12GraphicsCommandList* _commandList, 
 	Description& description,
-	bool createPerFrameDuplicates,
+	UINT numberOfCopys,
 	LPCWSTR name)
 
 	: mDescription(description),
 	mCBVMappedData(nullptr),
-	contains_per_frame_duplicates(createPerFrameDuplicates)
+	number_of_copys(numberOfCopys)
 {
 	mBufferSize = mDescription.mNumElements * mDescription.mElementSize;
 
@@ -22,7 +22,7 @@ DX12Buffer::DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
 		mBufferSize = Align(mBufferSize, 256);
 	}
 
-	CreateResources(_descriptorHeapManager, _commandList, createPerFrameDuplicates);
+	CreateResources(_descriptorHeapManager, _commandList);
 
 	mBuffer->SetName(name);
 }
@@ -37,41 +37,10 @@ DX12Buffer::~DX12Buffer()
 	mCBVMappedData = nullptr;
 }
 
-void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
-	ID3D12GraphicsCommandList* _commandList,
-	bool createPerFrameDuplicates)
+void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList)
 {
 	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
-	D3D12_RESOURCE_DESC desc = {};
-	desc.Alignment = mDescription.mAlignment;
-	desc.DepthOrArraySize = 1;
-	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	desc.Flags = mDescription.mResourceFlags;
-	desc.Format = DXGI_FORMAT_UNKNOWN;
-	desc.Height = 1;
-	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	desc.MipLevels = 1;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Width = createPerFrameDuplicates ? (UINT64)(mBufferSize * DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount()) : (UINT64)mBufferSize;
-
-	D3D12_HEAP_PROPERTIES heapProperties;
-	heapProperties.Type = (mDescription.mDescriptorType & DescriptorType::CBV) ? D3D12_HEAP_TYPE_UPLOAD : mDescription.mHeapType;
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heapProperties.CreationNodeMask = 1;
-	heapProperties.VisibleNodeMask = 1;
-
-	ThrowIfFailed(
-		_d3dDevice->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&desc,
-			mDescription.mState,
-			nullptr,
-			IID_PPV_ARGS(&mBuffer)
-		)
-	);
+	
 
 	//if (p_data)
 	//{
@@ -97,8 +66,38 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 
 	if (mDescription.mDescriptorType & DescriptorType::SRV)
 	{
-		mDescriptorSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, createPerFrameDuplicates ? DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() : 1);
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = mDescription.mAlignment;
+		desc.DepthOrArraySize = 1;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Flags = mDescription.mResourceFlags;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.Height = 1;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.MipLevels = 1;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = (UINT64)(mBufferSize * number_of_copys);
 
+		D3D12_HEAP_PROPERTIES heapProperties;
+		heapProperties.Type = (mDescription.mDescriptorType & DescriptorType::CBV) ? D3D12_HEAP_TYPE_UPLOAD : mDescription.mHeapType;
+		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProperties.CreationNodeMask = 1;
+		heapProperties.VisibleNodeMask = 1;
+
+		ThrowIfFailed(
+			_d3dDevice->CreateCommittedResource(
+				&heapProperties,
+				D3D12_HEAP_FLAG_NONE,
+				&desc,
+				mDescription.mState,
+				nullptr,
+				IID_PPV_ARGS(&mBuffer)
+			)
+		);
+
+		mDescriptorSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
 		// Describe and create a SRV for the texture.
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 
@@ -133,58 +132,66 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 
 	if (mDescription.mDescriptorType & DescriptorType::CBV)
 	{
-		mDescriptorCBV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, createPerFrameDuplicates ? DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() : 1);
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
-		D3D12_GPU_VIRTUAL_ADDRESS resourceGPUAddress = mBuffer->GetGPUVirtualAddress();
-		auto descriptorIncrementSize = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		// Describe and create a constant buffer view.
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-		cbvDesc.SizeInBytes = mBufferSize; // CB size is required to be 256-byte aligned.
+		CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(number_of_copys * mBufferSize);
+		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&constantBufferDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&mBuffer)));
+
+		// Create constant buffer views to access the upload buffer.
+		D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = mBuffer->GetGPUVirtualAddress();
+		mDescriptorCBV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
 		for (int i = 0; i < mDescriptorCBV.GetBlockSize(); i++)
 		{
-			cbvDesc.BufferLocation = resourceGPUAddress;
-			_d3dDevice->CreateConstantBufferView(&cbvDesc, cpuDescriptorHandle);
-			cpuDescriptorHandle.ptr += descriptorIncrementSize;
-			resourceGPUAddress += cbvDesc.SizeInBytes;
+			D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
+			desc.BufferLocation = cbvGpuAddress;
+			desc.SizeInBytes = mBufferSize;
+			_d3dDevice->CreateConstantBufferView(&desc, cpuDescriptorHandle);
+
+			cbvGpuAddress += desc.SizeInBytes;
+			cpuDescriptorHandle.Offset(mDescriptorCBV.GetDescriptorSize());
 		}
+
+		
+		//D3D12_GPU_VIRTUAL_ADDRESS resourceGPUAddress = mBuffer->GetGPUVirtualAddress();
+		//auto descriptorIncrementSize = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		//// Describe and create a constant buffer view.
+		//D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+		//cbvDesc.SizeInBytes = mBufferSize; // CB size is required to be 256-byte aligned.
+		//for (int i = 0; i < mDescriptorCBV.GetBlockSize(); i++)
+		//{
+		//	cbvDesc.BufferLocation = resourceGPUAddress;
+		//	_d3dDevice->CreateConstantBufferView(&cbvDesc, cpuDescriptorHandle);
+		//	cpuDescriptorHandle.ptr += descriptorIncrementSize;
+		//	resourceGPUAddress += cbvDesc.SizeInBytes;
+		//}
 
 		CD3DX12_RANGE readRange(0, 0);
 		ThrowIfFailed(mBuffer->Map(0, &readRange, reinterpret_cast<void**>(&mCBVMappedData)));
 	}
 }
 
-unsigned char* DX12Buffer::GetMappedData()
+unsigned char* DX12Buffer::GetMappedData(UINT copyIndex)
 {
-	if (contains_per_frame_duplicates == true)
-	{
-		return mCBVMappedData + (DX12DeviceResourcesSingleton::mBackBufferIndex * mDescription.mElementSize);
-	}
-	else
-	{
-		return mCBVMappedData;
-	}
+
+	return mCBVMappedData + (copyIndex * mDescription.mElementSize);
 }
 
-CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetSRV()
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetSRV(UINT copyIndex)
 { 
-	if (contains_per_frame_duplicates == true)
-	{
-		return mDescriptorSRV.GetCPUHandle().Offset(DX12DeviceResourcesSingleton::mBackBufferIndex, mDescriptorSRV.GetDescriptorSize());
-	}
-	else
-	{
-		return mDescriptorSRV.GetCPUHandle();
-	}
+	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorSRV.GetCPUHandle();
+	cpuDescriptorHandle.Offset(copyIndex * mDescriptorSRV.GetDescriptorSize());
+	return cpuDescriptorHandle;
 }
 
-CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetCBV()
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetCBV(UINT copyIndex)
 { 
-	if (contains_per_frame_duplicates == true)
-	{
-		return mDescriptorCBV.GetCPUHandle().Offset(DX12DeviceResourcesSingleton::mBackBufferIndex, mDescriptorCBV.GetDescriptorSize());
-	}
-	else
-	{
-		return mDescriptorCBV.GetCPUHandle();
-	}
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
+	cpuDescriptorHandle.Offset(copyIndex * mDescriptorCBV.GetDescriptorSize());
+	return cpuDescriptorHandle;
 }

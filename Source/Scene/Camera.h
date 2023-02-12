@@ -35,7 +35,7 @@ class Camera
         void XM_CALLCONV Translate(DirectX::FXMVECTOR translation, Space space = Space::Local);
         //void Rotate(DirectX::FXMVECTOR quaternion);
         void UpdateBuffers();
-        DX12Buffer* GetCB() const { return p_constant_buffer; };
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV();
 
         struct ShaderStructureCPUCamera
         {
@@ -65,6 +65,7 @@ class Camera
         bool is_dirty_view_matrix;
         // True if the projection matrix needs to be updated.
         bool is_dirty_projection_matrix;
+        UINT8 most_updated_cbv_index;
 
         DX12Buffer* p_constant_buffer;
         static const UINT c_aligned_shader_structure_cpu_camera = (sizeof(ShaderStructureCPUCamera) + 255) & ~255;

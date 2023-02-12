@@ -27,6 +27,7 @@ void DX12DescriptorHandleBlock::Add(D3D12_CPU_DESCRIPTOR_HANDLE& sourceCPUHandle
 	unassigned_descriptor_block_index += 1;
 }
 
+
 //////////////////////////////////////////////
 ////////// DX12DescriptorHeapBase ////////////
 //////////////////////////////////////////////

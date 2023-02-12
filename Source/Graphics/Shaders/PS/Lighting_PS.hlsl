@@ -11,8 +11,9 @@ ConstantBuffer<ShaderStructureGPUCameraData> camera_data : register(b3);
 Texture2D<float4> albedoBuffer : register(t0);
 Texture2D<float4> normalBuffer : register(t1);
 Texture2D<float4> worldPosBuffer : register(t2);
-Texture2D<float> shadowBuffer : register(t3);
-Texture2D<float4> vctBuffer : register(t4);
+Texture2D<float4> vctBuffer : register(t3);
+Texture2D<float> shadowBuffer : register(t4);
+
 
 float CalculateShadow(float3 ShadowCoord)
 {

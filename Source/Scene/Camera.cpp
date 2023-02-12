@@ -9,9 +9,10 @@ Camera::Camera() :
     z_near(0.1f),
     z_far(100.0f),
     p_constant_buffer(nullptr),
-    is_initialized(false)
+    is_initialized(false),
+    rotation_local_space_quaternion(DirectX::XMQuaternionIdentity())
 {
-    
+    position_world_space = DirectX::XMVectorSet(0.0f, 0.0f, 0.0, 1.0f);
 }
 
 
@@ -25,10 +26,8 @@ Camera::~Camera()
 
 void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
 {
-    position_world_space = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-    rotation_local_space_quaternion = DirectX::XMQuaternionIdentity();
-
     DX12DeviceResourcesSingleton* _dx12DeviceResourcesSingleton = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+    most_updated_cbv_index = _dx12DeviceResourcesSingleton->GetBackBufferCount() - 1;
     DX12Buffer::Description constantBufferDescriptor;
     constantBufferDescriptor.mElementSize = c_aligned_shader_structure_cpu_camera;
     constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -36,9 +35,10 @@ void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
     p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
         _dx12DeviceResourcesSingleton->GetCommandListGraphics(),
         constantBufferDescriptor, 
-        true, // <- we need a copy of the constant buffer per frame
+        _dx12DeviceResourcesSingleton->GetBackBufferCount(), // <- we need a copy of the constant buffer per frame
         L"Camera Constant Buffer");
 
+    UpdateBuffers();
     is_initialized = true;
 }
 
@@ -57,8 +57,14 @@ void Camera::UpdateBuffers()
         UpdateViewMatrix();
     }
 
+    most_updated_cbv_index++;
+    if (most_updated_cbv_index == DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount())
+    {
+        most_updated_cbv_index = 0;
+    }
+
     DirectX::XMStoreFloat3(&shader_structure_cpu_camera_data.position_world_space, position_world_space);
-    memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_camera_data, sizeof(ShaderStructureCPUCamera));
+    memcpy(p_constant_buffer->GetMappedData(most_updated_cbv_index), &shader_structure_cpu_camera_data, sizeof(ShaderStructureCPUCamera));
 }
 
 //void XM_CALLCONV Camera::SetLookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up)
@@ -120,7 +126,7 @@ void XM_CALLCONV Camera::SetPositionWorldSpace(DirectX::XMVECTOR positionWorldSp
     is_dirty_view_matrix = true;
 }
 
-XMVECTOR Camera::GetPositionWorldSpace() const
+DirectX::XMVECTOR Camera::GetPositionWorldSpace() const
 {
     return position_world_space;
 }
@@ -166,9 +172,10 @@ void Camera::UpdateViewMatrix()
     XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(rotation_local_space_quaternion);
     //XMMATRIX inverseRotationMatrix = rotationMatrix; // We dont use the camera->worldSpace matrix
     rotationMatrix = DirectX::XMMatrixTranspose(rotationMatrix);
-    XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(-(position_world_space));
+    position_world_space = DirectX::XMVectorSetW(position_world_space, 1.0f);
+    XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(-position_world_space);
     //XMMATRIX inverseTranslationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space); // We dont use the camera->worldSpace matrix
-    view_matrix = DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix);
+    view_matrix = DirectX::XMMatrixMultiply(translationMatrix, rotationMatrix);
 
     DirectX::XMStoreFloat4x4(&shader_structure_cpu_camera_data.view_projection, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(view_matrix, projection_matrix)));
     is_dirty_view_matrix = false;
@@ -178,4 +185,10 @@ void Camera::UpdateProjectionMatrix()
 {
     projection_matrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(vertical_fov_degrees), aspect_ratio, z_near, z_far);
     is_dirty_projection_matrix = false;
+}
+
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE Camera::GetCBV()
+{
+    return p_constant_buffer->GetCBV(most_updated_cbv_index);
 }

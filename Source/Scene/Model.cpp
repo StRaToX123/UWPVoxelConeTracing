@@ -10,13 +10,17 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	float speed,
 	float amplitude)
 {
+	// We start we the last back buffer index, because the most_updated_cbv_index gets incremented first before
+	// representing a cbv slot which will get updated. This way the first time the most_updated_cbv_index gets incremented,
+	// it will loop around to 0, representing the 0'th backBuffer index
+	most_updated_cbv_index = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() - 1;
 	referenced_meshes = false;
 	position_world_space = positionWorldSpace;
 	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
-	mIsDynamic = isDynamic;
+	is_dynamic = isDynamic;
 	mSpeed = speed;
 	mAmplitude = amplitude;
-	mDiffuseColor = color;
+	shader_structure_cpu_model_data.diffuse_color = color;
 
 	DX12Buffer::Description desc;
 	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
@@ -26,7 +30,7 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
 		desc, 
-		true, // <- We want per frame copy of the models data
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(), // <- We want per frame copy of the models data
 		L"Model CB");
 	
 	UpdateBuffers();
@@ -41,14 +45,18 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	float speed, 
 	float amplitude)
 {
+	// We start we the last back buffer index, because the most_updated_cbv_index gets incremented first before
+	// representing a cbv slot which will get updated. This way the first time the most_updated_cbv_index gets incremented,
+	// it will loop around to 0, representing the 0'th backBuffer index
+	most_updated_cbv_index = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() - 1;
 	referenced_meshes = false;
 	mFilename = filename;
 	position_world_space = positionWorldSpace;
 	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
-	mIsDynamic = isDynamic;
+	is_dynamic = isDynamic;
 	mSpeed = speed;
 	mAmplitude = amplitude;
-	mDiffuseColor = color;
+	shader_structure_cpu_model_data.diffuse_color = color;
 
 	// Create the FBX SDK manager
 	FbxManager* pFbxManager = FbxManager::Create();
@@ -99,7 +107,7 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
 		desc,
-		true, // <- We want per frame copy of the models data
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(),
 		L"Model CB");
 
 	UpdateBuffers();
@@ -125,9 +133,14 @@ void Model::UpdateBuffers()
 {
 	XMMATRIX rotationMatrix = DirectX::XMMatrixRotationQuaternion(rotation_local_space_quaternion);
 	XMMATRIX translationMatrix = DirectX::XMMatrixTranslationFromVector(position_world_space);
-	DirectX::XMStoreFloat4x4(&shader_structure_cpu_model_data.model, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix)));
+	most_updated_cbv_index++;
+	if (most_updated_cbv_index == DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount())
+	{
+		most_updated_cbv_index = 0;
+	}
 
-	memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_model_data, sizeof(ShaderStructureCPUModelData));
+	DirectX::XMStoreFloat4x4(&shader_structure_cpu_model_data.model, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(rotationMatrix, translationMatrix)));
+	memcpy(p_constant_buffer->GetMappedData(most_updated_cbv_index), &shader_structure_cpu_model_data, sizeof(ShaderStructureCPUModelData));
 }
 
 bool Model::HasMeshes() const
@@ -206,4 +219,9 @@ Model& Model::operator=(const Model& rhs)
 	this->mFilename = rhs.mFilename;
 	referenced_meshes = true;
 	return *this;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE Model::GetCBV()
+{
+	return p_constant_buffer->GetCBV(most_updated_cbv_index);
 }

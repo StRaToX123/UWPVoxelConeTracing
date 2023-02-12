@@ -19,8 +19,8 @@ class Model
 {
 	__declspec(align(16)) struct ShaderStructureCPUModelData
 	{
-		XMFLOAT4X4	model;
-		XMFLOAT4	diffuse_color;
+		DirectX::XMFLOAT4X4	model;
+		DirectX::XMFLOAT4	diffuse_color;
 	};
 
 	public:
@@ -42,7 +42,7 @@ class Model
 		~Model();
 
 		void UpdateBuffers();
-		DX12Buffer* GetCB() { return p_constant_buffer; }
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV();
 		bool HasMeshes() const;
 		bool HasMaterials() const;
 
@@ -54,7 +54,7 @@ class Model
 		std::vector<XMFLOAT3> GenerateAABB();
 
 		XMFLOAT4 GetDiffuseColor() { return shader_structure_cpu_model_data.diffuse_color; }
-		bool GetIsDynamic() { return mIsDynamic; }
+		bool GetIsDynamic() { return is_dynamic; }
 		float GetSpeed() { return mSpeed; }
 		float GetAmplitude() { return mAmplitude; }
 
@@ -77,7 +77,8 @@ class Model
 		std::string mFilename;
 
 		XMFLOAT4 mDiffuseColor;
-		bool mIsDynamic;
+		bool is_dynamic;
+		UINT8 most_updated_cbv_index;
 		float mSpeed;
 		float mAmplitude;
 };

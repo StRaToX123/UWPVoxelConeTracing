@@ -86,15 +86,16 @@ class SceneRendererDirectLightingVoxelGIandAO
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
-			DX12DescriptorHandleBlock& shadowDepthDescriptorhandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
 			RenderQueue aQueue = GRAPHICS_QUEUE);
 		void RenderLighting(DX12DeviceResourcesSingleton* _deviceResources, 
 			ID3D12Device* device, 
 			ID3D12GraphicsCommandList* commandList,
 			DX12DescriptorHeapGPU* gpuDescriptorHeap,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
-			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock);
+			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
+			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock);
 		void RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
 			ID3D12Device* device, 
 			ID3D12GraphicsCommandList* commandList, 

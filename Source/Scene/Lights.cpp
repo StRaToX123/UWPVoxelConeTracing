@@ -25,6 +25,7 @@ void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapMana
 	float zFar,
 	bool isStatic)
 {
+	most_updated_cbv_index = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() - 1;
 	shader_structure_cpu_directional_light_data.color = color;
 	shader_structure_cpu_directional_light_data.intensity = intensity;
 	direction_world_space = directionWorldSpace;
@@ -39,7 +40,7 @@ void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapMana
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
 		constantBufferDescriptor, 
-		true, // <- We need per frame data for the light
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(), // <- We need per frame data for the light
 		L"Lighting Pass CB");
 	UpdateBuffers();
 }
@@ -61,5 +62,17 @@ void DirectionalLight::UpdateBuffers()
 	shader_structure_cpu_directional_light_data.inverse_direction_world_space.y = -direction_world_space.y;
 	shader_structure_cpu_directional_light_data.inverse_direction_world_space.z = -direction_world_space.z;
 	shader_structure_cpu_directional_light_data.inverse_direction_world_space.w = direction_world_space.w;
-	memcpy(p_constant_buffer->GetMappedData(), &shader_structure_cpu_directional_light_data, sizeof(ShaderStructureCPUDirectionalLight));
+
+	most_updated_cbv_index++;
+	if (most_updated_cbv_index == DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount())
+	{
+		most_updated_cbv_index = 0;
+	}
+
+	memcpy(p_constant_buffer->GetMappedData(most_updated_cbv_index), &shader_structure_cpu_directional_light_data, sizeof(ShaderStructureCPUDirectionalLight));
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DirectionalLight::GetCBV()
+{
+	return p_constant_buffer->GetCBV(most_updated_cbv_index);
 }

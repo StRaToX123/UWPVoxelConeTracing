@@ -48,21 +48,21 @@ class DX12Buffer
 		DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager, 
 			ID3D12GraphicsCommandList* _commandList, 
 			Description& description,
-			bool createPerFrameDuplicates = false,
+			UINT numberOfCopys = 1,
 			LPCWSTR name = nullptr);
 		DX12Buffer() {}
 		virtual ~DX12Buffer();
 
 		ID3D12Resource* GetResource() { return mBuffer.Get(); }
-		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV();
-		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV();
-		unsigned char* GetMappedData();
+		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV(UINT copyIndex = 0);
+		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV(UINT copyIndex = 0);
+		unsigned char* GetMappedData(UINT copyIndex = 0);
 
 	protected:
 		Description mDescription;
 
 		UINT mBufferSize;
-		unsigned char* mCBVMappedData;
+		UINT8* mCBVMappedData;
 
 		ComPtr<ID3D12Resource> mBuffer;
 		ComPtr<ID3D12Resource> mBufferUpload;
@@ -70,10 +70,9 @@ class DX12Buffer
 		DX12DescriptorHandleBlock mDescriptorCBV;
 		DX12DescriptorHandleBlock mDescriptorSRV;
 
-		bool contains_per_frame_duplicates;
+		UINT number_of_copys;
 
 		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
-			ID3D12GraphicsCommandList* _commandList,
-			bool createPerFrameDuplicates = false);
+			ID3D12GraphicsCommandList* _commandList);
 };
 

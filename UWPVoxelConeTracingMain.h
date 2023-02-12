@@ -42,9 +42,9 @@ class UWPVoxelConeTracingMain
 		float camera_controller_right;
 		float camera_controller_up;
 		float camera_controller_down;
-		float camera_controller_pitch;
+		float camera_controller_pitch; // X axis rotation
 		float camera_controller_pitch_limit;
-		float camera_controller_yaw;
+		float camera_controller_yaw; // Y axis rotation
 
 		SceneRendererDirectLightingVoxelGIandAO scene_renderer;
 

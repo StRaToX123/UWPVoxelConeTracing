@@ -4,34 +4,33 @@
 
 class DXRSDepthBuffer
 {
-public:
-	DXRSDepthBuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager, int width, int height, DXGI_FORMAT format);
-	~DXRSDepthBuffer();
+	public:
+		DXRSDepthBuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager, int width, int height, DXGI_FORMAT format);
 
-	ID3D12Resource* GetResource() { return mDepthStencilResource.Get(); }
-	DXGI_FORMAT GetFormat() { return mFormat; }
-	void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
+		ID3D12Resource* GetResource() { return mDepthStencilResource.Get(); }
+		DXGI_FORMAT GetFormat() { return mFormat; }
+		void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
 
-	DX12DescriptorHandleBlock GetDSV()
-	{
-		return mDescriptorDSV;
-	}
+		DX12DescriptorHandleBlock GetDSV()
+		{
+			return mDescriptorDSV;
+		}
 
-	DX12DescriptorHandleBlock& GetSRV()
-	{
-		return mDescriptorSRV;
-	}
+		DX12DescriptorHandleBlock& GetSRV()
+		{
+			return mDescriptorSRV;
+		}
 
-	const int GetWidth() { return mWidth; }
-	const int GetHeight() { return mHeight; }
+		const int GetWidth() { return mWidth; }
+		const int GetHeight() { return mHeight; }
 
-private:
+	private:
 
-	int mWidth, mHeight;
-	DXGI_FORMAT mFormat;
-	D3D12_RESOURCE_STATES mCurrentResourceState;
+		int mWidth, mHeight;
+		DXGI_FORMAT mFormat;
+		D3D12_RESOURCE_STATES mCurrentResourceState;
 
-	DX12DescriptorHandleBlock mDescriptorDSV;
-	DX12DescriptorHandleBlock mDescriptorSRV;
-	ComPtr<ID3D12Resource> mDepthStencilResource;
+		DX12DescriptorHandleBlock mDescriptorDSV;
+		DX12DescriptorHandleBlock mDescriptorSRV;
+		ComPtr<ID3D12Resource> mDepthStencilResource;
 };

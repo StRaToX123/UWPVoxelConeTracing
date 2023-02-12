@@ -105,7 +105,7 @@ float4 TraceCone(float3 pos, float3 normal, float3 direction, float aperture, ou
 float4 CalculateIndirectSpecular(float3 worldPos, float3 normal, float4 specular, uint voxelResolution)
 {
 	float4 result;
-	float3 viewDirection = normalize(camera_data.position_world_space.rgb - worldPos);
+	float3 viewDirection = normalize(camera_data.position_world_space - worldPos);
 	float3 coneDirection = normalize(reflect(-viewDirection, normal));
         
 	float aperture = clamp(tan(PI * 0.5 * (1.0f - /*specular.a*/0.9f)), specularOneDegree * specularMaxDegreesCount, PI);

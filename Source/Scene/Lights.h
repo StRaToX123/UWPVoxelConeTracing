@@ -24,7 +24,7 @@ class DirectionalLight
 			float zNear = -256.0f,
 			float zFar = 256.0f);
 		void UpdateBuffers();
-		DX12Buffer* GetCB() const { return p_constant_buffer; }
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV();
 
 		__declspec(align(16)) struct ShaderStructureCPUDirectionalLight
 		{
@@ -36,6 +36,7 @@ class DirectionalLight
 		};
 
 		bool is_static;
+		UINT8 most_updated_cbv_index;
 		DirectX::XMFLOAT4 position_world_space;
 		DirectX::XMFLOAT4 direction_world_space;
 		DirectX::XMMATRIX projection_matrix;
