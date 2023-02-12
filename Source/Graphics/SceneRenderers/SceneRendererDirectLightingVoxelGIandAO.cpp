@@ -18,6 +18,7 @@ SceneRendererDirectLightingVoxelGIandAO::SceneRendererDirectLightingVoxelGIandAO
 SceneRendererDirectLightingVoxelGIandAO::~SceneRendererDirectLightingVoxelGIandAO()
 {
 	delete mLightingCB;
+	delete mLightingRT;
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::CoreWindow^ coreWindow)
@@ -33,8 +34,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 
 	auto size = _deviceResources->GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);
-
-	#pragma region ImGui
 
 	//// Setup Dear ImGui context
 	//IMGUI_CHECKVERSION();
@@ -57,8 +56,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 
 	//ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mUIDescriptorHeap)));
 	//ImGui_ImplDX12_Init(device, 3, DXGI_FORMAT_R8G8B8A8_UNORM, mUIDescriptorHeap.Get(), mUIDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), mUIDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-	#pragma endregion
 
 	mDepthStencil = new DXRSDepthBuffer(device, &descriptor_heap_manager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, DXGI_FORMAT_D32_FLOAT);
 
@@ -152,7 +149,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	mBilinearSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	mBilinearSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	mBilinearSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	//bilinearSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_EQUAL;
 	mBilinearSampler.MipLODBias = 0;
 	mBilinearSampler.MaxAnisotropy = 16;
 	mBilinearSampler.MinLOD = 0.0f;
@@ -162,20 +158,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	mBilinearSampler.BorderColor[2] = 0.0f;
 	mBilinearSampler.BorderColor[3] = 0.0f;
 	#pragma endregion
-
-	//create upsample & blur buffer
-	/*DX12Buffer::Description cbDesc;
-	cbDesc.mElementSize = c_aligned_shader_structure_cpu_upsample_and_blur_data;
-	cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
-	cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-	mGIUpsampleAndBlurBuffer = new DX12Buffer(&descriptor_heap_manager, 
-		_deviceResources->GetCommandListGraphics(), 
-		cbDesc, 
-		true,
-		L"GI Upsample & Blur CB");
-	
-	shader_structure_cpu_upsample_and_blur_data.Upsample = mVCTMainRTUseUpsampleAndBlur;
-	memcpy(mGIUpsampleAndBlurBuffer->GetMappedData(), &ubData, sizeof(ubData));*/
 
 	InitGbuffer(device, &descriptor_heap_manager);
 	InitShadowMapping(device, &descriptor_heap_manager);
@@ -187,17 +169,8 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 
 
 void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera)
-{
-	/*if (mTimer.GetFrameCount() == 0)
-	{
-		return;
-	}*/
-	
+{	
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	/*if (mTimer.GetFrameCount() > 0)
-	{
-		_deviceResources->Prepare(D3D12_RESOURCE_STATE_PRESENT, mUseAsyncCompute ? (mTimer.GetFrameCount() == 1) : true);
-	}*/
 
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorGraphics()->Reset());
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorCompute()->Reset());
@@ -258,12 +231,9 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	memcpy(mVCTMainCB->GetMappedData(), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
 
 
-	//process graphics command list 1 - start of the frame (G-buffer, copies for async compute)
+	// Graphics command list
 	{
 		commandListGraphics->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		//FLOAT clearColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		//_deviceResources->TransitionMainRT(commandListGraphics, D3D12_RESOURCE_STATE_PRESENT);
-		//commandListGraphics->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), clearColor, 0, nullptr);
 		commandListGraphics->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 		RenderGbuffer(_deviceResources, device, commandListGraphics, gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, cameraDataDescriptorHandleBlock);
 		RenderShadowMapping(_deviceResources, device, commandListGraphics, gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, directionalLightDataDescriptorHeapBlock);
@@ -291,7 +261,7 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 		_deviceResources->SignalGraphicsFence();
 	}
 
-	// Process compute command list - async during the frame (GI)
+	// Compute command list
 	{
 		commandListCompute->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		RenderVoxelConeTracing(_deviceResources,
@@ -309,57 +279,45 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 		_deviceResources->PresentCompute(); //execute compute queue and signal graphics queue to continue its' execution
 	}
 
-	//// Process graphics command list 1 - end of the frame (Lighting, Composite, UI)
-	//{
-	//	// Submit the rest of the frame to graphics queue
+	// Submit the rest of the frame to graphics command list
+	{
 		commandListGraphics->Reset(_deviceResources->GetCommandAllocatorGraphics(), nullptr);
 		commandListGraphics->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-		/*_deviceResources->ResourceBarriersBegin(mBarriers);
-		mVCTMainRT->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[1]->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[2]->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		_deviceResources->ResourceBarriersEnd(mBarriers, commandListGraphics);*/
-
-		RenderLighting(_deviceResources, 
-			device, 
+		RenderLighting(_deviceResources,
+			device,
 			commandListGraphics,
-			gpuDescriptorHeap, 
-			directionalLightDataDescriptorHeapBlock, 
+			gpuDescriptorHeap,
+			directionalLightDataDescriptorHeapBlock,
 			cameraDataDescriptorHandleBlock,
 			shadowDepthDescriptorHandleBlock);
 		RenderComposite(_deviceResources, device, commandListGraphics, gpuDescriptorHeap);
 
-	//	//draw imgui 
-	//	PIXBeginEvent(commandListGraphics, 0, "ImGui");
-	//	{
-	//		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
-	//		{
-	//			 _deviceResources->GetRenderTargetView()
-	//		};
-	//		commandListGraphics->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
+		//	// Draw imgui 
+		//	{
+		//		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
+		//		{
+		//			 _deviceResources->GetRenderTargetView()
+		//		};
+		//		commandListGraphics->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
 
-	//		ID3D12DescriptorHeap* ppHeaps[] = { mUIDescriptorHeap.Get() };
-	//		commandListGraphics->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		//		ID3D12DescriptorHeap* ppHeaps[] = { mUIDescriptorHeap.Get() };
+		//		commandListGraphics->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
-	//		ImGui::Render();
-	//		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandListGraphics);
-	//	}
-	//	PIXEndEvent(commandListGraphics);
+		//		ImGui::Render();
+		//		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandListGraphics);
+		//	}
 
-		// We need to transition these resources here inside of the graphics command list,
-		// since the compute command list will not allow us to transition a resource 
-		// from a pixel shader resource state.
+			// We need to transition these resources here inside of the graphics command list,
+			// since the compute command list will not allow us to transition a resource 
+			// from a pixel shader resource state.
 		_deviceResources->ResourceBarriersBegin(mBarriers);
 		mVCTMainRT->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_COMMON);
 		mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandListGraphics, D3D12_RESOURCE_STATE_COMMON);
 		_deviceResources->ResourceBarriersEnd(mBarriers, commandListGraphics);
 
-		_deviceResources->WaitForComputeToFinish(); //wait for compute queue to finish the current frame
+		_deviceResources->WaitForComputeToFinish(); // Wait for compute queue to finish the current frame
 		_deviceResources->Present();
-		//mGraphicsMemory->Commit(_deviceResources->GetCommandQueueGraphics());
-	//}
+	}
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::UpdateImGui()
@@ -487,21 +445,6 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateImGui()
 	//}
 }
 
-//void DirectLightingVoxelGIandAOrenderer::UpdateLights(DXRSTimer const& timer)
-//{
-//	
-//		//mDirectionalLightDir[0] = sin(timer.GetTotalSeconds() * mDynamicDirectionalLightSpeed);
-//
-//	LightsInfoCBData lightData = {};
-//	lightData.LightColor = XMFLOAT4(mDirectionalLightColor[0], mDirectionalLightColor[1], mDirectionalLightColor[2], mDirectionalLightColor[3]);
-//	lightData.inverse_light_dir_world_space = XMFLOAT4(-mDirectionalLightDir[0], -mDirectionalLightDir[1], -mDirectionalLightDir[2], mDirectionalLightDir[3]);
-//	lightData.LightIntensity = mDirectionalLightIntensity;
-//
-//	memcpy(mLightsInfoCB->Map(), &lightData, sizeof(lightData));
-//}
-
-
-
 void SceneRendererDirectLightingVoxelGIandAO::OnWindowSizeChanged(Camera& camera)
 {
 	
@@ -540,7 +483,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	mGbufferRTs.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
 
-	// root signature
+	// Root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -600,7 +543,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 
-	//PIXBeginEvent(commandList, 0, "GBuffer");
 	{
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &rect);
@@ -636,11 +578,10 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 			scene[i]->Render(commandList);
 		}
 	}
-	//PIXEndEvent(commandList);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
-// create resources for shadow mapping
+// Create resources for shadow mapping
 {
 	mShadowDepth = new DXRSDepthBuffer(device, descriptorManager, SHADOWMAP_SIZE, SHADOWMAP_SIZE, DXGI_FORMAT_D32_FLOAT);
 
@@ -690,7 +631,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderShadowMapping(DX12DeviceReso
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 
-	//PIXBeginEvent(commandList, 0, "Shadows");
 	{
 		CD3DX12_VIEWPORT shadowMapViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, mShadowDepth->GetWidth(), mShadowDepth->GetHeight());
 		CD3DX12_RECT shadowRect = CD3DX12_RECT(0.0f, 0.0f, mShadowDepth->GetWidth(), mShadowDepth->GetHeight());
@@ -716,18 +656,17 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderShadowMapping(DX12DeviceReso
 			model->Render(commandList);
 		}
 
-		//reset back
+		// Reset back
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &rect);
 	}
-	//PIXEndEvent(commandList);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, 
 	ID3D12Device* device, 
 	DX12DescriptorHeapManager* descriptorManager)
 {
-	// voxelization
+	// Voxelization
 	{
 		viewport_voxel_cone_tracing_voxelization = CD3DX12_VIEWPORT(0.0f, 0.0f, VCT_SCENE_VOLUME_SIZE, VCT_SCENE_VOLUME_SIZE);
 		scissor_rect_voxel_cone_tracing_voxelization = CD3DX12_RECT(0.0f, 0.0f, VCT_SCENE_VOLUME_SIZE, VCT_SCENE_VOLUME_SIZE);
@@ -813,22 +752,16 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			cbDesc,
 			1,
 			L"VCT Voxelization Pass CB");
-
-		
-		/*float scale = 1.0f;
-		DirectX::XMStoreFloat4x4(&shader_structure_cpu_voxelization_data.voxel_grid_space , XMMatrixScaling(scale, scale, scale));
-		shader_structure_cpu_voxelization_data.voxel_scale = mWorldVoxelScale;
-		memcpy(mVCTVoxelizationCB->Map(), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));*/
 	}
 
-	//debug 
+	// Debug 
 	{
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 		mVCTVoxelizationDebugRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, format, flags, L"Voxelization Debug RT");
 
-		//create root signature
+		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -870,7 +803,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		delete[] pPixelShaderByteCode;
 	}
 
-	// aniso mipmapping prepare
+	// Aniso mipmapping prepare
 	{
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -917,7 +850,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			L"VCT aniso mip mapping CB");
 	}
 
-	// aniso mipmapping main
+	// Aniso mipmapping main
 	{
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -965,7 +898,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 	}
 
-	// main 
+	// Voxel cone tracing main 
 	{
 		DX12Buffer::Description cbDesc;
 		cbDesc.mElementSize = c_aligned_shader_structure_cpu_vct_main_data;
@@ -983,7 +916,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		mVCTMainRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH * mVCTRTRatio, MAX_SCREEN_HEIGHT * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-		//create root signature
+		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -1053,7 +986,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		}
 	}
 
-	// upsample and blur
+	// Upsample and blur
 	{
 		//RTs
 		mVCTMainUpsampleAndBlurRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
@@ -1104,7 +1037,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 
 	if (aQueue == GRAPHICS_QUEUE) 
 	{
-		//PIXBeginEvent(commandList, 0, "VCT Voxelization");
+		// Voxelizer
 		{
 			commandList->RSSetViewports(1, &viewport_voxel_cone_tracing_voxelization);
 			commandList->RSSetScissorRects(1, &scissor_rect_voxel_cone_tracing_voxelization);
@@ -1139,11 +1072,10 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 				model->Render(commandList);
 			}
 
-			// reset back
+			// Reset back
 			commandList->RSSetViewports(1, &viewport);
 			commandList->RSSetScissorRects(1, &rect);
 		}
-		//PIXEndEvent(commandList);
 
 		if (mVCTRenderDebug) 
 		{
@@ -1185,10 +1117,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 
 	if (aQueue == COMPUTE_QUEUE) 
 	{
-		/*DX12DescriptorHandleBlock vctVoxelizationRenderTargetDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
-		vctVoxelizationRenderTargetDescriptorHandleBlock.Add(mVCTVoxelization3DRT_CopyForAsync->GetSRV());*/
-
-		//PIXBeginEvent(commandList, 0, "VCT Mipmapping prepare CS");
+		// Anisotropic Prepare
 		{
 			commandList->SetPipelineState(mVCTAnisoMipmappingPreparePSO.GetPipelineStateObject());
 			commandList->SetComputeRootSignature(mVCTAnisoMipmappingPrepareRS.GetSignature());
@@ -1227,21 +1156,13 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 		
 			commandList->Dispatch(DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u), DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u), DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u));
 		}
-		//PIXEndEvent(commandList);
 
-		//PIXBeginEvent(commandList, 0, "VCT Mipmapping main CS");
+		// Anisotropic Main
 		{
 			commandList->SetPipelineState(mVCTAnisoMipmappingMainPSO.GetPipelineStateObject());
 			commandList->SetComputeRootSignature(mVCTAnisoMipmappingMainRS.GetSignature());
 
 			_deviceResources->ResourceBarriersBegin(mBarriers);
-			/*mVCTAnisoMipmappinPrepare3DRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinPrepare3DRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinPrepare3DRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinPrepare3DRTs[3]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinPrepare3DRTs[4]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinPrepare3DRTs[5]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);*/
-
 			mVCTAnisoMipmappinMain3DRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			mVCTAnisoMipmappinMain3DRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			mVCTAnisoMipmappinMain3DRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -1293,114 +1214,53 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 				mipDimension >>= 1;
 			}
 		}
-		//PIXEndEvent(commandList);
-
-		if (!mVCTUseMainCompute) 
+		
+		// Voxel cone tracing main
 		{
-			//PIXBeginEvent(commandList, 0, "VCT Main PS");
-			{
-				CD3DX12_VIEWPORT vctResViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, mVCTMainRT->GetWidth(), mVCTMainRT->GetHeight());
-				CD3DX12_RECT vctRect = CD3DX12_RECT(0.0f, 0.0f, mVCTMainRT->GetWidth(), mVCTMainRT->GetHeight());
-				commandList->RSSetViewports(1, &vctResViewport);
-				commandList->RSSetScissorRects(1, &vctRect);
+			commandList->SetPipelineState(mVCTMainPSO_Compute.GetPipelineStateObject());
+			commandList->SetComputeRootSignature(mVCTMainRS_Compute.GetSignature());
 
-				commandList->SetPipelineState(mVCTMainPSO.GetPipelineStateObject());
-				commandList->SetGraphicsRootSignature(mVCTMainRS.GetSignature());
+			_deviceResources->ResourceBarriersBegin(mBarriers);
+			mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			mVCTAnisoMipmappinMain3DRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			mVCTAnisoMipmappinMain3DRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			mVCTAnisoMipmappinMain3DRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			mVCTAnisoMipmappinMain3DRTs[3]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			mVCTAnisoMipmappinMain3DRTs[4]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			mVCTAnisoMipmappinMain3DRTs[5]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
-				_deviceResources->ResourceBarriersBegin(mBarriers);
-				mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
+			DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(1);
+			uavHandle.Add(mVCTMainRT->GetUAV());
 
-				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
-				{
-					 mVCTMainRT->GetRTV().GetCPUHandle()
-				};
+			DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(10);
+			srvHandle.Add(mGbufferRTs[0]->GetSRV());
+			srvHandle.Add(mGbufferRTs[1]->GetSRV());
+			srvHandle.Add(mGbufferRTs[2]->GetSRV());
 
-				commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
-				commandList->ClearRenderTargetView(rtvHandlesFinal[0], clearColorBlack, 0, nullptr);
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetSRV());
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetSRV());
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetSRV());
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetSRV());
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetSRV());
+			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetSRV());
+			srvHandle.Add(mVCTVoxelization3DRT->GetSRV());
 
-				DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(10);
-				srvHandle.Add(mGbufferRTs[0]->GetSRV());
-				srvHandle.Add(mGbufferRTs[1]->GetSRV());
-				srvHandle.Add(mGbufferRTs[2]->GetSRV());
+			DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
+			cbvHandle.Add(mVCTVoxelizationCB->GetCBV());
+			cbvHandle.Add(mVCTMainCB->GetCBV());
 
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetSRV());
-				srvHandle.Add(mVCTVoxelization3DRT->GetSRV());
+			commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
+			commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
+			commandList->SetComputeRootDescriptorTable(2, srvHandle.GetGPUHandle());
+			commandList->SetComputeRootDescriptorTable(3, uavHandle.GetGPUHandle());
 
-				DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
-				cbvHandle.Add(mVCTVoxelizationCB->GetCBV());
-				cbvHandle.Add(mVCTMainCB->GetCBV());
-				
-				commandList->SetGraphicsRootDescriptorTable(0, cbvHandle.GetGPUHandle());
-				commandList->SetGraphicsRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
-				commandList->SetGraphicsRootDescriptorTable(2, srvHandle.GetGPUHandle());
-
-				commandList->IASetVertexBuffers(0, 1, &_deviceResources->GetFullscreenQuadBufferView());
-				commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-				commandList->DrawInstanced(4, 1, 0, 0);
-
-				//reset back
-				commandList->RSSetViewports(1, &viewport);
-				commandList->RSSetScissorRects(1, &rect);
-			}
-			//PIXEndEvent(commandList);
+			commandList->Dispatch(DivideByMultiple(static_cast<UINT>(mVCTMainRT->GetWidth()), 8u), DivideByMultiple(static_cast<UINT>(mVCTMainRT->GetHeight()), 8u), 1u);
 		}
-		else 
-		{
-			//PIXBeginEvent(commandList, 0, "VCT Main CS");
-			{
-				commandList->SetPipelineState(mVCTMainPSO_Compute.GetPipelineStateObject());
-				commandList->SetComputeRootSignature(mVCTMainRS_Compute.GetSignature());
-
-				_deviceResources->ResourceBarriersBegin(mBarriers);
-				mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				mVCTAnisoMipmappinMain3DRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				mVCTAnisoMipmappinMain3DRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				mVCTAnisoMipmappinMain3DRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				mVCTAnisoMipmappinMain3DRTs[3]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				mVCTAnisoMipmappinMain3DRTs[4]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				mVCTAnisoMipmappinMain3DRTs[5]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
-
-				DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(1);
-				uavHandle.Add(mVCTMainRT->GetUAV());
-
-				DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(10);
-				srvHandle.Add(mGbufferRTs[0]->GetSRV());
-				srvHandle.Add(mGbufferRTs[1]->GetSRV());
-				srvHandle.Add(mGbufferRTs[2]->GetSRV());
-
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetSRV());
-				srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetSRV());
-				srvHandle.Add(mVCTVoxelization3DRT->GetSRV());
-
-				DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
-				cbvHandle.Add(mVCTVoxelizationCB->GetCBV());
-				cbvHandle.Add(mVCTMainCB->GetCBV());
-
-				commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
-				commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
-				commandList->SetComputeRootDescriptorTable(2, srvHandle.GetGPUHandle());
-				commandList->SetComputeRootDescriptorTable(3, uavHandle.GetGPUHandle());
-
-				commandList->Dispatch(DivideByMultiple(static_cast<UINT>(mVCTMainRT->GetWidth()), 8u), DivideByMultiple(static_cast<UINT>(mVCTMainRT->GetHeight()), 8u), 1u);
-			}
-			//PIXEndEvent(commandList);
-		}
-
-		// upsample and blur
+	
+		// Upsample and blur
 		if (mVCTMainRTUseUpsampleAndBlur) 
 		{
-			//PIXBeginEvent(commandList, 0, "VCT Main RT upsample & blur CS");
 			{
 				commandList->SetPipelineState(mVCTMainUpsampleAndBlurPSO.GetPipelineStateObject());
 				commandList->SetComputeRootSignature(mVCTMainUpsampleAndBlurRS.GetSignature());
@@ -1416,15 +1276,11 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 				DX12DescriptorHandleBlock uavHandleBlur = gpuDescriptorHeap->GetHandleBlock(1);
 				uavHandleBlur.Add(mVCTMainUpsampleAndBlurRT->GetUAV());
 
-				/*DX12DescriptorHandleBlock cbvHandleBlur = gpuDescriptorHeap->GetHandleBlock(1);
-				gpuDescriptorHeap->AddToHandle(device, cbvHandleBlur, mGIUpsampleAndBlurBuffer->GetCBV());*/
-
 				commandList->SetComputeRootDescriptorTable(0, srvHandleBlur.GetGPUHandle());
 				commandList->SetComputeRootDescriptorTable(1, uavHandleBlur.GetGPUHandle());
 
 				commandList->Dispatch(DivideByMultiple(static_cast<UINT>(mVCTMainUpsampleAndBlurRT->GetWidth()), 8u), DivideByMultiple(static_cast<UINT>(mVCTMainUpsampleAndBlurRT->GetHeight()), 8u), 1u);
 			}
-			//PIXEndEvent(commandList);
 		}
 	}
 }
@@ -1432,8 +1288,8 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
 {
 	//RTs
-	mLightingRTs.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
-		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting"));
+	mLightingRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
+		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting");
 
 	//create root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -1528,7 +1384,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 
-	//PIXBeginEvent(commandList, 0, "Lighting");
 	{
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &rect);
@@ -1538,11 +1393,11 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesLighting[] =
 		{
-			mLightingRTs[0]->GetRTV().GetCPUHandle()
+			mLightingRT->GetRTV().GetCPUHandle()
 		};
 
 		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mLightingRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		mGbufferRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -1586,7 +1441,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		commandList->DrawInstanced(4, 1, 0, 0);
 	}
-	//PIXEndEvent(commandList);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
@@ -1628,7 +1482,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 	ID3D12GraphicsCommandList* commandList, 
 	DX12DescriptorHeapGPU* gpuDescriptorHeap)
 {
-	//PIXBeginEvent(commandList, 0, "Composite");
 	{
 		commandList->SetPipelineState(mCompositePSO.GetPipelineStateObject());
 		commandList->SetGraphicsRootSignature(mCompositeRS.GetSignature());
@@ -1636,10 +1489,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 		_deviceResources->TransitionMainRT(commandList, D3D12_RESOURCE_STATE_PRESENT);
 
 		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mLightingRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		//mGbufferRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mShadowDepth->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		//mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
@@ -1650,14 +1500,11 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 		commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::Green, 0, nullptr);
 		
 		DX12DescriptorHandleBlock srvHandleComposite = gpuDescriptorHeap->GetHandleBlock(1);
-		srvHandleComposite.Add(mLightingRTs[0]->GetSRV());
-		//srvHandleComposite.Add(mGbufferRTs[2]->GetSRV());
-		//srvHandleComposite.Add(mVCTMainRT->GetSRV());
+		srvHandleComposite.Add(mLightingRT->GetSRV());
 		
 		commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
 		commandList->IASetVertexBuffers(0, 1, &_deviceResources->GetFullscreenQuadBufferView());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		commandList->DrawInstanced(4, 1, 0, 0);
 	}
-	//PIXEndEvent(commandList);
 }

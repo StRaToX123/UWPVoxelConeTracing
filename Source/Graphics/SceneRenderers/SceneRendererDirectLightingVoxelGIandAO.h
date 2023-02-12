@@ -198,7 +198,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 		// Lighting
 		RootSignature mLightingRS;
-		std::vector<DXRSRenderTarget*> mLightingRTs;
+		DXRSRenderTarget* mLightingRT;
 		GraphicsPSO mLightingPSO;
 		__declspec(align(16)) struct ShaderSTructureCPULightingData
 		{
