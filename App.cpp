@@ -113,7 +113,6 @@ void App::Load(Platform::String^ entryPoint)
 {
 	if (m_main == nullptr)
 	{
-		DisplayDebugMessage("@@@@@@@@@@@@@ Load !!!!\n");
 		m_main = std::unique_ptr<UWPVoxelConeTracingMain>(new UWPVoxelConeTracingMain(CoreWindow::GetForCurrentThread()));
 	}
 }
@@ -121,7 +120,6 @@ void App::Load(Platform::String^ entryPoint)
 // This method is called after the window becomes active.
 void App::Run()
 {
-	DisplayDebugMessage("@@@@@@@@@@@@@ Run !!!!\n");
 	while (!m_windowClosed)
 	{
 		if (m_windowVisible)
@@ -172,7 +170,6 @@ void App::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 	// Restore any data or state that was unloaded on suspend. By default, data
 	// and state are persisted when resuming from suspend. Note that this event
 	// does not occur if the app was previously terminated.
-
 	m_main->OnResuming();
 }
 
@@ -180,10 +177,8 @@ void App::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 
 void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
 {
-	//GetDeviceResources()->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
 	if (m_main.get() != nullptr)
 	{
-		DisplayDebugMessage("@@@@@@@@@@@@@ OnWindowSizeChanged !!!!\n");
 		m_main->OnWindowSizeChanged();
 	}
 }

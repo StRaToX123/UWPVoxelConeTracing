@@ -50,12 +50,11 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
 
     gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
-    DisplayDebugMessage("@@@@@@@@@@@@ Before CreateWindowResources\n");
-    gs_dx12_device_resources.CreateWindowResources(); 
-
     ThrowIfFailed(gs_dx12_device_resources.mCommandListGraphics->Close());
     ID3D12CommandList* ppCommandLists[] = { gs_dx12_device_resources.mCommandListGraphics.Get() };
     gs_dx12_device_resources.mCommandQueueGraphics->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    gs_dx12_device_resources.CreateWindowResources();
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -160,6 +159,7 @@ void DX12DeviceResourcesSingleton::CreateResources()
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
         ThrowIfFailed(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(mCommandQueueGraphics.ReleaseAndGetAddressOf())));
+        mCommandQueueGraphics->SetName(L"CommandQueueGraphics");
 
         D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc = {};
         rtvDescriptorHeapDesc.NumDescriptors = mBackBufferCount;
@@ -203,6 +203,7 @@ void DX12DeviceResourcesSingleton::CreateResources()
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
 		ThrowIfFailed(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(mCommandQueueCompute.ReleaseAndGetAddressOf())));
+        mCommandQueueCompute->SetName(L"CommandQueueCompute");
 
         for (UINT n = 0; n < mBackBufferCount; n++)
         {
@@ -286,7 +287,6 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
         throw std::exception("Call SetWindow with a valid Win32 window handle");
     }
 
-    DisplayDebugMessage("@@@@@@@@@@@@ Before WaitForGPU\n");
     WaitForGPU();
     // Release resources that are tied to the swap chain and update fence values.
     for (UINT n = 0; n < mBackBufferCount; n++)
@@ -423,7 +423,7 @@ void DX12DeviceResourcesSingleton::SetWindow(Windows::UI::Core::CoreWindow^ core
     mOutputSize.bottom = coreWindow->Bounds.Height;
 }
 
-bool DX12DeviceResourcesSingleton::WindowSizeChanged()
+bool DX12DeviceResourcesSingleton::OnWindowSizeChanged()
 {
     RECT newRc;
     newRc.left = newRc.top = 0;
@@ -543,8 +543,9 @@ void DX12DeviceResourcesSingleton::WaitForGPU()
             // Wait until the Signal has been processed.
             if (SUCCEEDED(mFenceGraphics->SetEventOnCompletion(fenceValue, mFenceEventGraphics.Get())))
             {
-                DisplayDebugMessage("@@@@@@@@@@@@ Before WaitForSingleObjectEx\n");
+                DisplayDebugMessage("@@@@@@@@@@@@ Starting Wait\n");
                 WaitForSingleObjectEx(mFenceEventGraphics.Get(), INFINITE, FALSE);
+                DisplayDebugMessage("@@@@@@@@@@@@ Finished Wait\n");
 
                 // Increment the fence value for the current frame.
                 mFenceValuesGraphics[mBackBufferIndex]++;
@@ -562,6 +563,7 @@ void DX12DeviceResourcesSingleton::WaitForGPU()
             // Wait until the Signal has been processed.
             if (SUCCEEDED(mFenceCompute->SetEventOnCompletion(fenceValue, mFenceEventCompute.Get())))
             {
+                DisplayDebugMessage("@@@@@@@@@@@@@\n Thread waiting is %d\n", GetCurrentThreadId());
                 WaitForSingleObjectEx(mFenceEventCompute.Get(), INFINITE, FALSE);
 
                 // Increment the fence value for the current frame.

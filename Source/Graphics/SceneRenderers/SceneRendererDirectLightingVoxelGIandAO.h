@@ -45,12 +45,9 @@ class SceneRendererDirectLightingVoxelGIandAO
 		~SceneRendererDirectLightingVoxelGIandAO();
 
 		void Initialize(Windows::UI::Core::CoreWindow^ coreWindow);
-	
-		void OnWindowSizeChanged(Camera& camera);
 		void Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera);
 	private:
 		void UpdateImGui();
-	
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);

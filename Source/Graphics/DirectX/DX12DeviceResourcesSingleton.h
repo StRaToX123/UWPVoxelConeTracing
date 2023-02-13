@@ -37,7 +37,7 @@ class DX12DeviceResourcesSingleton
         void CreateResources();
         void CreateWindowResources();
         void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
-        bool WindowSizeChanged();
+        bool OnWindowSizeChanged();
         void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET, bool needExecuteCmdList = true);
         void PresentCompute();
         void WaitForComputeToFinish();

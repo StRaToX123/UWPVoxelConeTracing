@@ -139,7 +139,6 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
 	#pragma endregion
 
-	DisplayDebugMessage("@@@@@@@@@@@@ Before OnWindowSizeChanged MAIN\n");
 	OnWindowSizeChanged();
 }
 
@@ -506,7 +505,7 @@ bool UWPVoxelConeTracingMain::Render()
 void UWPVoxelConeTracingMain::OnWindowSizeChanged()
 {
 	DX12DeviceResourcesSingleton* _dx12DeviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	if (!_dx12DeviceResources->WindowSizeChanged())
+	if (!_dx12DeviceResources->OnWindowSizeChanged())
 	{
 		return;
 	}
