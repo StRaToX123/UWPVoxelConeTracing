@@ -113,6 +113,7 @@ void App::Load(Platform::String^ entryPoint)
 {
 	if (m_main == nullptr)
 	{
+		DisplayDebugMessage("@@@@@@@@@@@@@ Load !!!!\n");
 		m_main = std::unique_ptr<UWPVoxelConeTracingMain>(new UWPVoxelConeTracingMain(CoreWindow::GetForCurrentThread()));
 	}
 }
@@ -120,6 +121,7 @@ void App::Load(Platform::String^ entryPoint)
 // This method is called after the window becomes active.
 void App::Run()
 {
+	DisplayDebugMessage("@@@@@@@@@@@@@ Run !!!!\n");
 	while (!m_windowClosed)
 	{
 		if (m_windowVisible)
@@ -181,6 +183,7 @@ void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ ar
 	//GetDeviceResources()->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
 	if (m_main.get() != nullptr)
 	{
+		DisplayDebugMessage("@@@@@@@@@@@@@ OnWindowSizeChanged !!!!\n");
 		m_main->OnWindowSizeChanged();
 	}
 }
@@ -282,33 +285,3 @@ void App::OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gam
 {
 	m_main->OnGamepadConnectedDisconnectedCallback();
 }
-
-/*
-std::shared_ptr<DX::DeviceResources> App::GetDeviceResources()
-{
-	if (m_deviceResources != nullptr && m_deviceResources->IsDeviceRemoved())
-	{
-		// All references to the existing D3D device must be released before a new device
-		// can be created.
-
-		m_deviceResources = nullptr;
-		m_main->OnDeviceRemoved();
-
-#if defined(_DEBUG)
-		ComPtr<IDXGIDebug1> dxgiDebug;
-		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
-		{
-			dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
-		}
-#endif
-	}
-
-	if (m_deviceResources == nullptr)
-	{
-		m_deviceResources = std::make_shared<DX::DeviceResources>();
-		m_deviceResources->SetWindow(CoreWindow::GetForCurrentThread());
-		m_main->CreateRenderers(m_deviceResources);
-	}
-	return m_deviceResources;
-}
-*/

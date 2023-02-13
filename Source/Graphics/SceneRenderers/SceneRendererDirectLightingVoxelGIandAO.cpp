@@ -141,8 +141,8 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 
 void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera)
 {	
+	DisplayDebugMessage("@@@@@@@@@@@@ RENDER\n");
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	DisplayDebugMessage("@@@@@@@@@@@@@ RENDER !!!!\n");
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorGraphics()->Reset());
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorCompute()->Reset());
 	

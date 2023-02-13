@@ -139,7 +139,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
 	#pragma endregion
 
-
+	DisplayDebugMessage("@@@@@@@@@@@@ Before OnWindowSizeChanged MAIN\n");
 	OnWindowSizeChanged();
 }
 

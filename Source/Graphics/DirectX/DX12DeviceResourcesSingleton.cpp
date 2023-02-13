@@ -35,7 +35,6 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
         gs_dx12_device_resources.mFenceValuesGraphics[i] = 0;
     }
 
-    DisplayDebugMessage("@@@@@@@@@@@@@ DX12DeviceResources Initialize !!!!\n");
     gs_dx12_device_resources.mFenceValuesCompute = 0;
     gs_dx12_device_resources.mBackBufferFormat = backBufferFormat;
     gs_dx12_device_resources.mDepthBufferFormat = depthBufferFormat;
@@ -51,8 +50,7 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
 
     gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
-    // We dont need to call CreateWindowResources here, it will get called via
-    // OnWindowSizeChanged callback, since that is called once by default when the App starts, before Run is called
+    DisplayDebugMessage("@@@@@@@@@@@@ Before CreateWindowResources\n");
     gs_dx12_device_resources.CreateWindowResources(); 
 
     ThrowIfFailed(gs_dx12_device_resources.mCommandListGraphics->Close());
@@ -288,6 +286,7 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
         throw std::exception("Call SetWindow with a valid Win32 window handle");
     }
 
+    DisplayDebugMessage("@@@@@@@@@@@@ Before WaitForGPU\n");
     WaitForGPU();
     // Release resources that are tied to the swap chain and update fence values.
     for (UINT n = 0; n < mBackBufferCount; n++)
@@ -544,7 +543,7 @@ void DX12DeviceResourcesSingleton::WaitForGPU()
             // Wait until the Signal has been processed.
             if (SUCCEEDED(mFenceGraphics->SetEventOnCompletion(fenceValue, mFenceEventGraphics.Get())))
             {
-                DisplayDebugMessage("@@@@@@@@@@@@@ WaitForSingleObjectEx !!!!\n");
+                DisplayDebugMessage("@@@@@@@@@@@@ Before WaitForSingleObjectEx\n");
                 WaitForSingleObjectEx(mFenceEventGraphics.Get(), INFINITE, FALSE);
 
                 // Increment the fence value for the current frame.
