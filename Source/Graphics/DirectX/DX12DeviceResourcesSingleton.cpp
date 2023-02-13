@@ -35,7 +35,6 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
         gs_dx12_device_resources.mFenceValuesGraphics[i] = 0;
     }
 
-    gs_dx12_device_resources.mFenceValuesGraphics2 = 0;
     gs_dx12_device_resources.mFenceValuesCompute = 0;
     gs_dx12_device_resources.mBackBufferFormat = backBufferFormat;
     gs_dx12_device_resources.mDepthBufferFormat = depthBufferFormat;
@@ -384,9 +383,9 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
         rtvDesc.Format = mBackBufferFormat;
         rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(
-            mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-            static_cast<INT>(n), mRTVDescriptorSize);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+            static_cast<INT>(n), 
+            mRTVDescriptorSize);
         mDevice->CreateRenderTargetView(mRenderTargets[n].Get(), &rtvDesc, rtvDescriptor);
     }
 
@@ -547,12 +546,6 @@ void DX12DeviceResourcesSingleton::WaitForComputeToFinish()
 		WaitForSingleObjectEx(mFenceEventCompute.Get(), INFINITE, FALSE);
 	}
 
-}
-
-void DX12DeviceResourcesSingleton::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
-{
-	assert(aQueue && mFenceGraphics2);
-    aQueue->Wait(mFenceGraphics2.Get(), (previousFrame) ? (mFenceValuesGraphics2 - 1) : mFenceValuesGraphics2);
 }
 
 void DX12DeviceResourcesSingleton::SignalGraphicsFence()

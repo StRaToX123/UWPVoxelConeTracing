@@ -1,15 +1,8 @@
 #include "Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h"
 
 
-
-namespace 
-{
-	D3D12_HEAP_PROPERTIES UploadHeapProps = { D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0 };
-	D3D12_HEAP_PROPERTIES DefaultHeapProps = { D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0 };
-
-	static const float clearColorBlack[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	static const float clearColorWhite[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-}
+static const float gs_clear_color_black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+static const float gs_clear_color_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 SceneRendererDirectLightingVoxelGIandAO::SceneRendererDirectLightingVoxelGIandAO()
 {
@@ -565,9 +558,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 		};
 
 		commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
-		commandList->ClearRenderTargetView(rtvHandles[0], clearColorBlack, 0, nullptr);
-		commandList->ClearRenderTargetView(rtvHandles[1], clearColorBlack, 0, nullptr);
-		commandList->ClearRenderTargetView(rtvHandles[2], clearColorBlack, 0, nullptr);
+		commandList->ClearRenderTargetView(rtvHandles[0], gs_clear_color_black, 0, nullptr);
+		commandList->ClearRenderTargetView(rtvHandles[1], gs_clear_color_black, 0, nullptr);
+		commandList->ClearRenderTargetView(rtvHandles[2], gs_clear_color_black, 0, nullptr);
 		
 		commandList->SetGraphicsRootDescriptorTable(0, cameraDataDescriptorHandleBlock.GetGPUHandle());
 		CD3DX12_GPU_DESCRIPTOR_HANDLE modelDataGPUdescriptorHandle = modelDataDescriptorHandleBlock.GetGPUHandle();
@@ -1055,7 +1048,12 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			vctVoxelizationRenderTargetDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
 			vctVoxelizationRenderTargetDescriptorHandleBlock.Add(mVCTVoxelization3DRT->GetUAV());
 			
-			commandList->ClearUnorderedAccessViewFloat(vctVoxelizationRenderTargetDescriptorHandleBlock.GetGPUHandle(), mVCTVoxelization3DRT->GetUAV().GetCPUHandle(), mVCTVoxelization3DRT->GetResource(), clearColorBlack, 0, nullptr);
+			commandList->ClearUnorderedAccessViewFloat(vctVoxelizationRenderTargetDescriptorHandleBlock.GetGPUHandle(), 
+				mVCTVoxelization3DRT->GetUAV().GetCPUHandle(), 
+				mVCTVoxelization3DRT->GetResource(), 
+				gs_clear_color_black, 
+				0, 
+				nullptr);
 
 			DX12DescriptorHandleBlock vctVoxelizationDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
 			vctVoxelizationDescriptorHandleBlock.Add(mVCTVoxelizationCB->GetCBV());
@@ -1407,7 +1405,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 		_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
 		commandList->OMSetRenderTargets(_countof(rtvHandlesLighting), rtvHandlesLighting, FALSE, nullptr);
-		commandList->ClearRenderTargetView(rtvHandlesLighting[0], clearColorWhite, 0, nullptr);
+		commandList->ClearRenderTargetView(rtvHandlesLighting[0], gs_clear_color_black, 0, nullptr);
 
 		DX12DescriptorHandleBlock cbvHandleLighting = gpuDescriptorHeap->GetHandleBlock(2);
 		cbvHandleLighting.Add(mLightingCB->GetCBV());
@@ -1497,7 +1495,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 			 _deviceResources->GetRenderTargetView()
 		};
 		commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
-		commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::Green, 0, nullptr);
+		commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
 		
 		DX12DescriptorHandleBlock srvHandleComposite = gpuDescriptorHeap->GetHandleBlock(1);
 		srvHandleComposite.Add(mLightingRT->GetSRV());

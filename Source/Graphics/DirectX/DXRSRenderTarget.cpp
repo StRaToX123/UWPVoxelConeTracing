@@ -7,7 +7,7 @@ DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, DX12DescriptorHeapManag
 	mDepth = depth;
 	mFormat = aFormat;
 
-	XMFLOAT4 clearColor = { 0, 0, 0, 1 };
+	XMFLOAT4 clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 	DXGI_FORMAT format = aFormat;
 
 	// Describe and create a Texture2D/3D

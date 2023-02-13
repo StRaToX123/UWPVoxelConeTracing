@@ -45,7 +45,6 @@ class DX12DeviceResourcesSingleton
         void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET, bool needExecuteCmdList = true);
         void PresentCompute();
         void WaitForComputeToFinish();
-        void WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame = false);
         void SignalGraphicsFence();
         void WaitForGraphicsToFinish();
         void WaitForGpu();
@@ -117,10 +116,6 @@ class DX12DeviceResourcesSingleton
         ComPtr<ID3D12Fence>                 mFenceGraphics;
         UINT64                              mFenceValuesGraphics[MAX_BACK_BUFFER_COUNT];
         Wrappers::Event                     mFenceEventGraphics;
-
-	    ComPtr<ID3D12Fence>                 mFenceGraphics2;
-	    UINT64                              mFenceValuesGraphics2;
-	    Wrappers::Event                     mFenceEventGraphics2;
 
 	    ComPtr<ID3D12Fence>                 mFenceCompute;
 	    UINT64                              mFenceValuesCompute;
