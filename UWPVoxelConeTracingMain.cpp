@@ -131,12 +131,24 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	directional_light.Initialize(&descriptor_heap_manager);
 	#pragma endregion
 
+	#pragma region Initialize imGUI
+	//ImGui::CreateContext(coreWindow);
+	//ImGui_ImplUWP_Init();
+	//ImGui_ImplDX12_Init(DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice(), 
+	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(),
+	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
+	#pragma endregion
+
+
 	OnWindowSizeChanged();
 }
 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
 {
-	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->WaitForGpu();
+	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->WaitForGPU();
+	//ImGui_ImplDX12_Shutdown();
+	//ImGui_ImplUWP_Shutdown();
+	//ImGui::DestroyContext();
 }
 
 bool UWPVoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)

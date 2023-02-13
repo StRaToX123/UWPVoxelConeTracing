@@ -8,7 +8,6 @@
 #include <wrl.h>
 #include <dxgi1_6.h>
 #include <Graphics\DirectX\d3dx12.h>
-#include "dxc\dxcapi.h" // <------------------ remove when deprecated dxcompiler
 
 #include <fstream>
 #include <sstream>
@@ -36,18 +35,15 @@ class DX12DeviceResourcesSingleton
             unsigned int flags = 0);
         static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
         void CreateResources();
-        void FinalizeResources();
         void CreateWindowResources();
-        void CreateFullscreenQuadBuffers();
         void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
         bool WindowSizeChanged();
-        void Prepare(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_PRESENT, bool skipComputeQReset = true);
         void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET, bool needExecuteCmdList = true);
         void PresentCompute();
         void WaitForComputeToFinish();
         void SignalGraphicsFence();
         void WaitForGraphicsToFinish();
-        void WaitForGpu();
+        void WaitForGPU();
         void TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState);
 
         ID3D12Device*               GetD3DDevice() const { return mDevice.Get(); }
@@ -85,8 +81,6 @@ class DX12DeviceResourcesSingleton
             if (num > 0)
                 commandList->ResourceBarrier(num, barriers.data());
         }
-
-        IDxcBlob* CompileShaderLibrary(LPCWSTR fileName);
 
         static const size_t                 MAX_BACK_BUFFER_COUNT = 3;
         static UINT                         mBackBufferIndex;

@@ -179,7 +179,10 @@ void App::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
 {
 	//GetDeviceResources()->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
-	m_main->OnWindowSizeChanged();
+	if (m_main.get() != nullptr)
+	{
+		m_main->OnWindowSizeChanged();
+	}
 }
 
 void App::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)

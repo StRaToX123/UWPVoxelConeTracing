@@ -28,28 +28,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	auto size = _deviceResources->GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);
 
-	//// Setup Dear ImGui context
-	//IMGUI_CHECKVERSION();
-	//ImGui::CreateContext();
-	//ImGuiIO& io = ImGui::GetIO(); (void)io;
-	////io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	////io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	//// Setup Dear ImGui style
-	//ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
-
-	//// Setup Platform/Renderer bindings
-	////ImGui_ImplWin32_Init(window);
-
-	//D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	//desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	//desc.NumDescriptors = 1;
-	//desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-	//ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mUIDescriptorHeap)));
-	//ImGui_ImplDX12_Init(device, 3, DXGI_FORMAT_R8G8B8A8_UNORM, mUIDescriptorHeap.Get(), mUIDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), mUIDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
 	mDepthStencil = new DXRSDepthBuffer(device, &descriptor_heap_manager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, DXGI_FORMAT_D32_FLOAT);
 
 	#pragma region States
@@ -164,7 +142,7 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera)
 {	
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-
+	DisplayDebugMessage("@@@@@@@@@@@@@ RENDER !!!!\n");
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorGraphics()->Reset());
 	ThrowIfFailed(_deviceResources->GetCommandAllocatorCompute()->Reset());
 	

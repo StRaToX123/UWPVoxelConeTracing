@@ -14,7 +14,7 @@ DX12DeviceResourcesSingleton::DX12DeviceResourcesSingleton()
 
 DX12DeviceResourcesSingleton::~DX12DeviceResourcesSingleton()
 {
-    WaitForGpu();
+    WaitForGPU();
 }
 
 DX12DeviceResourcesSingleton* DX12DeviceResourcesSingleton::GetDX12DeviceResources()
@@ -35,6 +35,7 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
         gs_dx12_device_resources.mFenceValuesGraphics[i] = 0;
     }
 
+    DisplayDebugMessage("@@@@@@@@@@@@@ DX12DeviceResources Initialize !!!!\n");
     gs_dx12_device_resources.mFenceValuesCompute = 0;
     gs_dx12_device_resources.mBackBufferFormat = backBufferFormat;
     gs_dx12_device_resources.mDepthBufferFormat = depthBufferFormat;
@@ -50,9 +51,13 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
 
     gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
-    gs_dx12_device_resources.CreateWindowResources();
-    gs_dx12_device_resources.CreateFullscreenQuadBuffers();
-    gs_dx12_device_resources.FinalizeResources();
+    // We dont need to call CreateWindowResources here, it will get called via
+    // OnWindowSizeChanged callback, since that is called once by default when the App starts, before Run is called
+    gs_dx12_device_resources.CreateWindowResources(); 
+
+    ThrowIfFailed(gs_dx12_device_resources.mCommandListGraphics->Close());
+    ID3D12CommandList* ppCommandLists[] = { gs_dx12_device_resources.mCommandListGraphics.Get() };
+    gs_dx12_device_resources.mCommandQueueGraphics->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -178,13 +183,20 @@ void DX12DeviceResourcesSingleton::CreateResources()
         for (UINT n = 0; n < mBackBufferCount; n++)
         {
             ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n].ReleaseAndGetAddressOf())));
-            //ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCommandAllocatorsGraphics[n][1].ReleaseAndGetAddressOf())));
         }
 
         // Create a command list for recording graphics commands.
         ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics.ReleaseAndGetAddressOf())));
-        //ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandAllocatorsGraphics[0][1].Get(), nullptr, IID_PPV_ARGS(mCommandListGraphics[1].ReleaseAndGetAddressOf())));
-        //ThrowIfFailed(mCommandListGraphics->Close());
+
+        // Create a fence for tracking GPU execution progress.
+        ThrowIfFailed(mDevice->CreateFence(mFenceValuesGraphics[mBackBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFenceGraphics.ReleaseAndGetAddressOf())));
+        mFenceValuesGraphics[mBackBufferIndex]++;
+        mFenceEventGraphics.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+        if (!mFenceEventGraphics.IsValid())
+        {
+            throw std::exception("CreateEvent");
+        }
+        mFenceGraphics->SetName(L"mFenceValuesGraphics");
     }
     // Create async compute data
     {
@@ -213,41 +225,7 @@ void DX12DeviceResourcesSingleton::CreateResources()
         mFenceCompute->SetName(L"Compute fence");
     }
 
-}
-
-// Close and flush command list after initialization 
-void DX12DeviceResourcesSingleton::FinalizeResources()
-{
-    ThrowIfFailed(mCommandListGraphics->Close());
-    ID3D12CommandList* ppCommandLists[] = { mCommandListGraphics.Get() };
-    mCommandQueueGraphics->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-    // Create a fence for tracking GPU execution progress.
-    ThrowIfFailed(mDevice->CreateFence(mFenceValuesGraphics[mBackBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFenceGraphics.ReleaseAndGetAddressOf())));
-    mFenceValuesGraphics[mBackBufferIndex]++;
-    mFenceEventGraphics.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-    if (!mFenceEventGraphics.IsValid())
-    {
-        throw std::exception("CreateEvent");
-    }
-    mFenceGraphics->SetName(L"Graphics fence #1 (main)");
-
-    WaitForGpu();
-
-	//// Create a fence 2 for tracking GPU execution progress.
-	//ThrowIfFailed(mDevice->CreateFence(mFenceValuesGraphics2, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(mFenceGraphics2.ReleaseAndGetAddressOf())));
- //   mFenceValuesGraphics2++;
-	//mFenceEventGraphics2.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-	//if (!mFenceEventGraphics2.IsValid())
-	//{
-	//	throw std::exception("CreateEvent");
-	//}
- //   mFenceGraphics2->SetName(L"Graphics fence #2");
-
-}
-
-void DX12DeviceResourcesSingleton::CreateFullscreenQuadBuffers()
-{
+    // Create full screen quad
     {
         struct FullscreenVertex
         {
@@ -258,10 +236,14 @@ void DX12DeviceResourcesSingleton::CreateFullscreenQuadBuffers()
         // Define the geometry for a fullscreen triangle.
         FullscreenVertex quadVertices[] =
         {
-            { { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },       // Bottom left.
-            { { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },        // Top left.
-            { { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },        // Bottom right.
-            { { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },         // Top right.
+            { { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },       // Bottom left.
+            { { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },        // Top left.
+            { { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },        // Bottom right.
+            { { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },         // Top right.
+            //{ { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },       // Bottom left.
+            //{ { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },        // Top left.
+            //{ { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },        // Bottom right.
+            //{ { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },         // Top right.
         };
 
         const UINT vertexBufferSize = sizeof(quadVertices);
@@ -292,14 +274,6 @@ void DX12DeviceResourcesSingleton::CreateFullscreenQuadBuffers()
         UpdateSubresources<1>(mCommandListGraphics.Get(), mFullscreenQuadVertexBuffer.Get(), mFullscreenQuadVertexBufferUpload.Get(), 0, 0, 1, &vertexData);
         mCommandListGraphics->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mFullscreenQuadVertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
-        // Copy buffer - simple way with UPLOAD HEAP TYPE
-        //UINT8* pVertexDataBegin;
-        //CD3DX12_RANGE readRange(0, 0);
-
-        //ThrowIfFailed(mFullscreenQuadVertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-        //memcpy(pVertexDataBegin, &quadVertices[0], vertexBufferSize);
-        //mFullscreenQuadVertexBuffer->Unmap(0, nullptr);
-
         // Initialize the vertex buffer view.
         mFullscreenQuadVertexBufferView.BufferLocation = mFullscreenQuadVertexBuffer->GetGPUVirtualAddress();
         mFullscreenQuadVertexBufferView.StrideInBytes = sizeof(FullscreenVertex);
@@ -314,7 +288,7 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
         throw std::exception("Call SetWindow with a valid Win32 window handle");
     }
 
-
+    WaitForGPU();
     // Release resources that are tied to the swap chain and update fence values.
     for (UINT n = 0; n < mBackBufferCount; n++)
     {
@@ -469,21 +443,6 @@ bool DX12DeviceResourcesSingleton::WindowSizeChanged()
     return true;
 }
 
-void DX12DeviceResourcesSingleton::Prepare(D3D12_RESOURCE_STATES beforeState, bool skipComputeQReset)
-{
-    /*ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][0]->Reset());
-    ThrowIfFailed(mCommandListGraphics[0]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][0].Get(), nullptr));
-
-    if (!skipComputeQReset) 
-    {
-        ThrowIfFailed(mCommandAllocatorsCompute[mBackBufferIndex]->Reset());
-        ThrowIfFailed(mCommandListCompute->Reset(mCommandAllocatorsCompute[mBackBufferIndex].Get(), nullptr));
-
-		ThrowIfFailed(mCommandAllocatorsGraphics[mBackBufferIndex][1]->Reset());
-		ThrowIfFailed(mCommandListGraphics[1]->Reset(mCommandAllocatorsGraphics[mBackBufferIndex][1].Get(), nullptr));
-    }*/
-}
-
 void DX12DeviceResourcesSingleton::TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState)
 {
 	if (beforeState != D3D12_RESOURCE_STATE_RENDER_TARGET)
@@ -573,8 +532,9 @@ void DX12DeviceResourcesSingleton::PresentCompute()
     mFenceValuesCompute++;
 }
 
-void DX12DeviceResourcesSingleton::WaitForGpu() 
+void DX12DeviceResourcesSingleton::WaitForGPU() 
 {
+    // Wait for graphics queue
     if (mCommandQueueGraphics && mFenceGraphics && mFenceEventGraphics.IsValid())
     {
         // Schedule a Signal command in the GPU queue.
@@ -584,10 +544,29 @@ void DX12DeviceResourcesSingleton::WaitForGpu()
             // Wait until the Signal has been processed.
             if (SUCCEEDED(mFenceGraphics->SetEventOnCompletion(fenceValue, mFenceEventGraphics.Get())))
             {
+                DisplayDebugMessage("@@@@@@@@@@@@@ WaitForSingleObjectEx !!!!\n");
                 WaitForSingleObjectEx(mFenceEventGraphics.Get(), INFINITE, FALSE);
 
                 // Increment the fence value for the current frame.
                 mFenceValuesGraphics[mBackBufferIndex]++;
+            }
+        }
+    }
+
+    // Wait for compute queue
+    if (mCommandQueueCompute && mFenceCompute && mFenceEventCompute.IsValid())
+    {
+        // Schedule a Signal command in the GPU queue.
+        UINT64 fenceValue = mFenceValuesCompute;
+        if (SUCCEEDED(mCommandQueueCompute->Signal(mFenceCompute.Get(), fenceValue)))
+        {
+            // Wait until the Signal has been processed.
+            if (SUCCEEDED(mFenceCompute->SetEventOnCompletion(fenceValue, mFenceEventCompute.Get())))
+            {
+                WaitForSingleObjectEx(mFenceEventCompute.Get(), INFINITE, FALSE);
+
+                // Increment the fence value for the current frame.
+                mFenceValuesCompute++;
             }
         }
     }
@@ -703,70 +682,3 @@ void DX12DeviceResourcesSingleton::GetAdapter(IDXGIAdapter1** ppAdapter)
 
     *ppAdapter = adapter.Detach();
 }
-
-// Compile a HLSL file into a DXIL library
-IDxcBlob* DX12DeviceResourcesSingleton::CompileShaderLibrary(LPCWSTR fileName)
-{
-    static IDxcCompiler* pCompiler = nullptr;
-    static IDxcLibrary* pLibrary = nullptr;
-    static IDxcIncludeHandler* dxcIncludeHandler;
-
-    HRESULT hr;
-
-    // Initialize the DXC compiler and compiler helper
-    if (!pCompiler)
-    {
-        ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void**)&pCompiler));
-        ThrowIfFailed(DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void**)&pLibrary));
-        ThrowIfFailed(pLibrary->CreateIncludeHandler(&dxcIncludeHandler));
-    }
-    // Open and read the file
-    std::ifstream shaderFile(fileName);
-    if (shaderFile.good() == false)
-    {
-        throw std::logic_error("Cannot find shader file");
-    }
-    std::stringstream strStream;
-    strStream << shaderFile.rdbuf();
-    std::string sShader = strStream.str();
-
-    // Create blob from the string
-    IDxcBlobEncoding* pTextBlob;
-    ThrowIfFailed(pLibrary->CreateBlobWithEncodingFromPinned(
-        (LPBYTE)sShader.c_str(), (uint32_t)sShader.size(), 0, &pTextBlob));
-
-    // Compile
-    IDxcOperationResult* pResult;
-    ThrowIfFailed(pCompiler->Compile(pTextBlob, fileName, L"", L"lib_6_3", nullptr, 0, nullptr, 0,
-        dxcIncludeHandler, &pResult));
-
-    // Verify the result
-    HRESULT resultCode;
-    ThrowIfFailed(pResult->GetStatus(&resultCode));
-    if (FAILED(resultCode))
-    {
-        IDxcBlobEncoding* pError;
-        hr = pResult->GetErrorBuffer(&pError);
-        if (FAILED(hr))
-        {
-            throw std::logic_error("Failed to get shader compiler error");
-        }
-
-        // Convert error blob to a string
-        std::vector<char> infoLog(pError->GetBufferSize() + 1);
-        memcpy(infoLog.data(), pError->GetBufferPointer(), pError->GetBufferSize());
-        infoLog[pError->GetBufferSize()] = 0;
-
-        std::string errorMsg = "Shader Compiler Error:\n";
-        errorMsg.append(infoLog.data());
-
-        //MessageBoxA(nullptr, errorMsg.c_str(), "Error!", MB_OK);
-        DisplayDebugMessage("@@@@@@@@@@@@@@@@@@@@\n %s \n @@@@@@@@@@@@@@@@@@@@\n", errorMsg.c_str());
-        throw std::logic_error("Failed compile shader");
-    }
-
-    IDxcBlob* pBlob;
-    ThrowIfFailed(pResult->GetResult(&pBlob));
-    return pBlob;
-}
-

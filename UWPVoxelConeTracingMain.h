@@ -1,9 +1,12 @@
 ﻿#pragma once
 
 #include <wrl.h>
-#include "Scene/Lights.h"
+#include "Scene\Lights.h"
 #include "Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h"
-#include "Utility/Debug/DebugMessage.h"
+#include "Utility\Debug\DebugMessage.h"
+#include "imgui.h"
+#include "imgui_impl_UWP.h"
+#include "imgui_impl_dx12.h"
 
 #define GAMEPAD_TRIGGER_THRESHOLD 0.2
 

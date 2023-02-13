@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 
-#include <d3dcompiler.h> // <------------------ remove when deprecated dxcompiler
-
 #include "Graphics\Shaders\ShaderGlobalsCPU.h"
 #include "Graphics\DirectX\DX12DeviceResourcesSingleton.h"
 #include "Graphics\DirectX\DXRSRenderTarget.h"
@@ -12,10 +10,6 @@
 #include "Graphics\DirectX\PipelineStateObject.h"
 #include "Graphics\DirectX\RaytracingPipelineGenerator.h"
 #include "Graphics\DirectX\ShaderBindingTableGenerator.h"
-
-#include "imgui.h"
-#include "imgui_impl_UWP.h"
-#include "imgui_impl_dx12.h"
 
 #include "Scene\Camera.h"
 #include "Scene\Model.h"
@@ -240,16 +234,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 		XMMATRIX mLightProj;
 		RootSignature mShadowMappingRS;
 		float mShadowIntensity = 0.5f;
-
-		// Upsample & Blur
-		/*__declspec(align(16)) struct ShaderStructureCPUUpsampleAndBlurData
-		{
-			bool Upsample;
-		};
-
-		ShaderStructureCPUUpsampleAndBlurData shader_structure_cpu_upsample_and_blur_data;
-		static const UINT c_aligned_shader_structure_cpu_upsample_and_blur_data = (sizeof(ShaderStructureCPUUpsampleAndBlurData) + 255) & ~255;
-		DX12Buffer* mGIUpsampleAndBlurBuffer;*/
 
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRW;
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRead;
