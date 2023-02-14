@@ -507,6 +507,8 @@ void DXRSGraphics::Present(D3D12_RESOURCE_STATES beforeState, bool needExecuteCm
 
 void DXRSGraphics::WaitForComputeToFinish()
 {
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForComputeToFinish START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
     assert(mCommandQueueGraphics && mFenceCompute/* && mFenceEventCompute.IsValid()*/);
 
 	UINT64 fenceValue = mFenceValuesCompute - 1;
@@ -521,29 +523,48 @@ void DXRSGraphics::WaitForComputeToFinish()
 		WaitForSingleObjectEx(mFenceEventCompute.Get(), INFINITE, FALSE);
 	}
 
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForComputeToFinish END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::WaitForGraphicsFence2ToFinish(ID3D12CommandQueue* aQueue, bool previousFrame)
 {
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsFence2ToFinish START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 	assert(aQueue && mFenceGraphics2);
     aQueue->Wait(mFenceGraphics2.Get(), (previousFrame) ? (mFenceValuesGraphics2 - 1) : mFenceValuesGraphics2);
+
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsFence2ToFinish END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::SignalGraphicsFence2()
 {
+    DisplayDebugMessage("@@@@@@@@@@@ SignalGraphicsFence2 START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 	UINT64 fenceValue = mFenceValuesGraphics2;
 	mCommandQueueGraphics->Signal(mFenceGraphics2.Get(), fenceValue);
 	mFenceValuesGraphics2++;
+
+    DisplayDebugMessage("@@@@@@@@@@@ SignalGraphicsFence2 END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::WaitForGraphicsToFinish()
 {
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsToFinish START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 	assert(mCommandQueueCompute && mFenceGraphics/* && mFenceEventCompute.IsValid()*/);
     mCommandQueueCompute->Wait(mFenceGraphics.Get(), mFenceValuesGraphics[mBackBufferIndex] - 1);
+
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsToFinish END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::PresentCompute()
 {
+    DisplayDebugMessage("@@@@@@@@@@@ PresentCompute START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
     mCommandListCompute->Close();
 
 	ID3D12CommandList* ppCommandLists[] = { mCommandListCompute.Get() };
@@ -552,10 +573,14 @@ void DXRSGraphics::PresentCompute()
 	UINT64 fenceValue = mFenceValuesCompute;
     mCommandQueueCompute->Signal(mFenceCompute.Get(), fenceValue);
     mFenceValuesCompute++;
+
+    DisplayDebugMessage("@@@@@@@@@@@ PresentCompute END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::WaitForGpu() 
 {
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGPU START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
     if (mCommandQueueGraphics && mFenceGraphics && mFenceEventGraphics.IsValid())
     {
         // Schedule a Signal command in the GPU queue.
@@ -572,10 +597,15 @@ void DXRSGraphics::WaitForGpu()
             }
         }
     }
+
+    DisplayDebugMessage("@@@@@@@@@@@ WaitForGPU END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
 }
 
 void DXRSGraphics::MoveToNextFrame()
 {
+    DisplayDebugMessage("@@@@@@@@@@@ MoveToNextFrame START mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+
     // Schedule a Signal command in the queue.
     const UINT64 currentFenceValue = mFenceValuesGraphics[mBackBufferIndex];
     ThrowIfFailed(mCommandQueueGraphics->Signal(mFenceGraphics.Get(), currentFenceValue));
@@ -592,6 +622,9 @@ void DXRSGraphics::MoveToNextFrame()
 
     // Set the fence value for the next frame.
     mFenceValuesGraphics[mBackBufferIndex] = currentFenceValue + 1;
+
+    DisplayDebugMessage("@@@@@@@@@@@ MoveToNextFrame END mFenceValuesGraphics[%d] = %d mFenceValuesGraphics2 = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesGraphics2, mFenceValuesCompute);
+    DisplayDebugMessage("////////////////////////////////////////\n////////////////////////////////////////\n");
 }
 
 void DXRSGraphics::GetAdapter(IDXGIAdapter1** ppAdapter)
