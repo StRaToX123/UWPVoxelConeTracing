@@ -494,16 +494,6 @@ void DX12DeviceResourcesSingleton::WaitForComputeToFinish()
 
 	UINT64 fenceValue = mFenceValuesCompute - 1;
     mCommandQueueGraphics->Wait(mFenceCompute.Get(), fenceValue);
-
-    UINT64 completedValue = mFenceCompute->GetCompletedValue();
-
-	// wait until it is ready.
-	if (completedValue < fenceValue)
-	{
-		ThrowIfFailed(mFenceCompute->SetEventOnCompletion(fenceValue, mFenceEventCompute.Get()));
-		WaitForSingleObjectEx(mFenceEventCompute.Get(), INFINITE, FALSE);
-	}
-
 }
 
 void DX12DeviceResourcesSingleton::SignalGraphicsFence()
