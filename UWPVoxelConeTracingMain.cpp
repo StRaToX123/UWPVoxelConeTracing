@@ -31,7 +31,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	camera_controller_down = 0.0f;
 	camera_controller_pitch = 0.0f;
 	camera_controller_pitch_limit = 89.99f;
-	camera_controller_yaw = 0.0f;
+	camera_controller_yaw = 180.0f;
 
 	auto size = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);

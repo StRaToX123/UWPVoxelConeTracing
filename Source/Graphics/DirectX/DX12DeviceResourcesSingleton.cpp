@@ -289,9 +289,14 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
 
     WaitForGPU();
     // Release resources that are tied to the swap chain and update fence values.
-    for (UINT n = 0; n < mBackBufferCount; n++)
+    for (UINT i = 0; i < mBackBufferCount; i++)
     {
-        mRenderTargets[n].Reset();
+        mRenderTargets[i].Reset();
+        // We have to reset all the back buffer fence values to the newest most unused value.
+        // That way no matter the value of the mBackBufferIndex at the moment of this function's execution
+        // once the mBackBufferIndex resets to 0 latter on in this function due to us reinitializing the swapchain,
+        // all the fence values will be ready to use the latest unused value.
+        mFenceValuesGraphics[i] = mFenceValuesGraphics[mBackBufferIndex];
     }
 
     // Determine the render target size in pixels.
@@ -490,44 +495,27 @@ void DX12DeviceResourcesSingleton::Present(D3D12_RESOURCE_STATES beforeState, bo
 
 void DX12DeviceResourcesSingleton::WaitForComputeToFinish()
 {
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForComputeToFinish START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
     assert(mCommandQueueGraphics && mFenceCompute/* && mFenceEventCompute.IsValid()*/);
 
 	UINT64 fenceValue = mFenceValuesCompute - 1;
     mCommandQueueGraphics->Wait(mFenceCompute.Get(), fenceValue);
-
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForComputeToFinish END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 }
 
 void DX12DeviceResourcesSingleton::SignalGraphicsFence()
 {
-    DisplayDebugMessage("@@@@@@@@@@@ SignalGraphicsFence START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 	UINT64 fenceValue = mFenceValuesGraphics[mBackBufferIndex];
 	mCommandQueueGraphics->Signal(mFenceGraphics.Get(), fenceValue);
     mFenceValuesGraphics[mBackBufferIndex]++;
-
-    DisplayDebugMessage("@@@@@@@@@@@ SignalGraphicsFence END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 }
 
 void DX12DeviceResourcesSingleton::WaitForGraphicsToFinish()
 {
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsToFinish START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 	assert(mCommandQueueCompute && mFenceGraphics/* && mFenceEventCompute.IsValid()*/);
     mCommandQueueCompute->Wait(mFenceGraphics.Get(), mFenceValuesGraphics[mBackBufferIndex] - 1);
-
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForGraphicsToFinish END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 }
 
 void DX12DeviceResourcesSingleton::PresentCompute()
 {
-    DisplayDebugMessage("@@@@@@@@@@@ PresentCompute START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
     mCommandListCompute->Close();
 
 	ID3D12CommandList* ppCommandLists[] = { mCommandListCompute.Get() };
@@ -536,14 +524,10 @@ void DX12DeviceResourcesSingleton::PresentCompute()
 	UINT64 fenceValue = mFenceValuesCompute;
     mCommandQueueCompute->Signal(mFenceCompute.Get(), fenceValue);
     mFenceValuesCompute++;
-    DisplayDebugMessage("@@@@@@@@@@@ PresentCompute END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
 }
 
 void DX12DeviceResourcesSingleton::WaitForGPU() 
 {
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForGPU START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
     // Wait for graphics queue
     if (mCommandQueueGraphics && mFenceGraphics && mFenceEventGraphics.IsValid())
     {
@@ -578,14 +562,10 @@ void DX12DeviceResourcesSingleton::WaitForGPU()
             }
         }
     }
-
-    DisplayDebugMessage("@@@@@@@@@@@ WaitForGPU END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
 }
 
 void DX12DeviceResourcesSingleton::MoveToNextFrame()
 {
-    DisplayDebugMessage("@@@@@@@@@@@ MoveToNextFrame START mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-
     // Schedule a Signal command in the queue.
     const UINT64 currentFenceValue = mFenceValuesGraphics[mBackBufferIndex];
     ThrowIfFailed(mCommandQueueGraphics->Signal(mFenceGraphics.Get(), currentFenceValue));
@@ -602,9 +582,6 @@ void DX12DeviceResourcesSingleton::MoveToNextFrame()
 
     // Set the fence value for the next frame.
     mFenceValuesGraphics[mBackBufferIndex] = currentFenceValue + 1;
-
-    DisplayDebugMessage("@@@@@@@@@@@ MoveToNextFrame END mFenceValuesGraphics[%d] = %d mfenceValuesCompute = %d\n", mBackBufferIndex, mFenceValuesGraphics[mBackBufferIndex], mFenceValuesCompute);
-    DisplayDebugMessage("//////////////////////////////////////\n//////////////////////////////////////\n");
 }
 
 void DX12DeviceResourcesSingleton::GetAdapter(IDXGIAdapter1** ppAdapter)
