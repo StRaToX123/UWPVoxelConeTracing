@@ -106,7 +106,7 @@ class DX12DescriptorHeapManager
 
 		DX12DescriptorHeapGPU* GetGPUHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType)
 		{
-			return mGPUDescriptorHeaps[DX12DeviceResourcesSingleton::mBackBufferIndex][heapType];
+			return mGPUDescriptorHeaps[DX12DeviceResourcesSingleton::back_buffer_index][heapType];
 		}
 
 	private:

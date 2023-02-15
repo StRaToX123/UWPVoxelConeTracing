@@ -17,6 +17,22 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	show_imGui = true;
 
 	DX12DeviceResourcesSingleton::Initialize(coreWindow);
+
+	#pragma region Initialize Command Allocators And Lists
+	{
+		DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+		ID3D12Device* _d3dDevice = _deviceResources->GetD3DDevice();
+		// Create a command allocator for each back buffer that will be rendered to.
+		for (UINT i = 0; i < _deviceResources->GetBackBufferCount(); i++)
+		{
+			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocators_direct[i].ReleaseAndGetAddressOf())));
+		}
+
+		// Create a command list for recording graphics commands.
+		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators_direct[0].Get(), nullptr, IID_PPV_ARGS(command_list_direct.ReleaseAndGetAddressOf())));
+	}
+	#pragma endregion
+
 	descriptor_heap_manager.Initialize();
 	scene_renderer.Initialize(coreWindow);
 
@@ -132,11 +148,11 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	#pragma endregion
 
 	#pragma region Initialize imGUI
-	//ImGui::CreateContext(coreWindow);
-	//ImGui_ImplUWP_Init();
-	//ImGui_ImplDX12_Init(DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice(), 
-	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(),
-	//	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
+	ImGui::CreateContext(coreWindow);
+	ImGui_ImplUWP_Init();
+	ImGui_ImplDX12_Init(DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice(), 
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(),
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
 	#pragma endregion
 
 	OnWindowSizeChanged();
@@ -145,9 +161,9 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
 {
 	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->WaitForGPU();
-	//ImGui_ImplDX12_Shutdown();
-	//ImGui_ImplUWP_Shutdown();
-	//ImGui::DestroyContext();
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplUWP_Shutdown();
+	ImGui::DestroyContext();
 }
 
 bool UWPVoxelConeTracingMain::HandleKeyboardInput(Windows::System::VirtualKey vk, bool down)
@@ -494,10 +510,39 @@ void UWPVoxelConeTracingMain::Update()
 }
 
 // Renders the current frame according to the current application state.
-// Returns true if the frame was rendered and is ready to be displayed.
+// Returns true if the frame was rendered and is ready to be displayed
 bool UWPVoxelConeTracingMain::Render()
 {
 	scene_renderer.Render(scene, directional_light, timer, camera);
+	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	auto _commandListDirect = _deviceResources->GetCommandListDirect();
+	if (show_imGui == true)
+	{
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplUWP_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::ShowDemoWindow();
+
+		ImGui::Render();
+		
+		// Render out imGUI
+		_commandListDirect->RSSetViewports(1, &_deviceResources->GetScreenViewport());
+		_commandListDirect->RSSetScissorRects(1, &_deviceResources->GetScissorRect());
+		// Bind the render target and depth buffer
+		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = _deviceResources->GetRenderTargetView();
+		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = _deviceResources->GetDepthStencilView();
+		_commandListDirect->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
+		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
+		_commandListDirect->SetDescriptorHeaps(1, imGuiHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _commandListDirect);
+		
+	}
+
+	_commandListDirect->Close();
+	ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
+	_deviceResources->GetCommandQueueDirect()->ExecuteCommandLists(1, __commandListsDirect);
+	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->Present();
 	return true;
 }
 

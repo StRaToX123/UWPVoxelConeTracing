@@ -28,7 +28,7 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
-		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListDirect(), 
 		desc, 
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(), // <- We want per frame copy of the models data
 		L"Model CB");
@@ -105,7 +105,7 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
-		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListDirect(), 
 		desc,
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(),
 		L"Model CB");

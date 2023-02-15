@@ -33,6 +33,11 @@ class UWPVoxelConeTracingMain
 		void OnGamepadConnectedDisconnectedCallback();
 
 	private:
+		ComPtr<ID3D12GraphicsCommandList>   command_list_compute;
+		ComPtr<ID3D12CommandAllocator> command_allocators_compute[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+		ComPtr<ID3D12GraphicsCommandList> command_list_direct;
+		ComPtr<ID3D12CommandAllocator> command_allocators_direct[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+
 		Windows::UI::Core::CoreWindow^ core_window;
 		DXRSTimer timer;
 		Windows::Gaming::Input::Gamepad^ gamepad;

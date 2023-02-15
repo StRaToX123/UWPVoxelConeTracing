@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <filesystem>
+#include <deque>
 
 #define MAX_SCREEN_WIDTH 1920
 #define MAX_SCREEN_HEIGHT 1080
@@ -34,43 +35,32 @@ class DX12DeviceResourcesSingleton
             D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, 
             unsigned int flags = 0);
         static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
-        void CreateResources();
+        void CreateResources(ID3D12GraphicsCommandList* _commandListDirect);
         void CreateWindowResources();
         void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
         bool OnWindowSizeChanged();
-        void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET, bool needExecuteCmdList = true);
-        void PresentCompute();
-        void WaitForComputeToFinish();
-        void SignalGraphicsFence();
-        void WaitForGraphicsToFinish();
+        void Present();
         void WaitForGPU();
-        void TransitionMainRT(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES beforeState);
+        void ExecuteCommandLists(ID3D12CommandList* __commandLists[], UINT commandListArraySize, D3D12_COMMAND_LIST_TYPE commandListType);
 
         ID3D12Device*               GetD3DDevice() const { return mDevice.Get(); }
         ID3D12Device5*              GetDXRDevice() const { return (ID3D12Device5*)(mDevice.Get());}
         IDXGISwapChain3*            GetSwapChain() const { return mSwapChain.Get(); }
         IDXGIFactory4*              GetDXGIFactory() const { return mDXGIFactory.Get(); }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return mD3DFeatureLevel; }
-    
-        ID3D12CommandQueue*         GetCommandQueueGraphics() const { return mCommandQueueGraphics.Get(); }
-        ID3D12CommandAllocator*     GetCommandAllocatorGraphics() const { return mCommandAllocatorsGraphics[mBackBufferIndex].Get(); }
-        ID3D12GraphicsCommandList*  GetCommandListGraphics() const { return mCommandListGraphics.Get(); }
-
-	    ID3D12CommandQueue*         GetCommandQueueCompute() const { return mCommandQueueCompute.Get(); }
-	    ID3D12CommandAllocator*     GetCommandAllocatorCompute() const { return mCommandAllocatorsCompute[mBackBufferIndex].Get(); }
-	    ID3D12GraphicsCommandList*  GetCommandListCompute() const { return mCommandListCompute.Get(); }
-   
+        ID3D12CommandQueue*         GetCommandQueueDirect() const { return command_queue_direct.Get(); }
+        ID3D12CommandQueue*         GetCommandQueueCompute() const { return command_queue_compute.Get(); }
         DXGI_FORMAT                 GetBackBufferFormat() const { return mBackBufferFormat; }
         DXGI_FORMAT                 GetDepthBufferFormat() const { return mDepthBufferFormat; }
         D3D12_VIEWPORT              GetScreenViewport() const { return mScreenViewport; }
         D3D12_RECT                  GetScissorRect() const { return mScissorRect; }
-        UINT                        GetCurrentFrameIndex() const { return mBackBufferIndex; }
+        UINT                        GetCurrentFrameIndex() const { return back_buffer_index; }
         UINT                        GetBackBufferCount() const { return mBackBufferCount; }
         RECT                        GetOutputSize() const { return mOutputSize; }
 
-        ID3D12Resource*             GetRenderTarget() const { return mRenderTargets[mBackBufferIndex].Get(); }
+        ID3D12Resource*             GetRenderTarget() const { return mRenderTargets[back_buffer_index].Get(); }
         ID3D12Resource*             GetDepthStencil() const { return mDepthStencilTarget.Get(); }
-        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(mBackBufferIndex), mRTVDescriptorSize); }
+        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(back_buffer_index), mRTVDescriptorSize); }
         inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart()); }
 
         D3D12_VERTEX_BUFFER_VIEW& GetFullscreenQuadBufferView() { return mFullscreenQuadVertexBufferView; }
@@ -83,7 +73,7 @@ class DX12DeviceResourcesSingleton
         }
 
         static const size_t                 MAX_BACK_BUFFER_COUNT = 3;
-        static UINT                         mBackBufferIndex;
+        static UINT                         back_buffer_index;
 
         bool IsRaytracingSupported() { return mRaytracingTierAvailable; }
         Platform::Agile<Windows::UI::Core::CoreWindow> mAppWindow;
@@ -99,23 +89,17 @@ class DX12DeviceResourcesSingleton
         ComPtr<IDXGISwapChain3>             mSwapChain;
         ComPtr<ID3D12Device>                mDevice;
 
-        ComPtr<ID3D12CommandQueue>          mCommandQueueGraphics;
-        ComPtr<ID3D12GraphicsCommandList>   mCommandListGraphics;
-        ComPtr<ID3D12CommandAllocator>      mCommandAllocatorsGraphics[MAX_BACK_BUFFER_COUNT];
-
-	    ComPtr<ID3D12CommandQueue>          mCommandQueueCompute;
-	    ComPtr<ID3D12GraphicsCommandList>   mCommandListCompute;
-	    ComPtr<ID3D12CommandAllocator>      mCommandAllocatorsCompute[MAX_BACK_BUFFER_COUNT];
-
-        ComPtr<ID3D12Fence>                 mFenceGraphics;
-        UINT64                              mFenceValuesGraphics[MAX_BACK_BUFFER_COUNT];
-        Wrappers::Event                     mFenceEventGraphics;
-
-	    ComPtr<ID3D12Fence>                 mFenceCompute;
-	    UINT64                              mFenceValuesCompute;
-	    Wrappers::Event                     mFenceEventCompute;
+        ComPtr<ID3D12CommandQueue>          command_queue_direct;
+	    ComPtr<ID3D12CommandQueue>          command_queue_compute;
+	   
+        Wrappers::Event                     fence_event;
+        ComPtr<ID3D12Fence>                 fence_direct;
+        ComPtr<ID3D12Fence>                 fence_compute;
+        UINT64                              fence_unused_values_direct_queue[MAX_BACK_BUFFER_COUNT];
+	    UINT64                              fence_unused_value_compute_queue;
 
         ComPtr<ID3D12Resource>              mRenderTargets[MAX_BACK_BUFFER_COUNT];
+        D3D12_RESOURCE_STATES               back_buffer_render_targets_before_states[MAX_BACK_BUFFER_COUNT];
         ComPtr<ID3D12Resource>              mDepthStencilTarget;
         ComPtr<ID3D12DescriptorHeap>        mRTVDescriptorHeap;
         ComPtr<ID3D12DescriptorHeap>        mDSVDescriptorHeap;

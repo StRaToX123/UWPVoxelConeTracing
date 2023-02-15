@@ -201,12 +201,12 @@ DX12DescriptorHeapManager::~DX12DescriptorHeapManager()
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)
 {
-	const UINT currentFrame = DX12DeviceResourcesSingleton::mBackBufferIndex;
+	const UINT currentFrame = DX12DeviceResourcesSingleton::back_buffer_index;
 	return mCPUDescriptorHeaps[heapType]->GetHandleBlock(count);
 }
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::CreateGPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)
 {
-	const UINT currentFrame = DX12DeviceResourcesSingleton::mBackBufferIndex;
+	const UINT currentFrame = DX12DeviceResourcesSingleton::back_buffer_index;
 	return mGPUDescriptorHeaps[currentFrame][heapType]->GetHandleBlock(count);
 }

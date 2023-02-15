@@ -38,7 +38,7 @@ void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapMana
 	constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
-		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListGraphics(), 
+		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetCommandListDirect(), 
 		constantBufferDescriptor, 
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount(), // <- We need per frame data for the light
 		L"Lighting Pass CB");

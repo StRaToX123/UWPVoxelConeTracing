@@ -96,10 +96,11 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 		DX12DescriptorHeapManager descriptor_heap_manager;
 		std::vector<CD3DX12_RESOURCE_BARRIER> mBarriers;
-	
-
-		U_PTR<GraphicsMemory> mGraphicsMemory;
-		U_PTR<CommonStates> mStates;
+		Microsoft::WRL::ComPtr<ID3D12Fence> fence_direct_queue;
+		Microsoft::WRL::ComPtr<ID3D12Fence>	fence_compute_queue;
+		HANDLE fence_event;
+		UINT64 fence_unused_value_direct_queue;
+		UINT64 fence_unused_value_compute_queue;
 
 		// Gbuffer
 		RootSignature mGbufferRS;
