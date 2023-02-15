@@ -35,7 +35,8 @@ class UWPVoxelConeTracingMain
 	private:
 		ComPtr<ID3D12GraphicsCommandList>   command_list_compute;
 		ComPtr<ID3D12GraphicsCommandList> command_list_direct;
-		ComPtr<ID3D12CommandAllocator> command_allocators[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+		ComPtr<ID3D12CommandAllocator> command_allocators_direct[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+		ComPtr<ID3D12CommandAllocator> command_allocators_compute[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
 
 		// Fullscreen Quad
 		ComPtr<ID3D12Resource>              fullscreen_quad_vertex_buffer;

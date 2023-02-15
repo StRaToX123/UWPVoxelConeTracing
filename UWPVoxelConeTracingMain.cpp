@@ -26,12 +26,18 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 		// Create a command allocator for each back buffer that will be rendered to.
 		for (UINT i = 0; i < _deviceResources->GetBackBufferCount(); i++)
 		{
-			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocators[i].ReleaseAndGetAddressOf())));
+			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocators_direct[i].ReleaseAndGetAddressOf())));
+		}
+
+		for (UINT i = 0; i < _deviceResources->GetBackBufferCount(); i++)
+		{
+			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(command_allocators_compute[i].ReleaseAndGetAddressOf())));
 		}
 
 		// Create the command lists
-		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[0].Get(), nullptr, IID_PPV_ARGS(command_list_direct.ReleaseAndGetAddressOf())));
-		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, nullptr, nullptr, IID_PPV_ARGS(command_list_compute.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators_direct[0].Get(), nullptr, IID_PPV_ARGS(command_list_direct.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, command_allocators_compute[0].Get(), nullptr, IID_PPV_ARGS(command_list_compute.ReleaseAndGetAddressOf())));
+		command_list_compute->Close();
 	}
 	#pragma endregion
 
@@ -573,18 +579,21 @@ void UWPVoxelConeTracingMain::Update()
 bool UWPVoxelConeTracingMain::Render()
 {
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	command_list_direct->Reset(command_allocators[_deviceResources->back_buffer_index].Get(), nullptr);
+	command_list_direct->Reset(command_allocators_direct[_deviceResources->back_buffer_index].Get(), nullptr);
+	command_list_compute->Reset(command_allocators_compute[_deviceResources->back_buffer_index].Get(), nullptr);
 	// Transition the backbuffer state
 	CD3DX12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	command_list_direct->ResourceBarrier(1, &resourceBarrier);
-	// The scene_renderer.Render exptect to be handed a already reset direct command list and returns a reset direct command list
+	// The scene_renderer.Render exptects to be handed an already reset direct command list and compute command list 
+	// it returns a reset direct command list and an unreset compute command list
 	scene_renderer.Render(scene, 
 		directional_light, 
 		timer, 
 		camera,
+		fullscreen_quad_vertex_buffer_view,
 		command_list_direct.Get(),
 		command_list_compute.Get(),
-		command_allocators[_deviceResources->back_buffer_index].Get());
+		command_allocators_direct[_deviceResources->back_buffer_index].Get());
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -602,7 +611,7 @@ bool UWPVoxelConeTracingMain::Render()
 		
 	}
 
-	CD3DX12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	command_list_direct->ResourceBarrier(1, &resourceBarrier);
 	command_list_direct->Close();
 	ID3D12CommandList* __commandListsDirect[] = { command_list_direct.Get() };

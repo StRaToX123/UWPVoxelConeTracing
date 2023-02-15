@@ -49,9 +49,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 			DirectionalLight& directionalLight, 
 			DXRSTimer& mTimer, 
 			Camera& camera, 
+			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView,
 			ID3D12GraphicsCommandList* _commandListDirect, 
 			ID3D12GraphicsCommandList* _commandListCompute,
-			ID3D12CommandAllocator* _commandAllocator);
+			ID3D12CommandAllocator* _commandAllocatorDirect);
 	private:
 		void UpdateImGui();
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
@@ -92,11 +93,13 @@ class SceneRendererDirectLightingVoxelGIandAO
 			DX12DescriptorHeapGPU* gpuDescriptorHeap,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
-			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock);
+			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
+			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView);
 		void RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
 			ID3D12Device* device, 
 			ID3D12GraphicsCommandList* commandList, 
-			DX12DescriptorHeapGPU* gpuDescriptorHeap);
+			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView);
 
 		void ThrowFailedErrorBlob(ID3DBlob* blob);
 

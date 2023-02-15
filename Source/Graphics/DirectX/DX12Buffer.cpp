@@ -21,7 +21,7 @@ DX12Buffer::DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
 		mBufferSize = Align(mBufferSize, 256);
 	}
 
-	CreateResources(_descriptorHeapManager, _commandList);
+	CreateResources(_descriptorHeapManager);
 
 	mBuffer->SetName(name);
 }

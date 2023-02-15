@@ -152,9 +152,10 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	DirectionalLight& directionalLight,
 	DXRSTimer& mTimer,
 	Camera& camera,
+	D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView,
 	ID3D12GraphicsCommandList* _commandListDirect,
 	ID3D12GraphicsCommandList* _commandListCompute,
-	ID3D12CommandAllocator* _commandAllocator)
+	ID3D12CommandAllocator* _commandAllocatorDirect)
 {	
 	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
 	// This function expects to be given an already reset direct command list and a non reset compute command list.
@@ -162,9 +163,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
 
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	auto _commandListDirect = _deviceResources->GetCommandListDirect();
-	auto _commandListCompute = _deviceResources->GetCommandListCompute();
-
 	ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
 	ID3D12CommandList* __commandListsCompute[] = { _commandListCompute };
 	auto _d3dDevice = _deviceResources->GetD3DDevice();
@@ -270,7 +268,7 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 
 	// Submit the rest of the frame to graphics command list
 	{
-		_commandListDirect->
+		_commandListDirect->Reset(_commandAllocatorDirect, nullptr);
 		_commandListDirect->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		RenderLighting(_deviceResources,
 			_d3dDevice,
@@ -278,8 +276,13 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 			gpuDescriptorHeap,
 			directionalLightDataDescriptorHeapBlock,
 			cameraDataDescriptorHandleBlock,
-			shadowDepthDescriptorHandleBlock);
-		RenderComposite(_deviceResources, _d3dDevice, _commandListDirect, gpuDescriptorHeap);
+			shadowDepthDescriptorHandleBlock,
+			fullScreenQuadVertexBufferView);
+		RenderComposite(_deviceResources, 
+			_d3dDevice, 
+			_commandListDirect, 
+			gpuDescriptorHeap, 
+			fullScreenQuadVertexBufferView);
 
 		//	// Draw imgui 
 		//	{
@@ -823,8 +826,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTAnisoMipmappingCB = new DX12Buffer(descriptorManager, 
-			_deviceResources->GetCommandListDirect(), 
+		mVCTAnisoMipmappingCB = new DX12Buffer(descriptorManager,
 			cbDesc, 
 			1,
 			L"VCT aniso mip mapping CB");
@@ -1361,7 +1363,8 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	DX12DescriptorHeapGPU* gpuDescriptorHeap,
 	DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
 	DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
-	DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock)
+	DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
+	D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView)
 {
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
@@ -1419,7 +1422,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 		commandList->SetGraphicsRootDescriptorTable(3, srvHandleLighting.GetGPUHandle());
 		commandList->SetGraphicsRootDescriptorTable(4, shadowDepthDescriptorHandleBlock.GetGPUHandle());
 
-		commandList->IASetVertexBuffers(0, 1, &_deviceResources->GetFullscreenQuadBufferView());
+		commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		commandList->DrawInstanced(4, 1, 0, 0);
 	}
@@ -1462,7 +1465,8 @@ void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesS
 void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
 	ID3D12Device* device, 
 	ID3D12GraphicsCommandList* commandList, 
-	DX12DescriptorHeapGPU* gpuDescriptorHeap)
+	DX12DescriptorHeapGPU* gpuDescriptorHeap,
+	D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView)
 {
 	{
 		commandList->SetPipelineState(mCompositePSO.GetPipelineStateObject());
@@ -1483,7 +1487,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 		srvHandleComposite.Add(mLightingRT->GetSRV());
 		
 		commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
-		commandList->IASetVertexBuffers(0, 1, &_deviceResources->GetFullscreenQuadBufferView());
+		commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		commandList->DrawInstanced(4, 1, 0, 0);
 	}
