@@ -26,7 +26,6 @@ Camera::~Camera()
 
 void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
 {
-    rotation_local_space_quaternion = DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), XM_PI);
     DX12DeviceResourcesSingleton* _dx12DeviceResourcesSingleton = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
     most_updated_cbv_index = _dx12DeviceResourcesSingleton->GetBackBufferCount() - 1;
     DX12Buffer::Description constantBufferDescriptor;

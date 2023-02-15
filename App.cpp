@@ -218,7 +218,7 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 
 void App::OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerMoved_Callback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
+	m_main->OnPointerMovedCallback(args->CurrentPoint->Position.X, args->CurrentPoint->Position.Y);
 }
 
 void App::OnMouseMoved(Windows::Devices::Input::MouseDevice^ mouseDevice, Windows::Devices::Input::MouseEventArgs^ args)
@@ -228,28 +228,27 @@ void App::OnMouseMoved(Windows::Devices::Input::MouseDevice^ mouseDevice, Window
 
 void App::OnPointerEntered(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerEntered_Callback();
+	m_main->OnPointerEnteredCallback();
 }
 
 void App::OnPointerExited(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerExited_Callback();
+	m_main->OnPointerExitedCallback();
 }
-
 
 void App::OnPointerPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerButton_Callback(args->CurrentPoint->Properties);
+	m_main->OnPointerPressedCallback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerButton_Callback(args->CurrentPoint->Properties);
+	m_main->OnPointerReleasedCallback(args->CurrentPoint->Properties);
 }
 
 void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args)
 {
-	//ImGui_ImplUWP_PointerWheelChanged_Callback(args->CurrentPoint->Properties->MouseWheelDelta);
+	m_main->OnPointerWheelChangedCallback(args->CurrentPoint->Properties->MouseWheelDelta);
 }
 
 

@@ -57,11 +57,10 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	camera_controller_pitch_limit = 89.99f;
 	camera_controller_yaw = 180.0f;
 
-	auto size = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetOutputSize();
-	float aspectRatio = float(size.right) / float(size.bottom);
-
+	float aspectRatio = core_window->Bounds.Width / core_window->Bounds.Height;
 	camera.SetProjection(60.0f, aspectRatio, 0.01f, 500.0f);
 	camera.SetPositionWorldSpace(XMVectorSet(0.0f, 7.0f, 33.0f, 1.0f));
+	camera.SetRotationLocalSpaceQuaternion(DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), XM_PI));
 	camera.Initialize(&descriptor_heap_manager);
 	#pragma endregion
 
@@ -400,14 +399,60 @@ void UWPVoxelConeTracingMain::OnGamepadConnectedDisconnectedCallback()
 	}*/
 }
 
+void UWPVoxelConeTracingMain::OnPointerMovedCallback(float x, float y)
+{
+	if (show_imGui == true)
+	{
+		ImGui_ImplUWP_PointerMoved_Callback(x, y);
+	}
+}
+
+void UWPVoxelConeTracingMain::OnPointerEnteredCallback()
+{
+	if (show_imGui)
+	{
+		ImGui_ImplUWP_PointerEntered_Callback();
+	}
+}
+
+void UWPVoxelConeTracingMain::OnPointerExitedCallback()
+{
+	if (show_imGui == true)
+	{
+		ImGui_ImplUWP_PointerExited_Callback();
+	}
+}
+
+void UWPVoxelConeTracingMain::OnPointerPressedCallback(Windows::UI::Input::PointerPointProperties^ pointProperties)
+{
+	if (show_imGui == true)
+	{
+		ImGui_ImplUWP_PointerButton_Callback(pointProperties);
+	}
+}
+
+void UWPVoxelConeTracingMain::OnPointerReleasedCallback(Windows::UI::Input::PointerPointProperties^ pointProperties)
+{
+	if (show_imGui == true)
+	{
+		ImGui_ImplUWP_PointerButton_Callback(pointProperties);
+	}
+}
+
+void UWPVoxelConeTracingMain::OnPointerWheelChangedCallback(int wheelDelta)
+{
+	if (show_imGui == true)
+	{
+		ImGui_ImplUWP_PointerWheelChanged_Callback(wheelDelta);
+	}
+}
+
 // Updates the application state once per frame.
 void UWPVoxelConeTracingMain::Update()
 {
 	timer.Tick([&]()
 	{
-		if (show_imGui == false)
-		{
-			#pragma region Update The Camera
+		#pragma region Update The Camera
 			// Update the camera
 			// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
 			if (gamepad != nullptr)
@@ -534,7 +579,6 @@ void UWPVoxelConeTracingMain::Update()
 				}
 			}
 			#pragma endregion
-		}
 
 		// Update the scene
 		for (auto& model : scene)
@@ -634,7 +678,7 @@ void UWPVoxelConeTracingMain::OnWindowSizeChanged()
 		return;
 	}
 
-	float aspectRatio = _dx12DeviceResources->mAppWindow->Bounds.Width / _dx12DeviceResources->mAppWindow->Bounds.Height;
+	float aspectRatio = core_window->Bounds.Width / core_window->Bounds.Height;
 	// This is a simple example of a change that can be made when the app is in
 	// portrait or snapped view.
 	if (aspectRatio < 1.0f)

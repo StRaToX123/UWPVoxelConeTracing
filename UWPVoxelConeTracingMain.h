@@ -29,10 +29,16 @@ class UWPVoxelConeTracingMain
 		void OnDeviceRemoved();
 		bool HandleKeyboardInput(Windows::System::VirtualKey vk, bool down);
 		bool HandleMouseMovementCallback(float mouseDeltaX, float mouseDeltaY);
-		void UpdateCameraControllerPitchAndYaw(float mouseDeltaX, float mouseDeltaY);
 		void OnGamepadConnectedDisconnectedCallback();
+		void OnPointerMovedCallback(float x, float y);
+		void OnPointerEnteredCallback();
+		void OnPointerExitedCallback();
+		void OnPointerPressedCallback(Windows::UI::Input::PointerPointProperties^ pointProperties);
+		void OnPointerReleasedCallback(Windows::UI::Input::PointerPointProperties^ pointProperties);
+		void OnPointerWheelChangedCallback(int wheelDelta);
 
 	private:
+		void UpdateCameraControllerPitchAndYaw(float mouseDeltaX, float mouseDeltaY);
 		ComPtr<ID3D12GraphicsCommandList>   command_list_compute;
 		ComPtr<ID3D12GraphicsCommandList> command_list_direct;
 		ComPtr<ID3D12CommandAllocator> command_allocators_direct[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
