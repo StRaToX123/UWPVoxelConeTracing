@@ -220,7 +220,11 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	ID3D12CommandList* __commandListsDirect[] = { command_list_direct.Get() };
 	_deviceResources->GetCommandQueueDirect()->ExecuteCommandLists(1, __commandListsDirect);
 
-	OnWindowSizeChanged(); // <- This function has a build in WaitForGPU
+	// This OnWindowSizeChanged will result in a DX12DeviceResourcesSingleton::CreateWindowResources call
+	// which will create the swapchain on it's first ever call. This will also result in a call to the 
+	// WaitForGPU function which is inside the CreateWindowResources function. We need to wait for the GPU here
+	// since we just submited some work to it during this Initialization
+	OnWindowSizeChanged(); 
 }
 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
@@ -579,6 +583,8 @@ void UWPVoxelConeTracingMain::Update()
 bool UWPVoxelConeTracingMain::Render()
 {
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	command_allocators_direct[_deviceResources->back_buffer_index]->Reset();
+	command_allocators_compute[_deviceResources->back_buffer_index]->Reset();
 	command_list_direct->Reset(command_allocators_direct[_deviceResources->back_buffer_index].Get(), nullptr);
 	command_list_compute->Reset(command_allocators_compute[_deviceResources->back_buffer_index].Get(), nullptr);
 	// Transition the backbuffer state
@@ -603,7 +609,6 @@ bool UWPVoxelConeTracingMain::Render()
 		ImGui::ShowDemoWindow();
 
 		ImGui::Render();
-		
 		// Render out imGUI
 		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
 		command_list_direct->SetDescriptorHeaps(1, imGuiHeaps);

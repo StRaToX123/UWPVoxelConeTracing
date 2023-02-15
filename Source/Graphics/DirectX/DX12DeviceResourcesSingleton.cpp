@@ -47,10 +47,15 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
     gs_dx12_device_resources.mScreenViewport = {};
     gs_dx12_device_resources.mScissorRect = {};
     gs_dx12_device_resources.mOutputSize = { 0, 0, 1, 1 };
+    gs_dx12_device_resources.mAppWindow = coreWindow;
+    gs_dx12_device_resources.mOutputSize.left = gs_dx12_device_resources.mOutputSize.top = gs_dx12_device_resources.mOutputSize.right = gs_dx12_device_resources.mOutputSize.bottom = 0;
 
-    gs_dx12_device_resources.SetWindow(coreWindow);
     gs_dx12_device_resources.CreateResources();
-    gs_dx12_device_resources.CreateWindowResources();
+    // This will get called on the first OnWindowSizeChanged callback
+    // We don't call it here because we will use that first OnWindowSizeChanged as a WaitForGPU call
+    // which is inside of the CreateWindowResources function. That way all the work submited to the gpu
+    // for the main apps initialization will get waited for by the first OnWindowSizeChanged callback
+    //gs_dx12_device_resources.CreateWindowResources(); 
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -338,15 +343,6 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
     mScissorRect.left = mScissorRect.top = 0;
     mScissorRect.right = static_cast<LONG>(backBufferWidth);
     mScissorRect.bottom = static_cast<LONG>(backBufferHeight);
-}
-
-void DX12DeviceResourcesSingleton::SetWindow(Windows::UI::Core::CoreWindow^ coreWindow)
-{
-    mAppWindow = coreWindow;
-
-    mOutputSize.left = mOutputSize.top = 0;
-    mOutputSize.right = coreWindow->Bounds.Width;
-    mOutputSize.bottom = coreWindow->Bounds.Height;
 }
 
 bool DX12DeviceResourcesSingleton::OnWindowSizeChanged()

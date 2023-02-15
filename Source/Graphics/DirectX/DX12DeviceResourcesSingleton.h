@@ -72,7 +72,6 @@ class DX12DeviceResourcesSingleton
     private:
         void CreateResources();
         void CreateWindowResources();
-        void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
         DX12DeviceResourcesSingleton(const DX12DeviceResourcesSingleton& rhs);
    
         DX12DeviceResourcesSingleton& operator=(const DX12DeviceResourcesSingleton& rhs);

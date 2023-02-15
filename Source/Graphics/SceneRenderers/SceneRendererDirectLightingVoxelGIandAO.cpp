@@ -1368,64 +1368,61 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 {
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &rect);
 
+	commandList->SetPipelineState(mLightingPSO.GetPipelineStateObject());
+	commandList->SetGraphicsRootSignature(mLightingRS.GetSignature());
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesLighting[] =
 	{
-		commandList->RSSetViewports(1, &viewport);
-		commandList->RSSetScissorRects(1, &rect);
+		mLightingRT->GetRTV().GetCPUHandle()
+	};
 
-		commandList->SetPipelineState(mLightingPSO.GetPipelineStateObject());
-		commandList->SetGraphicsRootSignature(mLightingRS.GetSignature());
+	_deviceResources->ResourceBarriersBegin(mBarriers);
+	mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mGbufferRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mGbufferRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mGbufferRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mShadowDepth->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesLighting[] =
-		{
-			mLightingRT->GetRTV().GetCPUHandle()
-		};
+	commandList->OMSetRenderTargets(_countof(rtvHandlesLighting), rtvHandlesLighting, FALSE, nullptr);
+	commandList->ClearRenderTargetView(rtvHandlesLighting[0], gs_clear_color_black, 0, nullptr);
 
-		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		mShadowDepth->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
+	DX12DescriptorHandleBlock cbvHandleLighting = gpuDescriptorHeap->GetHandleBlock(2);
+	cbvHandleLighting.Add(mLightingCB->GetCBV());
+	cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV());
 
-		commandList->OMSetRenderTargets(_countof(rtvHandlesLighting), rtvHandlesLighting, FALSE, nullptr);
-		commandList->ClearRenderTargetView(rtvHandlesLighting[0], gs_clear_color_black, 0, nullptr);
+	DX12DescriptorHandleBlock srvHandleLighting = gpuDescriptorHeap->GetHandleBlock(4);
+	srvHandleLighting.Add(mGbufferRTs[0]->GetSRV());
+	srvHandleLighting.Add(mGbufferRTs[1]->GetSRV());
+	srvHandleLighting.Add(mGbufferRTs[2]->GetSRV());
 
-		DX12DescriptorHandleBlock cbvHandleLighting = gpuDescriptorHeap->GetHandleBlock(2);
-		cbvHandleLighting.Add(mLightingCB->GetCBV());
-		cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV());
-
-		DX12DescriptorHandleBlock srvHandleLighting = gpuDescriptorHeap->GetHandleBlock(4);
-		srvHandleLighting.Add(mGbufferRTs[0]->GetSRV());
-		srvHandleLighting.Add(mGbufferRTs[1]->GetSRV());
-		srvHandleLighting.Add(mGbufferRTs[2]->GetSRV());
-
-		if (mVCTRenderDebug)
-		{
-			srvHandleLighting.Add(mVCTVoxelizationDebugRT->GetSRV());
-		}	
-		else if (mVCTMainRTUseUpsampleAndBlur)
-		{
-			srvHandleLighting.Add(mVCTMainUpsampleAndBlurRT->GetSRV());
-		}
-		else
-		{
-			srvHandleLighting.Add(mVCTMainRT->GetSRV());
-		}
-			
-		commandList->SetGraphicsRootDescriptorTable(0, cbvHandleLighting.GetGPUHandle());
-		commandList->SetGraphicsRootDescriptorTable(1, directionalLightDescriptorHandleBlock.GetGPUHandle());
-		commandList->SetGraphicsRootDescriptorTable(2, cameraDataDescriptorHandleBlock.GetGPUHandle());
-		commandList->SetGraphicsRootDescriptorTable(3, srvHandleLighting.GetGPUHandle());
-		commandList->SetGraphicsRootDescriptorTable(4, shadowDepthDescriptorHandleBlock.GetGPUHandle());
-
-		commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		commandList->DrawInstanced(4, 1, 0, 0);
+	if (mVCTRenderDebug)
+	{
+		srvHandleLighting.Add(mVCTVoxelizationDebugRT->GetSRV());
+	}	
+	else if (mVCTMainRTUseUpsampleAndBlur)
+	{
+		srvHandleLighting.Add(mVCTMainUpsampleAndBlurRT->GetSRV());
 	}
+	else
+	{
+		srvHandleLighting.Add(mVCTMainRT->GetSRV());
+	}
+			
+	commandList->SetGraphicsRootDescriptorTable(0, cbvHandleLighting.GetGPUHandle());
+	commandList->SetGraphicsRootDescriptorTable(1, directionalLightDescriptorHandleBlock.GetGPUHandle());
+	commandList->SetGraphicsRootDescriptorTable(2, cameraDataDescriptorHandleBlock.GetGPUHandle());
+	commandList->SetGraphicsRootDescriptorTable(3, srvHandleLighting.GetGPUHandle());
+	commandList->SetGraphicsRootDescriptorTable(4, shadowDepthDescriptorHandleBlock.GetGPUHandle());
+
+	commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	commandList->DrawInstanced(4, 1, 0, 0);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
@@ -1468,27 +1465,27 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResource
 	DX12DescriptorHeapGPU* gpuDescriptorHeap,
 	D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView)
 {
+	
+	commandList->SetPipelineState(mCompositePSO.GetPipelineStateObject());
+	commandList->SetGraphicsRootSignature(mCompositeRS.GetSignature());
+
+	_deviceResources->ResourceBarriersBegin(mBarriers);
+	mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
 	{
-		commandList->SetPipelineState(mCompositePSO.GetPipelineStateObject());
-		commandList->SetGraphicsRootSignature(mCompositeRS.GetSignature());
-
-		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
-
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
-		{
-			 _deviceResources->GetRenderTargetView()
-		};
-		commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
-		commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
+			_deviceResources->GetRenderTargetView()
+	};
+	commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
+	commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
 		
-		DX12DescriptorHandleBlock srvHandleComposite = gpuDescriptorHeap->GetHandleBlock(1);
-		srvHandleComposite.Add(mLightingRT->GetSRV());
+	DX12DescriptorHandleBlock srvHandleComposite = gpuDescriptorHeap->GetHandleBlock(1);
+	srvHandleComposite.Add(mLightingRT->GetSRV());
 		
-		commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
-		commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		commandList->DrawInstanced(4, 1, 0, 0);
-	}
+	commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
+	commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	commandList->DrawInstanced(4, 1, 0, 0);
+	
 }
