@@ -49,16 +49,12 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
     gs_dx12_device_resources.mOutputSize = { 0, 0, 1, 1 };
 
     gs_dx12_device_resources.SetWindow(coreWindow);
-    ID3D12GraphicsCommandList* _commandListDirect = gs_dx12_device_resources.GetCommandListDirect();
-    gs_dx12_device_resources.CreateResources(_commandListDirect);
-    ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
-    gs_dx12_device_resources.ExecuteCommandLists(__commandListsDirect, 1, D3D12_COMMAND_LIST_TYPE_DIRECT);
+    gs_dx12_device_resources.CreateResources();
     gs_dx12_device_resources.CreateWindowResources();
-    gs_dx12_device_resources.MoveToNextFrame(); // Has to be called in order to prepare the back buffers, allocators and command lists for rendering
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void DX12DeviceResourcesSingleton::CreateResources(ID3D12GraphicsCommandList* _commandListDirect)
+void DX12DeviceResourcesSingleton::CreateResources()
 {
 #if defined(_DEBUG)
     {
@@ -198,70 +194,10 @@ void DX12DeviceResourcesSingleton::CreateResources(ID3D12GraphicsCommandList* _c
 		ThrowIfFailed(mDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(command_queue_compute.ReleaseAndGetAddressOf())));
         command_queue_compute->SetName(L"CommandQueueCompute");
 
-        for (UINT i = 0; i < mBackBufferCount; i++)
-        {
-            ComPtr<ID3D12CommandAllocator> newCommnadAllocatorCompute;
-            ThrowIfFailed(mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(newCommnadAllocatorCompute.ReleaseAndGetAddressOf())));
-            command_allocators_compute[i].push_back(newCommnadAllocatorCompute);
-        }
-
-        ThrowIfFailed(mDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, command_allocators_compute[0].back().Get(), nullptr, IID_PPV_ARGS(command_list_compute.ReleaseAndGetAddressOf())));
-
 		// Create a fence for async compute.
 		ThrowIfFailed(mDevice->CreateFence(fence_unused_value_compute_queue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence_compute.ReleaseAndGetAddressOf())));
         fence_unused_value_compute_queue++;
         fence_compute->SetName(L"Compute fence");
-    }
-
-    // Create full screen quad
-    {
-        struct FullscreenVertex
-        {
-            XMFLOAT4 position;
-            XMFLOAT2 uv;
-        };
-
-        // Define the geometry for a fullscreen triangle.
-        FullscreenVertex quadVertices[] =
-        {
-            { { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },       // Bottom left.
-            { { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },        // Top left.
-            { { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },        // Bottom right.
-            { { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },         // Top right.
-        };
-
-        const UINT vertexBufferSize = sizeof(quadVertices);
-
-        ThrowIfFailed(mDevice->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT /*D3D12_HEAP_TYPE_UPLOAD*/),
-            D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-            /*D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER*/ D3D12_RESOURCE_STATE_COPY_DEST /*D3D12_RESOURCE_STATE_GENERIC_READ*/,
-            nullptr,
-            IID_PPV_ARGS(&mFullscreenQuadVertexBuffer)));
-
-        ThrowIfFailed(mDevice->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-            D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(&mFullscreenQuadVertexBufferUpload)));
-
-        // Copy data to the intermediate upload heap and then schedule a copy
-        // from the upload heap to the vertex buffer.
-        D3D12_SUBRESOURCE_DATA vertexData = {};
-        vertexData.pData = reinterpret_cast<BYTE*>(quadVertices);
-        vertexData.RowPitch = vertexBufferSize;
-        vertexData.SlicePitch = vertexData.RowPitch;
-
-        UpdateSubresources<1>(_commandListDirect, mFullscreenQuadVertexBuffer.Get(), mFullscreenQuadVertexBufferUpload.Get(), 0, 0, 1, &vertexData);
-        _commandListDirect->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mFullscreenQuadVertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-        // Initialize the vertex buffer view.
-        mFullscreenQuadVertexBufferView.BufferLocation = mFullscreenQuadVertexBuffer->GetGPUVirtualAddress();
-        mFullscreenQuadVertexBufferView.StrideInBytes = sizeof(FullscreenVertex);
-        mFullscreenQuadVertexBufferView.SizeInBytes = sizeof(quadVertices);
     }
 }
 
@@ -432,15 +368,8 @@ bool DX12DeviceResourcesSingleton::OnWindowSizeChanged()
     return true;
 }
 
-void DX12DeviceResourcesSingleton::Present(ID3D12GraphicsCommandList* _commandList)
+void DX12DeviceResourcesSingleton::Present()
 {
-    D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargets[back_buffer_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    ID3D12GraphicsCommandList* _commandListDirect = GetCommandListDirect();
-    _commandListDirect->ResourceBarrier(1, &barrier);
-   
-    ThrowIfFailed(command_list_direct->Close());
-    command_queue_direct->ExecuteCommandLists(1, CommandListCast(command_list_direct.GetAddressOf()));
-
     HRESULT hr;
     hr = mSwapChain->Present(1, 0);
     // If the device was reset we must completely reinitialize the renderer.
@@ -514,14 +443,6 @@ void DX12DeviceResourcesSingleton::MoveToNextFrame()
 
     // Set the fence value for the next frame.
     fence_unused_values_direct_queue[back_buffer_index] = currentFenceValue + 1;
-    // Now that we're on the next frame, lets transition the back buffer render target to the apropriate resource state
-    ThrowIfFailed(command_allocators_direct[back_buffer_index].back()->Reset());
-    ThrowIfFailed(command_allocators_compute[back_buffer_index].back()->Reset());
-    command_list_direct->Reset(command_allocators_direct[back_buffer_index].back().Get(), nullptr);
-    command_list_compute->Reset(command_allocators_compute[back_buffer_index].back().Get(), nullptr);
-    // Transition the render target into the correct state to allow for drawing into it.
-    D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargets[back_buffer_index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    command_list_direct->ResourceBarrier(1, &barrier);
 }
 
 void DX12DeviceResourcesSingleton::GetAdapter(IDXGIAdapter1** ppAdapter)
@@ -613,26 +534,4 @@ void DX12DeviceResourcesSingleton::GetAdapter(IDXGIAdapter1** ppAdapter)
     }
 
     *ppAdapter = adapter.Detach();
-}
-
-void DX12DeviceResourcesSingleton::ExecuteCommandList(ID3D12CommandList* __commandLists[], UINT commandListArraySize, D3D12_COMMAND_LIST_TYPE commandListType)
-{
-    switch (commandListType)
-    {
-        case D3D12_COMMAND_LIST_TYPE_DIRECT:
-        {
-            command_queue_direct->ExecuteCommandLists(commandListArraySize, __commandLists);
-            for (int i = 0; i < commandListArraySize; i++)
-            {
-
-
-            }
-
-            break;
-        }
-        case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-        {
-            break;
-        }
-    }
 }

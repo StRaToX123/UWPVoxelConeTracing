@@ -45,8 +45,7 @@ class DX12Buffer
 			{}
 		};
 
-		DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager, 
-			ID3D12GraphicsCommandList* _commandList, 
+		DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
 			Description& description,
 			UINT numberOfCopys = 1,
 			LPCWSTR name = nullptr);
@@ -72,7 +71,6 @@ class DX12Buffer
 
 		UINT number_of_copys;
 
-		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
-			ID3D12GraphicsCommandList* _commandList);
+		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager);
 };
 

@@ -144,9 +144,23 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 }
 
 
-
-void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera)
+// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
+// This function expects to be given an already reset direct command list and a non reset compute command list.
+// When returning the functions leaves these command lists in the same state they we're in
+// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
+void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
+	DirectionalLight& directionalLight,
+	DXRSTimer& mTimer,
+	Camera& camera,
+	ID3D12GraphicsCommandList* _commandListDirect,
+	ID3D12GraphicsCommandList* _commandListCompute,
+	ID3D12CommandAllocator* _commandAllocator)
 {	
+	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
+	// This function expects to be given an already reset direct command list and a non reset compute command list.
+	// When returning the functions leaves these command lists in the same state they we're in
+	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
+
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
 	auto _commandListDirect = _deviceResources->GetCommandListDirect();
 	auto _commandListCompute = _deviceResources->GetCommandListCompute();
@@ -714,8 +728,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mElementSize = c_aligned_shader_structure_cpu_voxelization_data;
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-		mVCTVoxelizationCB = new DX12Buffer(descriptorManager, 
-			_deviceResources->GetCommandListDirect(),
+		mVCTVoxelizationCB = new DX12Buffer(descriptorManager,
 			cbDesc,
 			1,
 			L"VCT Voxelization Pass CB");
@@ -856,12 +869,12 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 0 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 1 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 2 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 3 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 4 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, _deviceResources->GetCommandListDirect(), cbDesc, 1, L"VCT aniso mip mapping main mip 5 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 0 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 1 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 2 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 3 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 4 CB"));
+		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 5 CB"));
 
 	}
 
@@ -872,8 +885,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTMainCB = new DX12Buffer(descriptorManager, 
-			_deviceResources->GetCommandListDirect(), 
+		mVCTMainCB = new DX12Buffer(descriptorManager,
 			cbDesc, 
 			1,
 			L"VCT main CB");
@@ -1332,15 +1344,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 	cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 	cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-	mLightingCB = new DX12Buffer(descriptorManager, 
-		_deviceResources->GetCommandListDirect(), 
+	mLightingCB = new DX12Buffer(descriptorManager,
 		cbDesc,
 		1,
 		L"Lighting Pass CB");
 
 	cbDesc.mElementSize = c_aligned_shader_structure_cpu_illumination_flags_data;
-	mIlluminationFlagsCB = new DX12Buffer(descriptorManager, 
-		_deviceResources->GetCommandListDirect(), 
+	mIlluminationFlagsCB = new DX12Buffer(descriptorManager,
 		cbDesc, 
 		1,
 		L"Illumination Flags CB");

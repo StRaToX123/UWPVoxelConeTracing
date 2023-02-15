@@ -17,19 +17,21 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	show_imGui = true;
 
 	DX12DeviceResourcesSingleton::Initialize(coreWindow);
+	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	ID3D12Device* _d3dDevice = _deviceResources->GetD3DDevice();
 
 	#pragma region Initialize Command Allocators And Lists
 	{
-		DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-		ID3D12Device* _d3dDevice = _deviceResources->GetD3DDevice();
+		
 		// Create a command allocator for each back buffer that will be rendered to.
 		for (UINT i = 0; i < _deviceResources->GetBackBufferCount(); i++)
 		{
-			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocators_direct[i].ReleaseAndGetAddressOf())));
+			ThrowIfFailed(_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocators[i].ReleaseAndGetAddressOf())));
 		}
 
-		// Create a command list for recording graphics commands.
-		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators_direct[0].Get(), nullptr, IID_PPV_ARGS(command_list_direct.ReleaseAndGetAddressOf())));
+		// Create the command lists
+		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[0].Get(), nullptr, IID_PPV_ARGS(command_list_direct.ReleaseAndGetAddressOf())));
+		ThrowIfFailed(_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, nullptr, nullptr, IID_PPV_ARGS(command_list_compute.ReleaseAndGetAddressOf())));
 	}
 	#pragma endregion
 
@@ -147,6 +149,59 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	directional_light.Initialize(&descriptor_heap_manager);
 	#pragma endregion
 
+	#pragma region Initialize Full ScreenQuad
+	{
+		// Create full screen quad
+		struct FullscreenVertex
+		{
+			XMFLOAT4 position;
+			XMFLOAT2 uv;
+		};
+
+		// Define the geometry for a fullscreen triangle.
+		FullscreenVertex quadVertices[] =
+		{
+			{ { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },       // Bottom left.
+			{ { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },        // Top left.
+			{ { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },        // Bottom right.
+			{ { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },         // Top right.
+		};
+
+		const UINT vertexBufferSize = sizeof(quadVertices);
+
+		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT /*D3D12_HEAP_TYPE_UPLOAD*/),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+			/*D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER*/ D3D12_RESOURCE_STATE_COPY_DEST /*D3D12_RESOURCE_STATE_GENERIC_READ*/,
+			nullptr,
+			IID_PPV_ARGS(&fullscreen_quad_vertex_buffer)));
+
+		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&fullscreen_quad_vertex_upload_buffer)));
+
+		// Copy data to the intermediate upload heap and then schedule a copy
+		// from the upload heap to the vertex buffer.
+		D3D12_SUBRESOURCE_DATA vertexData = {};
+		vertexData.pData = reinterpret_cast<BYTE*>(quadVertices);
+		vertexData.RowPitch = vertexBufferSize;
+		vertexData.SlicePitch = vertexData.RowPitch;
+
+		UpdateSubresources<1>(command_list_direct.Get(), fullscreen_quad_vertex_buffer.Get(), fullscreen_quad_vertex_upload_buffer.Get(), 0, 0, 1, &vertexData);
+		command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(fullscreen_quad_vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+		// Initialize the vertex buffer view.
+		fullscreen_quad_vertex_buffer_view.BufferLocation = fullscreen_quad_vertex_buffer->GetGPUVirtualAddress();
+		fullscreen_quad_vertex_buffer_view.StrideInBytes = sizeof(FullscreenVertex);
+		fullscreen_quad_vertex_buffer_view.SizeInBytes = sizeof(quadVertices);
+	}
+	#pragma endregion
+
 	#pragma region Initialize imGUI
 	ImGui::CreateContext(coreWindow);
 	ImGui_ImplUWP_Init();
@@ -155,7 +210,11 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 		DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferFormat());
 	#pragma endregion
 
-	OnWindowSizeChanged();
+	command_list_direct->Close();
+	ID3D12CommandList* __commandListsDirect[] = { command_list_direct.Get() };
+	_deviceResources->GetCommandQueueDirect()->ExecuteCommandLists(1, __commandListsDirect);
+
+	OnWindowSizeChanged(); // <- This function has a build in WaitForGPU
 }
 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
@@ -513,9 +572,19 @@ void UWPVoxelConeTracingMain::Update()
 // Returns true if the frame was rendered and is ready to be displayed
 bool UWPVoxelConeTracingMain::Render()
 {
-	scene_renderer.Render(scene, directional_light, timer, camera);
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	auto _commandListDirect = _deviceResources->GetCommandListDirect();
+	command_list_direct->Reset(command_allocators[_deviceResources->back_buffer_index].Get(), nullptr);
+	// Transition the backbuffer state
+	CD3DX12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	command_list_direct->ResourceBarrier(1, &resourceBarrier);
+	// The scene_renderer.Render exptect to be handed a already reset direct command list and returns a reset direct command list
+	scene_renderer.Render(scene, 
+		directional_light, 
+		timer, 
+		camera,
+		command_list_direct.Get(),
+		command_list_compute.Get(),
+		command_allocators[_deviceResources->back_buffer_index].Get());
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
@@ -527,22 +596,18 @@ bool UWPVoxelConeTracingMain::Render()
 		ImGui::Render();
 		
 		// Render out imGUI
-		_commandListDirect->RSSetViewports(1, &_deviceResources->GetScreenViewport());
-		_commandListDirect->RSSetScissorRects(1, &_deviceResources->GetScissorRect());
-		// Bind the render target and depth buffer
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = _deviceResources->GetRenderTargetView();
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = _deviceResources->GetDepthStencilView();
-		_commandListDirect->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
 		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
-		_commandListDirect->SetDescriptorHeaps(1, imGuiHeaps);
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _commandListDirect);
+		command_list_direct->SetDescriptorHeaps(1, imGuiHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list_direct.Get() );
 		
 	}
 
-	_commandListDirect->Close();
-	ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
+	CD3DX12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	command_list_direct->ResourceBarrier(1, &resourceBarrier);
+	command_list_direct->Close();
+	ID3D12CommandList* __commandListsDirect[] = { command_list_direct.Get() };
 	_deviceResources->GetCommandQueueDirect()->ExecuteCommandLists(1, __commandListsDirect);
-	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->Present();
+	_deviceResources->Present();
 	return true;
 }
 

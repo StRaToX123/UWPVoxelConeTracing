@@ -45,7 +45,13 @@ class SceneRendererDirectLightingVoxelGIandAO
 		~SceneRendererDirectLightingVoxelGIandAO();
 
 		void Initialize(Windows::UI::Core::CoreWindow^ coreWindow);
-		void Render(std::vector<Model*>& scene, DirectionalLight& directionalLight, DXRSTimer& mTimer, Camera& camera);
+		void Render(std::vector<Model*>& scene, 
+			DirectionalLight& directionalLight, 
+			DXRSTimer& mTimer, 
+			Camera& camera, 
+			ID3D12GraphicsCommandList* _commandListDirect, 
+			ID3D12GraphicsCommandList* _commandListCompute,
+			ID3D12CommandAllocator* _commandAllocator);
 	private:
 		void UpdateImGui();
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);

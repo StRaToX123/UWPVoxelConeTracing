@@ -6,7 +6,6 @@
 
 
 DX12Buffer::DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
-	ID3D12GraphicsCommandList* _commandList, 
 	Description& description,
 	UINT numberOfCopys,
 	LPCWSTR name)
@@ -37,33 +36,10 @@ DX12Buffer::~DX12Buffer()
 	mCBVMappedData = nullptr;
 }
 
-void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList)
+void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager)
 {
 	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
-	
-
-	//if (p_data)
-	//{
-	//	// Create the GPU upload buffer.
-	//	ThrowIfFailed(_device->CreateCommittedResource(
-	//		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-	//		D3D12_HEAP_FLAG_NONE,
-	//		&CD3DX12_RESOURCE_DESC::Buffer(mBufferSize),
-	//		D3D12_RESOURCE_STATE_GENERIC_READ,
-	//		nullptr,
-	//		IID_PPV_ARGS(&mBufferUpload)));
-
-	//	D3D12_SUBRESOURCE_DATA data = {};
-	//	data.pData = p_data;
-	//	data.RowPitch = mBufferSize;
-	//	data.SlicePitch = 0;
-
-	//	UpdateSubresources(_commandList, mBuffer.Get(), mBufferUpload.Get(), 0, 0, 1, &data);
-	//	_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-	//}
-
 	D3D12_DESCRIPTOR_HEAP_FLAGS flagsHeap = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
 	if (mDescription.mDescriptorType & DescriptorType::SRV)
 	{
 		D3D12_RESOURCE_DESC desc = {};

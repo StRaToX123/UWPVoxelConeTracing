@@ -34,13 +34,18 @@ class UWPVoxelConeTracingMain
 
 	private:
 		ComPtr<ID3D12GraphicsCommandList>   command_list_compute;
-		ComPtr<ID3D12CommandAllocator> command_allocators_compute[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
 		ComPtr<ID3D12GraphicsCommandList> command_list_direct;
-		ComPtr<ID3D12CommandAllocator> command_allocators_direct[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+		ComPtr<ID3D12CommandAllocator> command_allocators[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
+
+		// Fullscreen Quad
+		ComPtr<ID3D12Resource>              fullscreen_quad_vertex_buffer;
+		ComPtr<ID3D12Resource>              fullscreen_quad_vertex_upload_buffer;
+		D3D12_VERTEX_BUFFER_VIEW            fullscreen_quad_vertex_buffer_view;
 
 		Windows::UI::Core::CoreWindow^ core_window;
 		DXRSTimer timer;
 		Windows::Gaming::Input::Gamepad^ gamepad;
+
 		Camera camera;
 		float camera_controller_translation_multiplier;
 		float camera_controller_rotation_multiplier;
@@ -55,14 +60,12 @@ class UWPVoxelConeTracingMain
 		float camera_controller_yaw; // Y axis rotation
 
 		SceneRendererDirectLightingVoxelGIandAO scene_renderer;
-
 		DX12DescriptorHeapManager descriptor_heap_manager;
 		std::vector<Model*> scene;
 
 		DirectionalLight directional_light;
 		float directional_light_animation_angle = 0.0f;
 		float directional_light_animation_speed = 1.0f;
-
 
 		bool show_imGui;
 };

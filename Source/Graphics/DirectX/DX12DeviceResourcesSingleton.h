@@ -28,21 +28,15 @@ class DX12DeviceResourcesSingleton
         DX12DeviceResourcesSingleton();
         ~DX12DeviceResourcesSingleton();
 
-        static void Initialize(Windows::UI::Core::CoreWindow^ coreWindow, 
+        static void Initialize(Windows::UI::Core::CoreWindow^ coreWindow,
             DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM, 
             DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT, 
             UINT backBufferCount = 2, 
             D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0, 
             unsigned int flags = 0);
         static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
-        void CreateResources(ID3D12GraphicsCommandList* _commandListDirect);
-        void CreateWindowResources();
-        void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
-        bool OnWindowSizeChanged();
-        void Present();
-        void WaitForGPU();
-        void ExecuteCommandLists(ID3D12CommandList* __commandLists[], UINT commandListArraySize, D3D12_COMMAND_LIST_TYPE commandListType);
-
+        void                        Present();
+        void                        WaitForGPU();
         ID3D12Device*               GetD3DDevice() const { return mDevice.Get(); }
         ID3D12Device5*              GetDXRDevice() const { return (ID3D12Device5*)(mDevice.Get());}
         IDXGISwapChain3*            GetSwapChain() const { return mSwapChain.Get(); }
@@ -62,9 +56,7 @@ class DX12DeviceResourcesSingleton
         ID3D12Resource*             GetDepthStencil() const { return mDepthStencilTarget.Get(); }
         inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(back_buffer_index), mRTVDescriptorSize); }
         inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart()); }
-
-        D3D12_VERTEX_BUFFER_VIEW& GetFullscreenQuadBufferView() { return mFullscreenQuadVertexBufferView; }
-
+        bool OnWindowSizeChanged();
         void ResourceBarriersBegin(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers) { barriers.clear(); }
         void ResourceBarriersEnd(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList) {
             size_t num = barriers.size();
@@ -78,7 +70,9 @@ class DX12DeviceResourcesSingleton
         bool IsRaytracingSupported() { return mRaytracingTierAvailable; }
         Platform::Agile<Windows::UI::Core::CoreWindow> mAppWindow;
     private:
-
+        void CreateResources();
+        void CreateWindowResources();
+        void SetWindow(Windows::UI::Core::CoreWindow^ coreWindow);
         DX12DeviceResourcesSingleton(const DX12DeviceResourcesSingleton& rhs);
    
         DX12DeviceResourcesSingleton& operator=(const DX12DeviceResourcesSingleton& rhs);
@@ -116,11 +110,6 @@ class DX12DeviceResourcesSingleton
         RECT                                mOutputSize;
         D3D_FEATURE_LEVEL                   mD3DFeatureLevel;
         DWORD                               mDXGIFactoryFlags;
-
-        // Fullscreen Quad
-        ComPtr<ID3D12Resource>              mFullscreenQuadVertexBuffer;
-        ComPtr<ID3D12Resource>              mFullscreenQuadVertexBufferUpload;
-        D3D12_VERTEX_BUFFER_VIEW            mFullscreenQuadVertexBufferView;
 
         std::filesystem::path               mCurrentPath;
         std::wstring ExecutableDirectory();

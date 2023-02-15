@@ -33,8 +33,7 @@ void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
     constantBufferDescriptor.mElementSize = c_aligned_shader_structure_cpu_camera;
     constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
     constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-    p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
-        _dx12DeviceResourcesSingleton->GetCommandListDirect(),
+    p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
         constantBufferDescriptor, 
         _dx12DeviceResourcesSingleton->GetBackBufferCount(), // <- we need a copy of the constant buffer per frame
         L"Camera Constant Buffer");
