@@ -69,10 +69,17 @@ class UWPVoxelConeTracingMain
 		SceneRendererDirectLightingVoxelGIandAO scene_renderer;
 		DX12DescriptorHeapManager descriptor_heap_manager;
 		std::vector<Model*> scene;
+		std::vector<Model*> scene_filtered;
 
 		DirectionalLight directional_light;
 		float directional_light_animation_angle = 0.0f;
 		float directional_light_animation_speed = 1.0f;
 
+		// ImGui variables
 		bool show_imGui;
+		bool imgui_render_dynamic_objects = false;
+		bool imgui_dont_update_dynamic_objects = false;
+		bool imgui_update_directional_light_buffers = false;
+		bool imgui_update_scene_renderer_illumination_flags_buffer = false;
+		bool imgui_update_scene_renderer_vct_main_buffer = false;
 };

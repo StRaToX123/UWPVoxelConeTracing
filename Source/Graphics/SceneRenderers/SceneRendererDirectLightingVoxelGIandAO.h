@@ -53,8 +53,63 @@ class SceneRendererDirectLightingVoxelGIandAO
 			ID3D12GraphicsCommandList* _commandListDirect, 
 			ID3D12GraphicsCommandList* _commandListCompute,
 			ID3D12CommandAllocator* _commandAllocatorDirect);
+		void UpdateBuffers(bool updateIlluminationFlagsBuffer, bool updateVCTMainBuffers);
+
+		__declspec(align(16)) struct ShaderSTructureCPULightingData
+		{
+			DirectX::XMFLOAT2 shadow_texel_size;
+			DirectX::XMFLOAT2 padding;
+		};
+
+		ShaderSTructureCPULightingData shader_structure_cpu_lighting_data;
+		static const UINT c_aligned_shader_structure_cpu_lighting_data = (sizeof(ShaderSTructureCPULightingData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUIlluminationFlagsData
+		{
+			int use_direct = 1;
+			int use_shadows = 1;
+			int use_vct = 1;
+			int use_vct_debug = 0;
+			float vct_gi_power = 1.0f;
+			int show_only_ao = 0;
+			DirectX::XMFLOAT2 padding;
+		};
+
+		ShaderStructureCPUIlluminationFlagsData shader_structure_cpu_illumination_flags_data;
+		UINT8 shader_structure_cpu_illumination_flags_most_updated_index;
+		static const UINT c_aligned_shader_structure_cpu_illumination_flags_data = (sizeof(ShaderStructureCPUIlluminationFlagsData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUVoxelizationData
+		{
+			DirectX::XMFLOAT4X4 voxel_grid_space;
+			float voxel_scale;
+			DirectX::XMFLOAT3 padding;
+		};
+
+		ShaderStructureCPUVoxelizationData shader_structure_cpu_voxelization_data;
+		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUMipMappingData
+		{
+			int mip_dimension;
+			int mip_level;
+			DirectX::XMFLOAT2 padding;
+		};
+
+		ShaderStructureCPUMipMappingData shader_structure_cpu_mip_mapping_data;
+		static const UINT c_aligned_shader_structure_cpu_mip_mapping_data = (sizeof(ShaderStructureCPUMipMappingData) + 255) & ~255;
+		__declspec(align(16)) struct ShaderStructureCPUVCTMainData
+		{
+			DirectX::XMFLOAT2 upsample_ratio;
+			float indirect_diffuse_strength = 1.0f;
+			float indirect_specular_strength = 1.0f;
+			float max_cone_trace_distance = 100.0f;
+			float ao_falloff = 2.0f;
+			float sampling_factor = 0.5f;
+			float voxel_sample_offset = 0.0f;
+		};
+
+		ShaderStructureCPUVCTMainData shader_structure_cpu_vct_main_data;
+		UINT8 shader_structure_cpu_vct_main_data_most_updated_index;
+		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
 	private:
-		void UpdateImGui();
 		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
 		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
@@ -112,11 +167,9 @@ class SceneRendererDirectLightingVoxelGIandAO
 		UINT64 fence_unused_value_compute_queue;
 
 		// Gbuffer
-		RootSignature mGbufferRS;
-		std::vector<DXRSRenderTarget*> mGbufferRTs;
-		GraphicsPSO mGbufferPSO;
-		DXRSDepthBuffer* mDepthStencil;
-
+		RootSignature root_signature_gbuffer;
+		std::vector<DXRSRenderTarget*> render_targets_gbuffer;
+		GraphicsPSO pipeline_state_gbuffer;
 		// Voxel Cone Tracing
 		CD3DX12_VIEWPORT viewport_voxel_cone_tracing_voxelization;
 		CD3DX12_RECT scissor_rect_voxel_cone_tracing_voxelization;
@@ -141,37 +194,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		DXRSRenderTarget* mVCTMainUpsampleAndBlurRT;
 		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinPrepare3DRTs;
 		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinMain3DRTs;
-		__declspec(align(16)) struct ShaderStructureCPUVoxelizationData
-		{
-			DirectX::XMFLOAT4X4 voxel_grid_space;
-			float voxel_scale;
-			DirectX::XMFLOAT3 padding;
-		};
-
-		ShaderStructureCPUVoxelizationData shader_structure_cpu_voxelization_data;
-		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
-		__declspec(align(16)) struct ShaderStructureCPUMipMappingData
-		{
-			int mip_dimension;
-			int mip_level;
-			DirectX::XMFLOAT2 padding;
-		};
-
-		ShaderStructureCPUMipMappingData shader_structure_cpu_mip_mapping_data;
-		static const UINT c_aligned_shader_structure_cpu_mip_mapping_data = (sizeof(ShaderStructureCPUMipMappingData) + 255) & ~255;
-		__declspec(align(16)) struct ShaderStructureCPUVCTMainData
-		{
-			DirectX::XMFLOAT2 upsample_ratio;
-			float indirect_diffuse_strength;
-			float indirect_specular_strength;
-			float max_cone_trace_distance;
-			float ao_falloff;
-			float sampling_factor;
-			float voxel_sample_offset;
-		};
-
-		ShaderStructureCPUVCTMainData shader_structure_cpu_vct_main_data;
-		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
+		
 
 		DX12Buffer* mVCTVoxelizationCB;
 		DX12Buffer* mVCTAnisoMipmappingCB;
@@ -179,16 +202,9 @@ class SceneRendererDirectLightingVoxelGIandAO
 		std::vector<DX12Buffer*> mVCTAnisoMipmappingMainCB;
 		bool mVCTRenderDebug = false;
 		float mWorldVoxelScale = VCT_SCENE_VOLUME_SIZE * 0.5f;
-		float mVCTIndirectDiffuseStrength = 1.0f;
-		float mVCTIndirectSpecularStrength = 1.0f;
-		float mVCTMaxConeTraceDistance = 100.0f;
-		float mVCTAoFalloff = 2.0f;
-		float mVCTSamplingFactor = 0.5f;
-		float mVCTVoxelSampleOffset = 0.0f;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
 		bool mVCTUseMainCompute = true;
 		bool mVCTMainRTUseUpsampleAndBlur = true;
-		float mVCTGIPower = 1.0f;
 
 		// Composite
 		RootSignature mCompositeRS;
@@ -201,37 +217,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 		RootSignature mLightingRS;
 		DXRSRenderTarget* mLightingRT;
 		GraphicsPSO mLightingPSO;
-		__declspec(align(16)) struct ShaderSTructureCPULightingData
-		{
-			DirectX::XMFLOAT2 shadow_texel_size;
-			DirectX::XMFLOAT2 padding;
-		};
-
-		ShaderSTructureCPULightingData shader_structure_cpu_lighting_data;
-		static const UINT c_aligned_shader_structure_cpu_lighting_data = (sizeof(ShaderSTructureCPULightingData) + 255) & ~255;
-		__declspec(align(16)) struct ShaderStructureCPUIlluminationFlagsData
-		{
-			int use_direct;
-			int use_shadows;
-			int use_vct;
-			int use_vct_debug;
-			float vct_gi_power;
-			int show_only_ao;
-			DirectX::XMFLOAT2 padding;
-		};
-
-		ShaderStructureCPUIlluminationFlagsData shader_structure_cpu_illumination_flags_data;
-		static const UINT c_aligned_shader_structure_cpu_illumination_flags_data = (sizeof(ShaderStructureCPUIlluminationFlagsData) + 255) & ~255;
+		
 
 		DX12Buffer* mLightingCB;
 		DX12Buffer* mIlluminationFlagsCB;
-		
-		bool mUseDirectLight = true;
-		bool mUseShadows = true;
-		bool mUseRSM = false;
-		bool mUseLPV = false;
-		bool mUseVCT = true;
-		bool mShowOnlyAO = false;
 
 		// Shadows
 		GraphicsPSO mShadowMappingPSO;

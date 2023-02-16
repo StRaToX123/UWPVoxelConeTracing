@@ -23,13 +23,13 @@ void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapMana
 	float orthographicHeight,
 	float zNear,
 	float zFar,
-	bool isStatic)
+	bool isDynamic)
 {
 	most_updated_cbv_index = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() - 1;
 	shader_structure_cpu_directional_light_data.color = color;
 	shader_structure_cpu_directional_light_data.intensity = intensity;
 	direction_world_space = directionWorldSpace;
-	this->is_static = isStatic;
+	this->is_dynamic = isDynamic;
 	projection_matrix = XMMatrixOrthographicLH(orthographicWidth, orthographicHeight, zNear, zFar);
 
 	DX12Buffer::Description constantBufferDescriptor;

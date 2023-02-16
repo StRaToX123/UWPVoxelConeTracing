@@ -148,11 +148,13 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 			RandomFloat(1.0f, 5.0f));
 		*modelCopy = *model;
 		scene.emplace_back(modelCopy);
+
+		scene_filtered.reserve(scene.size());
 	}
+	#pragma endregion
 
 	// Initialize the directional light
 	directional_light.Initialize(&descriptor_heap_manager);
-	#pragma endregion
 
 	#pragma region Initialize Full ScreenQuad
 	{
@@ -389,14 +391,14 @@ void UWPVoxelConeTracingMain::UpdateCameraControllerPitchAndYaw(float mouseDelta
 
 void UWPVoxelConeTracingMain::OnGamepadConnectedDisconnectedCallback()
 {
-	/*auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
+	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	gamepad = nullptr;
 	ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(false);
 	if (gamepads->Size != 0)
 	{
 		gamepad = gamepads->First()->Current;
 		ImGui_ImplUWP_GamepadConnectedDisconnected_Callback(true);
-	}*/
+	}
 }
 
 void UWPVoxelConeTracingMain::OnPointerMovedCallback(float x, float y)
@@ -581,16 +583,19 @@ void UWPVoxelConeTracingMain::Update()
 			#pragma endregion
 
 		// Update the scene
-		for (auto& model : scene)
+		if (imgui_dont_update_dynamic_objects == false)
 		{
-			if (model->GetIsDynamic())
-			{	
-				model->position_world_space = DirectX::XMVectorSetY(model->position_world_space, DirectX::XMVectorGetY(model->position_world_space) + sin(timer.GetTotalSeconds() * model->GetAmplitude()) * model->GetSpeed());
+			for (auto& model : scene)
+			{
+				if (model->GetIsDynamic())
+				{
+					model->position_world_space = DirectX::XMVectorSetY(model->position_world_space, DirectX::XMVectorGetY(model->position_world_space) + sin(timer.GetTotalSeconds() * model->GetAmplitude()) * model->GetSpeed());
+				}
 			}
 		}
 
 		// Update the directional light
-		if (directional_light.is_static == false)
+		if (directional_light.is_dynamic == true)
 		{
 			directional_light_animation_angle += static_cast<float>(timer.GetElapsedSeconds()) * 45.0f;
 			if (directional_light_animation_angle >= 360.0f)
@@ -608,18 +613,28 @@ void UWPVoxelConeTracingMain::Update()
 		camera.UpdateBuffers();
 	}
 
-	for (auto& model : scene)
+	if (imgui_dont_update_dynamic_objects == false)
 	{
-		if (model->GetIsDynamic())
+		for (auto& model : scene)
 		{
-			model->UpdateBuffers();
+			if (model->GetIsDynamic())
+			{
+				model->UpdateBuffers();
+			}
 		}
 	}
 
-	if (directional_light.is_static == false)
+	if ((directional_light.is_dynamic == true) || (imgui_update_directional_light_buffers == true))
 	{
 		directional_light.UpdateBuffers();
 	}
+
+	scene_renderer.UpdateBuffers(imgui_update_scene_renderer_illumination_flags_buffer,
+		imgui_update_scene_renderer_vct_main_buffer);
+	// Reset all the imGui update flags
+	imgui_update_directional_light_buffers = false;
+	imgui_update_scene_renderer_illumination_flags_buffer = false;
+	imgui_update_scene_renderer_vct_main_buffer = false;
 }
 
 // Renders the current frame according to the current application state.
@@ -634,9 +649,26 @@ bool UWPVoxelConeTracingMain::Render()
 	// Transition the backbuffer state
 	CD3DX12_RESOURCE_BARRIER resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	command_list_direct->ResourceBarrier(1, &resourceBarrier);
+
+	// Create an array of all the Models that will get rendered
+	for (UINT i = 0; i < scene.size(); i++)
+	{
+		if (imgui_render_dynamic_objects == true)
+		{
+			scene_filtered.push_back(scene[i]);
+		}
+		else // render only static objects
+		{
+			if (scene[i]->GetIsDynamic() == false)
+			{
+				scene_filtered.push_back(scene[i]);
+			}
+		}
+	}
+
 	// The scene_renderer.Render exptects to be handed an already reset direct command list and compute command list 
 	// it returns a reset direct command list and an unreset compute command list
-	scene_renderer.Render(scene, 
+	scene_renderer.Render(scene_filtered, 
 		directional_light, 
 		timer, 
 		camera,
@@ -644,22 +676,60 @@ bool UWPVoxelConeTracingMain::Render()
 		command_list_direct.Get(),
 		command_list_compute.Get(),
 		command_allocators_direct[_deviceResources->back_buffer_index].Get());
+
+	scene_filtered.clear();
 	if (show_imGui == true)
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplUWP_NewFrame();
 		ImGui::NewFrame();
+		ImGui::Begin("UWPVoxelConeTracing");
+		ImGui::TextColored(ImVec4(0.95f, 0.5f, 0.0f, 1), "FPS: (%.1f FPS), %.3f ms/frame", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+		ImGui::Separator();
+		ImGui::Text("Scene controls:");
+		ImGui::Checkbox("Dynamic Light", &directional_light.is_dynamic);
+		imgui_update_directional_light_buffers |= ImGui::SliderFloat3("Light Color", &directional_light.shader_structure_cpu_directional_light_data.color.x, 0.0f, 1.0f);
+		if (directional_light.is_dynamic == false)
+		{
+			imgui_update_directional_light_buffers |= ImGui::SliderFloat3("Light Direction", &directional_light.direction_world_space.x, -1.0f, 1.0f);
+		}
+		
+		imgui_update_directional_light_buffers |= ImGui::SliderFloat("Light Intensity", &directional_light.shader_structure_cpu_directional_light_data.intensity, 0.0f, 5.0f);
+		ImGui::Checkbox("Dynamic objects", &imgui_render_dynamic_objects);
+		if (imgui_render_dynamic_objects == true) 
+		{
+			ImGui::SameLine();
+			ImGui::Checkbox("Stop", &imgui_dont_update_dynamic_objects);
+		}
 
-		ImGui::ShowDemoWindow();
+		ImGui::Separator();
+		ImGui::Text("Rendering:");
+		imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::Checkbox("Direct Light", (bool*)&scene_renderer.shader_structure_cpu_illumination_flags_data.use_direct);
+		imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::Checkbox("Direct Shadows", (bool*)&scene_renderer.shader_structure_cpu_illumination_flags_data.use_shadows);
+		imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::Checkbox("Voxel Cone Tracing", (bool*)&scene_renderer.shader_structure_cpu_illumination_flags_data.use_vct);
+		imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::Checkbox("Show Only AO", (bool*)&scene_renderer.shader_structure_cpu_illumination_flags_data.show_only_ao);
+		if (ImGui::CollapsingHeader("Global Illumination Config"))
+		{
+			//ImGui::Checkbox("Render voxels for debug", &mVCTRenderDebug);
+			imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::SliderFloat("GI Intensity", &scene_renderer.shader_structure_cpu_illumination_flags_data.vct_gi_power, 0.0f, 15.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Diffuse Strength", &scene_renderer.shader_structure_cpu_vct_main_data.indirect_diffuse_strength, 0.0f, 1.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Specular Strength", &scene_renderer.shader_structure_cpu_vct_main_data.indirect_specular_strength, 0.0f, 1.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Max Cone Trace Dist", &scene_renderer.shader_structure_cpu_vct_main_data.max_cone_trace_distance, 0.0f, 2500.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("AO Falloff", &scene_renderer.shader_structure_cpu_vct_main_data.ao_falloff, 0.0f, 2.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Sampling Factor", &scene_renderer.shader_structure_cpu_vct_main_data.sampling_factor, 0.01f, 3.0f);
+			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Sample Offset", &scene_renderer.shader_structure_cpu_vct_main_data.voxel_sample_offset, -0.1f, 0.1f);
+		}
 
+		ImGui::End();
 		ImGui::Render();
-		// Render out imGUI
+		// Execute the command list
 		ID3D12DescriptorHeap* imGuiHeaps[] = { ImGui_ImplDX12_GetDescriptorHeap() };
 		command_list_direct->SetDescriptorHeaps(1, imGuiHeaps);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list_direct.Get() );
 		
 	}
 
+	// Transition the back buffer back to a present resource state
 	resourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(_deviceResources->GetRenderTarget(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	command_list_direct->ResourceBarrier(1, &resourceBarrier);
 	command_list_direct->Close();

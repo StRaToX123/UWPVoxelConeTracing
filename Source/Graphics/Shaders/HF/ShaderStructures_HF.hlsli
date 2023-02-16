@@ -76,34 +76,3 @@ struct ShaderStructureGPUIlluminationFlagsData
 	int show_only_ao;
 	float2 padding;
 };
-
-
-static const float FLT_MAX = asfloat(0x7F7FFFFF);
-
-float3 ReconstructWorldPosFromDepth(float2 uv, float depth, float4x4 invProj, float4x4 invView)
-{
-    float4 viewPos = mul(float4(uv.x, uv.y, depth, 1.0f), invProj);
-    viewPos = viewPos / viewPos.w;
-	return mul(viewPos, invView).xyz;
-}
-
-struct Payload
-{
-    bool skipShading;
-    float rayHitT;
-};
-
-struct ShadowPayload
-{
-    bool isHit;
-};
-
-float4 DirToSH(float3 direction)
-{
-    return float4(SH_C0, -SH_C1 * direction.y, SH_C1 * direction.z, -SH_C1 * direction.x);
-}
-
-float4 DirCosLobeToSH(float3 direction)
-{
-    return float4(SH_COSINE_LOBE_C0, -SH_COSINE_LOBE_C1 * direction.y, SH_COSINE_LOBE_C1 * direction.z, -SH_COSINE_LOBE_C1 * direction.x);
-}

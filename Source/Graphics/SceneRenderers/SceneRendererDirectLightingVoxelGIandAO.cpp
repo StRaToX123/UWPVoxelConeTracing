@@ -34,8 +34,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	auto size = _deviceResources->GetOutputSize();
 	float aspectRatio = float(size.right) / float(size.bottom);
 
-	mDepthStencil = new DXRSDepthBuffer(_d3dDevice, &descriptor_heap_manager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, DXGI_FORMAT_D32_FLOAT);
-
 	#pragma region States
 	mDepthStateRW.DepthEnable = TRUE;
 	mDepthStateRW.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -136,17 +134,48 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	mBilinearSampler.BorderColor[3] = 0.0f;
 	#pragma endregion
 
+	// Set the most updated indexes for the constant buffers
+	shader_structure_cpu_vct_main_data_most_updated_index = _deviceResources->GetBackBufferCount() - 1;
+	shader_structure_cpu_illumination_flags_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
+
 	InitGbuffer(_d3dDevice, &descriptor_heap_manager);
 	InitShadowMapping(_d3dDevice, &descriptor_heap_manager);
 	InitVoxelConeTracing(_deviceResources, _d3dDevice, &descriptor_heap_manager);
 	InitLighting(_deviceResources, _d3dDevice, &descriptor_heap_manager);
 	InitComposite(_deviceResources, _d3dDevice, &descriptor_heap_manager);
+	UpdateBuffers(true, true);
 }
 
+void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(bool updateIlluminationFlagsBuffer, bool updateVCTMainBuffers)
+{
+	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	if (updateIlluminationFlagsBuffer == true)
+	{
+		shader_structure_cpu_illumination_flags_most_updated_index++;
+		if (shader_structure_cpu_illumination_flags_most_updated_index == _deviceResources->GetBackBufferCount())
+		{
+			shader_structure_cpu_illumination_flags_most_updated_index = 0;
+		}
+
+		memcpy(mIlluminationFlagsCB->GetMappedData(shader_structure_cpu_illumination_flags_most_updated_index), &shader_structure_cpu_illumination_flags_data, sizeof(ShaderStructureCPUIlluminationFlagsData));
+	}
+
+	if (updateVCTMainBuffers == true)
+	{
+		shader_structure_cpu_vct_main_data_most_updated_index++;
+		if (shader_structure_cpu_vct_main_data_most_updated_index == _deviceResources->GetBackBufferCount())
+		{
+			shader_structure_cpu_vct_main_data_most_updated_index = 0;
+		}
+
+		shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(render_targets_gbuffer[0]->GetWidth() / mVCTMainRT->GetWidth(), render_targets_gbuffer[0]->GetHeight() / mVCTMainRT->GetHeight());
+		memcpy(mVCTMainCB->GetMappedData(shader_structure_cpu_vct_main_data_most_updated_index), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
+	}
+}
 
 // !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
-// This function expects to be given an already reset direct command list and a non reset compute command list.
-// When returning the functions leaves these command lists in the same state they we're in
+// This function expects to be given an already reset direct command list and a an already reset compute command list.
+// When returning the functions leaves the direct command list in a reset state and the compute command list in an unreset state
 // !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
 void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	DirectionalLight& directionalLight,
@@ -158,8 +187,8 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	ID3D12CommandAllocator* _commandAllocatorDirect)
 {	
 	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
-	// This function expects to be given an already reset direct command list and a non reset compute command list.
-	// When returning the functions leaves these command lists in the same state they we're in
+	// This function expects to be given an already reset direct command list and a an already reset compute command list.
+	// When returning the functions leaves the direct command list in a reset state and the compute command list in an unreset state
 	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
 
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
@@ -189,30 +218,11 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	shader_structure_cpu_lighting_data.shadow_texel_size = XMFLOAT2(1.0f / mShadowDepth->GetWidth(), 1.0f / mShadowDepth->GetHeight());
 	memcpy(mLightingCB->GetMappedData(), &shader_structure_cpu_lighting_data, sizeof(ShaderSTructureCPULightingData));
 
-	shader_structure_cpu_illumination_flags_data.use_direct = mUseDirectLight ? 1 : 0;
-	shader_structure_cpu_illumination_flags_data.use_shadows = mUseShadows ? 1 : 0;
-	shader_structure_cpu_illumination_flags_data.use_vct = mUseVCT ? 1 : 0;
-	shader_structure_cpu_illumination_flags_data.use_vct_debug = mVCTRenderDebug ? 1 : 0;
-	shader_structure_cpu_illumination_flags_data.vct_gi_power = mVCTGIPower;
-	shader_structure_cpu_illumination_flags_data.show_only_ao = mShowOnlyAO ? 1 : 0;
-	memcpy(mIlluminationFlagsCB->GetMappedData(), &shader_structure_cpu_illumination_flags_data, sizeof(ShaderStructureCPUIlluminationFlagsData));
-
 	// Update ShaderStructureCPUVoxelizationData
 	float scale = 1.0f;// VCT_SCENE_VOLUME_SIZE / mWorldVoxelScale;
 	DirectX::XMStoreFloat4x4(&shader_structure_cpu_voxelization_data.voxel_grid_space, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(scale, -scale, scale), XMMatrixTranslation(-VCT_SCENE_VOLUME_SIZE * 0.25f, -VCT_SCENE_VOLUME_SIZE * 0.25f, -VCT_SCENE_VOLUME_SIZE * 0.25f))));
 	shader_structure_cpu_voxelization_data.voxel_scale = mWorldVoxelScale;
 	memcpy(mVCTVoxelizationCB->GetMappedData(), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
-
-	// Update ShaderStructureCPUVCTMainData
-	shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(mGbufferRTs[0]->GetWidth() / mVCTMainRT->GetWidth(), mGbufferRTs[0]->GetHeight() / mVCTMainRT->GetHeight());
-	shader_structure_cpu_vct_main_data.indirect_diffuse_strength = mVCTIndirectDiffuseStrength;
-	shader_structure_cpu_vct_main_data.indirect_specular_strength = mVCTIndirectSpecularStrength;
-	shader_structure_cpu_vct_main_data.max_cone_trace_distance = mVCTMaxConeTraceDistance;
-	shader_structure_cpu_vct_main_data.ao_falloff = mVCTAoFalloff;
-	shader_structure_cpu_vct_main_data.sampling_factor = mVCTSamplingFactor;
-	shader_structure_cpu_vct_main_data.voxel_sample_offset = mVCTVoxelSampleOffset;
-	memcpy(mVCTMainCB->GetMappedData(), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
-
 
 	// Graphics command list
 	{
@@ -234,9 +244,9 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 		// We have to transition the GBuffers here inside of the graphics command list to a non pixel shader resource,
 		// because the compute command list cannot transition resources from a state of a render target
 		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mGbufferRTs[0]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[1]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		mGbufferRTs[2]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		render_targets_gbuffer[0]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		render_targets_gbuffer[1]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		render_targets_gbuffer[2]->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		_deviceResources->ResourceBarriersEnd(mBarriers, _commandListDirect);
 
 		_commandListDirect->Close();
@@ -284,24 +294,9 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 			gpuDescriptorHeap, 
 			fullScreenQuadVertexBufferView);
 
-		//	// Draw imgui 
-		//	{
-		//		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
-		//		{
-		//			 _deviceResources->GetRenderTargetView()
-		//		};
-		//		commandListGraphics->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
-
-		//		ID3D12DescriptorHeap* ppHeaps[] = { mUIDescriptorHeap.Get() };
-		//		commandListGraphics->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-		//		ImGui::Render();
-		//		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandListGraphics);
-		//	}
-
-			// We need to transition these resources here inside of the graphics command list,
-			// since the compute command list will not allow us to transition a resource 
-			// from a pixel shader resource state.
+		// We need to transition these resources here inside of the graphics command list,
+		// since the compute command list will not allow us to transition a resource 
+		// from a pixel shader resource state.
 		_deviceResources->ResourceBarriersBegin(mBarriers);
 		mVCTMainRT->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
 		mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
@@ -309,131 +304,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 
 		_deviceResources->GetCommandQueueDirect()->Wait(fence_compute_queue.Get(), fence_unused_value_compute_queue - 1);
 	}
-}
-
-void SceneRendererDirectLightingVoxelGIandAO::UpdateImGui()
-{
-	////capture mouse clicks
-	//ImGui::GetIO().MouseDown[0] = (GetKeyState(VK_LBUTTON) & 0x8000) != 0;
-	//ImGui::GetIO().MouseDown[1] = (GetKeyState(VK_RBUTTON) & 0x8000) != 0;
-	//ImGui::GetIO().MouseDown[2] = (GetKeyState(VK_MBUTTON) & 0x8000) != 0;
-
-	//ImGui_ImplDX12_NewFrame();
-	//ImGui_ImplWin32_NewFrame();
-	//ImGui::NewFrame();
-
-	//{
-	//	ImGui::Begin("DirectX GI Sandbox");
-	//	ImGui::TextColored(ImVec4(0.95f, 0.5f, 0.0f, 1), "FPS: (%.1f FPS), %.3f ms/frame", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-	//	ImGui::Text("Camera pos: %f, %f, %f", mCameraEye.x, mCameraEye.y, mCameraEye.z);
-	//	ImGui::Checkbox("Lock camera", &mLockCamera);
-	//	mCamera->SetLock(mLockCamera);
-	//	if (mLockCamera) {
-	//		for (int i = 0; i < LOCKED_CAMERA_VIEWS; i++)
-	//		{
-	//			std::string name = "Mode " + std::to_string(i);
-	//			if (ImGui::Button(name.c_str())) {
-	//				mCamera->Reset();
-	//				mCamera->SetPosition(mLockedCameraPositions[i]);
-	//				mCamera->ApplyRotation(mLockedCameraRotMatrices[i]);
-	//				mCamera->UpdateViewMatrix();
-	//			}
-	//			if (i < LOCKED_CAMERA_VIEWS - 1)
-	//				ImGui::SameLine();
-	//		}
-	//	}
-
-	//	ImGui::SliderFloat4("Light Color", mDirectionalLightColor, 0.0f, 1.0f);
-	//	ImGui::SliderFloat4("Light Direction", mDirectionalLightDir, -1.0f, 1.0f);
-	//	ImGui::SliderFloat("Light Intensity", &mDirectionalLightIntensity, 0.0f, 5.0f);
-	//	ImGui::Checkbox("Dynamic Light", &mDynamicDirectionalLight);
-	//	ImGui::SameLine();
-	//	ImGui::SliderFloat("Speed", &mDynamicDirectionalLightSpeed, 0.0f, 5.0f);
-	//	ImGui::Checkbox("Dynamic objects", &mUseDynamicObjects);
-	//	if (mUseDynamicObjects) {
-	//		ImGui::SameLine();
-	//		ImGui::Checkbox("Stop", &mStopDynamicObjects);
-	//	}
-
-	//	ImGui::Separator();
-
-	//	ImGui::Checkbox("Direct Light", &mUseDirectLight);
-	//	ImGui::Checkbox("Direct Shadows", &mUseShadows);
-	//	ImGui::Checkbox("Reflective Shadow Mapping", &mUseRSM);
-	//	ImGui::Checkbox("Light Propagation Volume", &mUseLPV);
-	//	ImGui::Checkbox("Voxel Cone Tracing", &mUseVCT);
-	//	ImGui::Checkbox("Show AO", &mShowOnlyAO);
-
-	//	ImGui::Separator();
-	//	
-	//	if (ImGui::CollapsingHeader("Global Illumination Config"))
-	//	{
-	//		if (ImGui::CollapsingHeader("RSM")) {
-	//			ImGui::SliderFloat("RSM GI Intensity", &mRSMGIPower, 0.0f, 15.0f);
-	//			ImGui::Checkbox("Use CS for main RSM pass", &mRSMComputeVersion);
-	//			ImGui::Checkbox("Upsample & blur RSM result in CS", &mRSMUseUpsampleAndBlur);
-	//			ImGui::Separator();
-	//			ImGui::SliderFloat("RSM Rmax", &mRSMRMax, 0.0f, 1.0f);
-	//			//ImGui::SliderInt("RSM Samples Count", &mRSMSamplesCount, 1, 1000);
-	//		}
-	//		if (ImGui::CollapsingHeader("LPV")) {
-	//			ImGui::SliderFloat("LPV GI Intensity", &mLPVGIPower, 0.0f, 15.0f);
-	//			ImGui::Checkbox("Use downsampled RSM", &mRSMDownsampleForLPV);
-	//			ImGui::SameLine();
-	//			ImGui::Checkbox("in CS", &mRSMDownsampleUseCS);
-	//			ImGui::Separator();
-	//			ImGui::SliderInt("Propagation steps", &mLPVPropagationSteps, 0, 100);
-	//			ImGui::SliderFloat("Cutoff", &mLPVCutoff, 0.0f, 1.0f);
-	//			ImGui::SliderFloat("Power", &mLPVPower, 0.0f, 2.0f);
-	//			ImGui::SliderFloat("Attenuation", &mLPVAttenuation, 0.0f, 5.0f);
-	//			ImGui::Separator();
-	//			ImGui::Checkbox("DX12 bundles for propagation", &mUseBundleForLPVPropagation);
-	//			if (mUseBundleForLPVPropagation)
-	//			{
-	//				ImGui::SameLine();
-	//				if (ImGui::Button("Update")) {
-	//					mLPVPropagationBundle1Closed = false;
-	//					mLPVPropagationBundle2Closed = false;
-	//					mLPVPropagationBundlesClosed = false;
-	//					mLPVPropagationBundle1->Reset(mLPVPropagationBundle1Allocator.Get(), nullptr);
-	//					mLPVPropagationBundle2->Reset(mLPVPropagationBundle2Allocator.Get(), nullptr);
-	//				}
-	//			}
-	//		}
-	//		if (ImGui::CollapsingHeader("VCT")) {
-	//			ImGui::SliderFloat("VCT GI Intensity", &mVCTGIPower, 0.0f, 15.0f);
-	//			ImGui::Checkbox("Use CS for main VCT pass", &mVCTUseMainCompute);
-	//			ImGui::Checkbox("Upsample & blur VCT result in CS", &mVCTMainRTUseUpsampleAndBlur);
-	//			ImGui::Separator();
-	//			ImGui::SliderFloat("Diffuse Strength", &mVCTIndirectDiffuseStrength, 0.0f, 1.0f);
-	//			ImGui::SliderFloat("Specular Strength", &mVCTIndirectSpecularStrength, 0.0f, 1.0f);
-	//			ImGui::SliderFloat("Max Cone Trace Dist", &mVCTMaxConeTraceDistance, 0.0f, 2500.0f);
-	//			ImGui::SliderFloat("AO Falloff", &mVCTAoFalloff, 0.0f, 2.0f);
-	//			ImGui::SliderFloat("Sampling Factor", &mVCTSamplingFactor, 0.01f, 3.0f);
-	//			ImGui::SliderFloat("Sample Offset", &mVCTVoxelSampleOffset, -0.1f, 0.1f);
-	//			ImGui::Separator();
-	//			ImGui::Checkbox("Render voxels for debug", &mVCTRenderDebug);
-	//		}
-	//	}
-	//	
-	//	ImGui::Separator();
-	//	
-	//	if (ImGui::CollapsingHeader("Extras")) {
-	//		ImGui::Checkbox("DX12 Asynchronous Compute", &mUseAsyncCompute);
-	//		ImGui::Checkbox("DXR Reflections", &mUseDXRReflections);
-	//		if (mUseDXRReflections)
-	//		{
-	//			ImGui::SameLine();
-	//			ImGui::Checkbox("Blur", &mDXRBlurReflections);
-	//			if (mDXRBlurReflections)
-	//				ImGui::SliderInt("Blur steps", &mDXRBlurPasses, 1, 100);
-
-	//			ImGui::SliderFloat("Blend", &mDXRReflectionsBlend, 0.0f, 1.0f);
-	//		}
-	//	}
-
-	//	ImGui::End();
-	//}
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::ThrowFailedErrorBlob(ID3DBlob* blob)
@@ -461,13 +331,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	DXGI_FORMAT rtFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	mGbufferRTs.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Albedo"));
+	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Albedo"));
 
 	rtFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
-	mGbufferRTs.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Normals"));
+	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Normals"));
 
 	rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	mGbufferRTs.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
+	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
 
 	// Root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -476,11 +346,11 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	mGbufferRS.Reset(2, 1);
-	mGbufferRS.InitStaticSampler(0, sampler, D3D12_SHADER_VISIBILITY_PIXEL);
-	mGbufferRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-	mGbufferRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, D3D12_SHADER_VISIBILITY_ALL);
-	mGbufferRS.Finalize(device, L"GPrepassRS", rootSignatureFlags);
+	root_signature_gbuffer.Reset(2, 1);
+	root_signature_gbuffer.InitStaticSampler(0, sampler, D3D12_SHADER_VISIBILITY_PIXEL);
+	root_signature_gbuffer[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+	root_signature_gbuffer[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, D3D12_SHADER_VISIBILITY_ALL);
+	root_signature_gbuffer.Finalize(device, L"GPrepassRS", rootSignatureFlags);
 
 	char* pVertexShaderByteCode;
 	int vertexShaderByteCodeLength;
@@ -504,16 +374,16 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	formats[1] = DXGI_FORMAT_R16G16B16A16_SNORM;
 	formats[2] = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
-	mGbufferPSO.SetRootSignature(mGbufferRS);
-	mGbufferPSO.SetRasterizerState(mRasterizerState);
-	mGbufferPSO.SetBlendState(mBlendState);
-	mGbufferPSO.SetDepthStencilState(mDepthStateRW);
-	mGbufferPSO.SetInputLayout(_countof(inputElementDescs), inputElementDescs);
-	mGbufferPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-	mGbufferPSO.SetRenderTargetFormats(_countof(formats), formats, DXGI_FORMAT_D32_FLOAT);
-	mGbufferPSO.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
-	mGbufferPSO.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	mGbufferPSO.Finalize(device);
+	pipeline_state_gbuffer.SetRootSignature(root_signature_gbuffer);
+	pipeline_state_gbuffer.SetRasterizerState(mRasterizerState);
+	pipeline_state_gbuffer.SetBlendState(mBlendState);
+	pipeline_state_gbuffer.SetDepthStencilState(mDepthStateRW);
+	pipeline_state_gbuffer.SetInputLayout(_countof(inputElementDescs), inputElementDescs);
+	pipeline_state_gbuffer.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+	pipeline_state_gbuffer.SetRenderTargetFormats(_countof(formats), formats, DXGI_FORMAT_D32_FLOAT);
+	pipeline_state_gbuffer.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
+	pipeline_state_gbuffer.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
+	pipeline_state_gbuffer.Finalize(device);
 
 	delete[] pVertexShaderByteCode;
 	delete[] pPixelShaderByteCode;
@@ -533,21 +403,21 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &rect);
 
-		commandList->SetPipelineState(mGbufferPSO.GetPipelineStateObject());
-		commandList->SetGraphicsRootSignature(mGbufferRS.GetSignature());
+		commandList->SetPipelineState(pipeline_state_gbuffer.GetPipelineStateObject());
+		commandList->SetGraphicsRootSignature(root_signature_gbuffer.GetSignature());
 
 		// Transition buffers to rendertarget outputs
 		_deviceResources->ResourceBarriersBegin(mBarriers);
-		mGbufferRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mGbufferRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mGbufferRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		render_targets_gbuffer[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		render_targets_gbuffer[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		render_targets_gbuffer[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[] =
 		{
-			mGbufferRTs[0]->GetRTV().GetCPUHandle(),
-			mGbufferRTs[1]->GetRTV().GetCPUHandle(),
-			mGbufferRTs[2]->GetRTV().GetCPUHandle(),
+			render_targets_gbuffer[0]->GetRTV().GetCPUHandle(),
+			render_targets_gbuffer[1]->GetRTV().GetCPUHandle(),
+			render_targets_gbuffer[2]->GetRTV().GetCPUHandle(),
 		};
 
 		commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
@@ -889,7 +759,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		mVCTMainCB = new DX12Buffer(descriptorManager,
 			cbDesc, 
-			1,
+			_deviceResources->GetBackBufferCount(),
 			L"VCT main CB");
 		
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -1008,7 +878,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 	DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
 	RenderQueue aQueue)
 {
-	if (!mUseVCT)
+	if (!shader_structure_cpu_illumination_flags_data.use_vct)
 	{
 		return;
 	}
@@ -1220,9 +1090,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			uavHandle.Add(mVCTMainRT->GetUAV());
 
 			DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(10);
-			srvHandle.Add(mGbufferRTs[0]->GetSRV());
-			srvHandle.Add(mGbufferRTs[1]->GetSRV());
-			srvHandle.Add(mGbufferRTs[2]->GetSRV());
+			srvHandle.Add(render_targets_gbuffer[0]->GetSRV());
+			srvHandle.Add(render_targets_gbuffer[1]->GetSRV());
+			srvHandle.Add(render_targets_gbuffer[2]->GetSRV());
 
 			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetSRV());
 			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetSRV());
@@ -1234,7 +1104,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 
 			DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
 			cbvHandle.Add(mVCTVoxelizationCB->GetCBV());
-			cbvHandle.Add(mVCTMainCB->GetCBV());
+			cbvHandle.Add(mVCTMainCB->GetCBV(shader_structure_cpu_vct_main_data_most_updated_index));
 
 			commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
 			commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
@@ -1354,7 +1224,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 	cbDesc.mElementSize = c_aligned_shader_structure_cpu_illumination_flags_data;
 	mIlluminationFlagsCB = new DX12Buffer(descriptorManager,
 		cbDesc, 
-		1,
+		_deviceResources->GetBackBufferCount(),
 		L"Illumination Flags CB");
 }
 void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResourcesSingleton* _deviceResources, 
@@ -1383,9 +1253,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	mLightingRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mVCTMainUpsampleAndBlurRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mVCTMainRT->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mGbufferRTs[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mGbufferRTs[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mGbufferRTs[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	render_targets_gbuffer[0]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	render_targets_gbuffer[1]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	render_targets_gbuffer[2]->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mShadowDepth->TransitionTo(mBarriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	_deviceResources->ResourceBarriersEnd(mBarriers, commandList);
 
@@ -1394,12 +1264,12 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 
 	DX12DescriptorHandleBlock cbvHandleLighting = gpuDescriptorHeap->GetHandleBlock(2);
 	cbvHandleLighting.Add(mLightingCB->GetCBV());
-	cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV());
+	cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV(shader_structure_cpu_illumination_flags_most_updated_index));
 
 	DX12DescriptorHandleBlock srvHandleLighting = gpuDescriptorHeap->GetHandleBlock(4);
-	srvHandleLighting.Add(mGbufferRTs[0]->GetSRV());
-	srvHandleLighting.Add(mGbufferRTs[1]->GetSRV());
-	srvHandleLighting.Add(mGbufferRTs[2]->GetSRV());
+	srvHandleLighting.Add(render_targets_gbuffer[0]->GetSRV());
+	srvHandleLighting.Add(render_targets_gbuffer[1]->GetSRV());
+	srvHandleLighting.Add(render_targets_gbuffer[2]->GetSRV());
 
 	if (mVCTRenderDebug)
 	{

@@ -18,7 +18,7 @@ class DirectionalLight
 			float orthographicHeight = 256.0f,
 			float zNear = -256.0f,
 			float zFar = 256.0f,
-			bool isStatic = false);
+			bool isDynamic = false);
 		void SetProjectionMatrix(float orthographicWidth = 256.0f,
 			float orthographicHeight = 256.0f,
 			float zNear = -256.0f,
@@ -35,7 +35,7 @@ class DirectionalLight
 			DirectX::XMFLOAT3 padding;
 		};
 
-		bool is_static;
+		bool is_dynamic;
 		UINT8 most_updated_cbv_index;
 		DirectX::XMFLOAT4 position_world_space;
 		DirectX::XMFLOAT4 direction_world_space;
