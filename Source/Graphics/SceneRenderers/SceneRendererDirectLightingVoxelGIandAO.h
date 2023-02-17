@@ -171,7 +171,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		void ThrowFailedErrorBlob(ID3DBlob* blob);
 
 		DX12DescriptorHeapManager descriptor_heap_manager;
-		std::vector<CD3DX12_RESOURCE_BARRIER> mBarriers;
+		std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence_direct_queue;
 		Microsoft::WRL::ComPtr<ID3D12Fence>	fence_compute_queue;
 		HANDLE fence_event;
@@ -243,33 +243,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 		float mShadowIntensity = 0.5f;
 
 		D3D12_DEPTH_STENCIL_DESC mDepthStateRW;
-		D3D12_DEPTH_STENCIL_DESC mDepthStateRead;
 		D3D12_DEPTH_STENCIL_DESC mDepthStateDisabled;
 		D3D12_BLEND_DESC mBlendState;
-		D3D12_BLEND_DESC mBlendStateLPVPropagation;
 		D3D12_RASTERIZER_DESC mRasterizerState;
 		D3D12_RASTERIZER_DESC mRasterizerStateNoCullNoDepth;
 		D3D12_RASTERIZER_DESC mRasterizerStateShadow;
 		D3D12_SAMPLER_DESC mBilinearSampler;
-
-		XMFLOAT3 mCameraEye{ 0.0f, 0.0f, 0.0f };
-		XMMATRIX mCameraView;
-		XMMATRIX mCameraProjection;
-		XMFLOAT2 mLastMousePosition;
-		float mFOV = 60.0f;
-		bool mLockCamera = false;
-		XMVECTOR mLockedCameraPositions[LOCKED_CAMERA_VIEWS] = {
-			{2.88f, 16.8f, -0.6f},
-			{-23.3f, 10.7f, 25.6f},
-			{0.0f, 7.0f, 33.0f}
-		};
-		XMMATRIX mLockedCameraRotMatrices[LOCKED_CAMERA_VIEWS] = {
-			XMMatrixRotationX(-XMConvertToRadians(20.0f)) * XMMatrixRotationY(-XMConvertToRadians(40.0f)),
-			XMMatrixRotationX(-XMConvertToRadians(10.0f)) * XMMatrixRotationY(-XMConvertToRadians(30.0f)),
-			XMMatrixIdentity()
-		};
-
-		bool mUseAsyncCompute = true;
-		bool mUseDynamicObjects = true;
-		bool mStopDynamicObjects = false;
 };
