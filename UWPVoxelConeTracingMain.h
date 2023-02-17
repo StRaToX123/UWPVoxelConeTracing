@@ -82,4 +82,5 @@ class UWPVoxelConeTracingMain
 		bool imgui_update_directional_light_buffers = false;
 		bool imgui_update_scene_renderer_illumination_flags_buffer = false;
 		bool imgui_update_scene_renderer_vct_main_buffer = false;
+		bool imgui_update_voxelizer_data_buffer = false;
 };

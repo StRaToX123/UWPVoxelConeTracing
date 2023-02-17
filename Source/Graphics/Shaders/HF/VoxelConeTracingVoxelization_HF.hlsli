@@ -10,14 +10,15 @@ struct VertexShaderInputVoxelConeTracingVoxelization
 
 struct GeometryShaderInputVoxelConeTracingVoxelization
 {
-	float4 position : SV_POSITION;
-	float3 normal : TEXCOORD0;
+	float4 position_voxel_grid_space : SV_POSITION;
+	float4 position_world_space : POSITION1;
+	float3 normal_world_space : NORMAL;
 };
 
 struct PixelShaderInputVoxelConeTracingVoxelization
 {
-	float4 position : SV_POSITION;
-	float3 voxelPos : VOXEL_POSITION;
+	float4 position_voxel_grid_space : SV_POSITION;
+	float3 position_world_space : POSITION1;
 };
 
 

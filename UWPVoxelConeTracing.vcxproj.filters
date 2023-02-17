@@ -382,9 +382,6 @@
     <FxCompile Include="Source\Graphics\Shaders\PS\Lighting_PS.hlsl">
       <Filter>Source\Graphics\Shaders\PS</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracing_PS.hlsl">
-      <Filter>Source\Graphics\Shaders\PS</Filter>
-    </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelization_PS.hlsl">
       <Filter>Source\Graphics\Shaders\PS</Filter>
     </FxCompile>
@@ -401,9 +398,6 @@
       <Filter>Source\Graphics\Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\VS\ShadowMapping_VS.hlsl">
-      <Filter>Source\Graphics\Shaders\VS</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracing_VS.hlsl">
       <Filter>Source\Graphics\Shaders\VS</Filter>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingVoxelization_VS.hlsl">

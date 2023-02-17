@@ -9,33 +9,17 @@ ConstantBuffer<ShaderStructureGPUDirectionalLightData> directional_light_data : 
 ConstantBuffer<ShaderStructureGPUModelData> model_data : register(b2);
 
 
-float3 VoxelToWorld(float3 pos)
-{
-	float3 result = pos;
-	result *= voxelization_data.voxel_scale;
-
-	return result * 0.5f;
-}
 
 void main(PixelShaderInputVoxelConeTracingVoxelization input)
 {
-	uint width;
-	uint height;
-	uint depth;
-    
-	outputTexture.GetDimensions(width, height, depth);
-	float3 voxelPos = input.voxelPos.rgb;
-	voxelPos.y = -voxelPos.y;
-    
-	int3 finalVoxelPos = width * float3(0.5f * voxelPos + float3(0.5f, 0.5f, 0.5f));
-	float4 colorRes = float4(model_data.diffuse_color.rgb, 1.0f);
-	voxelPos.y = -voxelPos.y;
-    
-	float4 worldPos = float4(VoxelToWorld(voxelPos), 1.0f);
-	float4 lightSpacePos = mul(worldPos, directional_light_data.view_projection);
+	int3 voxelIndex = (input.position_world_space - voxelization_data.voxel_grid_top_left_back_point_world_space) * voxelization_data.voxel_extent_rcp;
+	voxelIndex.y *= -1;
+	
+	float4 color = float4(model_data.diffuse_color.rgb, 1.0f);
+	float4 lightSpacePos = mul(float4(input.position_world_space, 1.0f), directional_light_data.view_projection);
 	float4 shadowcoord = lightSpacePos / lightSpacePos.w;
 	shadowcoord.rg = shadowcoord.rg * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
 	float shadow = shadowBuffer.SampleCmpLevelZero(PcfShadowMapSampler, shadowcoord.xy, shadowcoord.z);
 
-	outputTexture[finalVoxelPos] = colorRes * float4(shadow, shadow, shadow, 1.0f);
+	outputTexture[voxelIndex] = color * float4(shadow, shadow, shadow, 1.0f);
 }

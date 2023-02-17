@@ -6,39 +6,33 @@ ConstantBuffer<ShaderStructureGPUVoxelizationData> voxelization_data : register(
 [maxvertexcount(3)]
 void main(triangle GeometryShaderInputVoxelConeTracingVoxelization input[3], inout TriangleStream<PixelShaderInputVoxelConeTracingVoxelization> OutputStream)
 {
-	PixelShaderInputVoxelConeTracingVoxelization output[3];
-	output[0] = (PixelShaderInputVoxelConeTracingVoxelization) 0;
-	output[1] = (PixelShaderInputVoxelConeTracingVoxelization) 0;
-	output[2] = (PixelShaderInputVoxelConeTracingVoxelization) 0;
-    
-	float3 p1 = input[1].position.rgb - input[0].position.rgb;
-	float3 p2 = input[2].position.rgb - input[0].position.rgb;
-	float3 n = abs(normalize(cross(p1, p2)));
-       
-	float axis = max(n.x, max(n.y, n.z));
-    
-    [unroll]
-	for (uint i = 0; i < 3; i++)
+	float3 faceNormal = abs(input[0].normal_world_space + input[1].normal_world_space + input[2].normal_world_space);
+	uint maxFaceNormalIndex = faceNormal[1] > faceNormal[0] ? 1 : 0;
+	maxFaceNormalIndex = faceNormal[2] > faceNormal[maxFaceNormalIndex] ? 2 : maxFaceNormalIndex;
+
+	[unroll]
+	for (uint i = 0; i < 3; ++i)
 	{
-		output[0].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
-		output[1].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
-		output[2].voxelPos = input[i].position.xyz / voxelization_data.voxel_scale * 2.0f;
-		if (axis == n.z)
+		PixelShaderInputVoxelConeTracingVoxelization output;
+		output.position_voxel_grid_space = input[i].position_voxel_grid_space;
+		
+		// Project onto dominant axis:
+		[flatten]
+		if (maxFaceNormalIndex == 0)
 		{
-			output[i].position = float4(output[i].voxelPos.x, output[i].voxelPos.y, 0, 1);
+			output.position_voxel_grid_space.xyz = output.position_voxel_grid_space.zyx;
 		}
-		else if (axis == n.x)
+		else if (maxFaceNormalIndex == 1)
 		{
-			output[i].position = float4(output[i].voxelPos.y, output[i].voxelPos.z, 0, 1);
+			output.position_voxel_grid_space.xyz = output.position_voxel_grid_space.xzy;
 		}
-		else
-		{
-			output[i].position = float4(output[i].voxelPos.x, output[i].voxelPos.z, 0, 1);
-		}
-			
-        //output[i].normal = input[i].normal;
-		OutputStream.Append(output[i]);
+
+		// Voxel grid space -> Clip space
+		output.position_voxel_grid_space.xy *= voxelization_data.voxel_grid_half_extent_world_space_rcp;
+		output.position_voxel_grid_space.zw = 1;
+		// Append the rest of the data
+		output.position_world_space = input[i].position_world_space.xyz;
+
+		OutputStream.Append(output);
 	}
-	
-	OutputStream.RestartStrip();
 }

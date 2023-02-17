@@ -43,9 +43,12 @@ struct ShaderStructureGPUModelData
 
 struct ShaderStructureGPUVoxelizationData
 {
-	float4x4 voxel_grid_space;
+	float3 voxel_grid_top_left_back_point_world_space;
+	uint voxel_grid_res;
+	float voxel_grid_extent_world_space;
+	float voxel_grid_half_extent_world_space_rcp;
+	float voxel_extent_rcp;
 	float voxel_scale;
-	float3 padding;
 };
 
 struct ShaderStructureGPUMipMappingData

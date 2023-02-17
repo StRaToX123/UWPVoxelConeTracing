@@ -53,8 +53,15 @@ class SceneRendererDirectLightingVoxelGIandAO
 			ID3D12GraphicsCommandList* _commandListDirect, 
 			ID3D12GraphicsCommandList* _commandListCompute,
 			ID3D12CommandAllocator* _commandAllocatorDirect);
-		void UpdateBuffers(bool updateIlluminationFlagsBuffer, bool updateVCTMainBuffers);
 
+		enum UpdatableBuffers
+		{
+			VCT_MAIN_DATA_BUFFER,
+			ILLUMINATION_FLAGS_DATA_BUFFER,
+			VOXELIZATION_DATA_BUFFER,
+			LIGHTING_DATA_BUFFER
+		};
+		void UpdateBuffers(UpdatableBuffers whichBufferToUpdate);
 		__declspec(align(16)) struct ShaderSTructureCPULightingData
 		{
 			DirectX::XMFLOAT2 shadow_texel_size;
@@ -62,6 +69,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		};
 
 		ShaderSTructureCPULightingData shader_structure_cpu_lighting_data;
+		UINT8 shader_structure_cpu_lighting_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_lighting_data = (sizeof(ShaderSTructureCPULightingData) + 255) & ~255;
 		__declspec(align(16)) struct ShaderStructureCPUIlluminationFlagsData
 		{
@@ -79,12 +87,16 @@ class SceneRendererDirectLightingVoxelGIandAO
 		static const UINT c_aligned_shader_structure_cpu_illumination_flags_data = (sizeof(ShaderStructureCPUIlluminationFlagsData) + 255) & ~255;
 		__declspec(align(16)) struct ShaderStructureCPUVoxelizationData
 		{
-			DirectX::XMFLOAT4X4 voxel_grid_space;
+			DirectX::XMFLOAT3 voxel_grid_top_left_back_point_world_space;
+			UINT32 voxel_grid_res;
+			float voxel_grid_extent_world_space = 256.0f;
+			float voxel_grid_half_extent_world_space_rcp;
+			float voxel_extent_rcp;
 			float voxel_scale;
-			DirectX::XMFLOAT3 padding;
 		};
 
 		ShaderStructureCPUVoxelizationData shader_structure_cpu_voxelization_data;
+		UINT8 shader_structure_cpu_voxelization_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
 		__declspec(align(16)) struct ShaderStructureCPUMipMappingData
 		{
@@ -196,12 +208,11 @@ class SceneRendererDirectLightingVoxelGIandAO
 		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinMain3DRTs;
 		
 
-		DX12Buffer* mVCTVoxelizationCB;
-		DX12Buffer* mVCTAnisoMipmappingCB;
-		DX12Buffer* mVCTMainCB;
-		std::vector<DX12Buffer*> mVCTAnisoMipmappingMainCB;
+		DX12Buffer* p_constant_buffer_voxelization;
+		DX12Buffer* p_constant_buffer_aniso_mipmapping;
+		DX12Buffer* p_constant_buffer_vct_main;
+		std::vector<DX12Buffer*> p_constant_buffers_vct_mipmapping_main;
 		bool mVCTRenderDebug = false;
-		float mWorldVoxelScale = VCT_SCENE_VOLUME_SIZE * 0.5f;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
 		bool mVCTUseMainCompute = true;
 		bool mVCTMainRTUseUpsampleAndBlur = true;

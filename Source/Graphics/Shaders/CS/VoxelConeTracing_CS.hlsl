@@ -63,12 +63,22 @@ float4 GetAnisotropicSample(float3 uv, float3 weight, float lod, bool posX, bool
 	return anisoSample;
 }
 
+//float4 GetVoxel(float3 worldPosition, float3 weight, float lod, bool posX, bool posY, bool posZ)
+//{
+//	float3 offset = float3(vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset);
+//	float3 voxelTextureUV = worldPosition / voxelization_data.voxel_scale * 2.0f;
+//	voxelTextureUV.y = -voxelTextureUV.y;
+//	voxelTextureUV = voxelTextureUV * 0.5f + 0.5f + offset;
+    
+//	return GetAnisotropicSample(voxelTextureUV, weight, lod, posX, posY, posZ);
+//}
+
 float4 GetVoxel(float3 worldPosition, float3 weight, float lod, bool posX, bool posY, bool posZ)
 {
-	float3 offset = float3(vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset);
-	float3 voxelTextureUV = worldPosition / voxelization_data.voxel_scale * 2.0f;
-	voxelTextureUV.y = -voxelTextureUV.y;
-	voxelTextureUV = voxelTextureUV * 0.5f + 0.5f + offset;
+	//float3 offset = float3(vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset, vct_main_data.voxel_sample_offset);
+	int3 voxelIndex = (worldPosition - voxelization_data.voxel_grid_top_left_back_point_world_space) * voxelization_data.voxel_extent_rcp;
+	voxelIndex.y *= -1;
+	float3 voxelTextureUV = (float3) voxelIndex / (voxelization_data.voxel_grid_res - 1);
     
 	return GetAnisotropicSample(voxelTextureUV, weight, lod, posX, posY, posZ);
 }
@@ -79,7 +89,8 @@ float4 TraceCone(float3 pos, float3 normal, float3 direction, float aperture, ou
 	float4 color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	occlusion = 0.0f;
-	float voxelWorldSize = voxelization_data.voxel_scale / voxelResolution;
+	//float voxelWorldSize = voxelization_data.voxel_scale / voxelResolution;
+	float voxelWorldSize = 0.5f;
 	float dist = voxelWorldSize;
 	float3 startPos = pos + normal * dist;
     

@@ -6,10 +6,37 @@ static const float gs_clear_color_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 SceneRendererDirectLightingVoxelGIandAO::SceneRendererDirectLightingVoxelGIandAO()
 {
+	p_constant_buffer_voxelization = nullptr;
+	p_constant_buffer_aniso_mipmapping = nullptr;
+	p_constant_buffer_vct_main = nullptr;
+
 }
 
 SceneRendererDirectLightingVoxelGIandAO::~SceneRendererDirectLightingVoxelGIandAO()
 {
+	if (p_constant_buffer_voxelization != nullptr)
+	{
+		delete p_constant_buffer_voxelization;
+	}
+
+	if (p_constant_buffer_aniso_mipmapping != nullptr)
+	{
+		delete p_constant_buffer_aniso_mipmapping;
+	}
+
+	if (p_constant_buffer_vct_main != nullptr)
+	{
+		delete p_constant_buffer_vct_main;
+	}
+
+	if (p_constant_buffers_vct_mipmapping_main.size() > 0)
+	{
+		for (UINT i = 0; i < p_constant_buffers_vct_mipmapping_main.size(); i++)
+		{
+			delete p_constant_buffers_vct_mipmapping_main[i];
+		}
+	}
+
 	delete mLightingCB;
 	delete mLightingRT;
 }
@@ -137,39 +164,84 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	// Set the most updated indexes for the constant buffers
 	shader_structure_cpu_vct_main_data_most_updated_index = _deviceResources->GetBackBufferCount() - 1;
 	shader_structure_cpu_illumination_flags_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
+	shader_structure_cpu_voxelization_data_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
+	shader_structure_cpu_lighting_data_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
 
 	InitGbuffer(_d3dDevice, &descriptor_heap_manager);
 	InitShadowMapping(_d3dDevice, &descriptor_heap_manager);
 	InitVoxelConeTracing(_deviceResources, _d3dDevice, &descriptor_heap_manager);
 	InitLighting(_deviceResources, _d3dDevice, &descriptor_heap_manager);
 	InitComposite(_deviceResources, _d3dDevice, &descriptor_heap_manager);
-	UpdateBuffers(true, true);
+	UpdateBuffers(UpdatableBuffers::ILLUMINATION_FLAGS_DATA_BUFFER);
+	UpdateBuffers(UpdatableBuffers::VCT_MAIN_DATA_BUFFER);
+	UpdateBuffers(UpdatableBuffers::VOXELIZATION_DATA_BUFFER);
+	UpdateBuffers(UpdatableBuffers::LIGHTING_DATA_BUFFER);
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(bool updateIlluminationFlagsBuffer, bool updateVCTMainBuffers)
+void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whichBufferToUpdate)
 {
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	if (updateIlluminationFlagsBuffer == true)
+	switch (whichBufferToUpdate)
 	{
-		shader_structure_cpu_illumination_flags_most_updated_index++;
-		if (shader_structure_cpu_illumination_flags_most_updated_index == _deviceResources->GetBackBufferCount())
+		case UpdatableBuffers::ILLUMINATION_FLAGS_DATA_BUFFER:
 		{
-			shader_structure_cpu_illumination_flags_most_updated_index = 0;
+			shader_structure_cpu_illumination_flags_most_updated_index++;
+			if (shader_structure_cpu_illumination_flags_most_updated_index == _deviceResources->GetBackBufferCount())
+			{
+				shader_structure_cpu_illumination_flags_most_updated_index = 0;
+			}
+
+			memcpy(mIlluminationFlagsCB->GetMappedData(shader_structure_cpu_illumination_flags_most_updated_index), &shader_structure_cpu_illumination_flags_data, sizeof(ShaderStructureCPUIlluminationFlagsData));
+			break;
 		}
 
-		memcpy(mIlluminationFlagsCB->GetMappedData(shader_structure_cpu_illumination_flags_most_updated_index), &shader_structure_cpu_illumination_flags_data, sizeof(ShaderStructureCPUIlluminationFlagsData));
-	}
-
-	if (updateVCTMainBuffers == true)
-	{
-		shader_structure_cpu_vct_main_data_most_updated_index++;
-		if (shader_structure_cpu_vct_main_data_most_updated_index == _deviceResources->GetBackBufferCount())
+		case UpdatableBuffers::VCT_MAIN_DATA_BUFFER:
 		{
-			shader_structure_cpu_vct_main_data_most_updated_index = 0;
+			shader_structure_cpu_vct_main_data_most_updated_index++;
+			if (shader_structure_cpu_vct_main_data_most_updated_index == _deviceResources->GetBackBufferCount())
+			{
+				shader_structure_cpu_vct_main_data_most_updated_index = 0;
+			}
+
+			shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(render_targets_gbuffer[0]->GetWidth() / mVCTMainRT->GetWidth(), render_targets_gbuffer[0]->GetHeight() / mVCTMainRT->GetHeight());
+			memcpy(p_constant_buffer_vct_main->GetMappedData(shader_structure_cpu_vct_main_data_most_updated_index), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
+			break;
 		}
 
-		shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(render_targets_gbuffer[0]->GetWidth() / mVCTMainRT->GetWidth(), render_targets_gbuffer[0]->GetHeight() / mVCTMainRT->GetHeight());
-		memcpy(mVCTMainCB->GetMappedData(shader_structure_cpu_vct_main_data_most_updated_index), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
+		case UpdatableBuffers::VOXELIZATION_DATA_BUFFER:
+		{
+			shader_structure_cpu_voxelization_data_most_updated_index++;
+			if (shader_structure_cpu_voxelization_data_most_updated_index == _deviceResources->GetBackBufferCount())
+			{
+				shader_structure_cpu_voxelization_data_most_updated_index = 0;
+			}
+
+			float scale = 1.0f;// VCT_SCENE_VOLUME_SIZE / mWorldVoxelScale;
+			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x = -(shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space * 0.5f);
+			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.y = -shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x;
+			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.z = shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x;
+			//shader_structure_cpu_voxelization_data.voxel_grid_half_extent_rcp = 1.0f / (VCT_SCENE_VOLUME_SIZE * 0.5f);
+			//shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space = 2.0f;
+			shader_structure_cpu_voxelization_data.voxel_grid_res = VCT_SCENE_VOLUME_SIZE;
+			shader_structure_cpu_voxelization_data.voxel_scale = VCT_SCENE_VOLUME_SIZE * 0.5f;
+			shader_structure_cpu_voxelization_data.voxel_extent_rcp = 1.0f / (shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space / shader_structure_cpu_voxelization_data.voxel_grid_res);
+			shader_structure_cpu_voxelization_data.voxel_grid_half_extent_world_space_rcp = 1.0f / (shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space * 0.5f);
+			memcpy(p_constant_buffer_voxelization->GetMappedData(shader_structure_cpu_voxelization_data_most_updated_index), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
+			break;
+		}
+
+		case UpdatableBuffers::LIGHTING_DATA_BUFFER:
+		{
+			shader_structure_cpu_lighting_data_most_updated_index++;
+			if (shader_structure_cpu_lighting_data_most_updated_index == _deviceResources->GetBackBufferCount())
+			{
+				shader_structure_cpu_lighting_data_most_updated_index = 0;
+			}
+
+			shader_structure_cpu_lighting_data.shadow_texel_size = XMFLOAT2(1.0f / mShadowDepth->GetWidth(), 1.0f / mShadowDepth->GetHeight());
+			memcpy(mLightingCB->GetMappedData(shader_structure_cpu_lighting_data_most_updated_index), &shader_structure_cpu_lighting_data, sizeof(ShaderStructureCPUVoxelizationData));
+			break;
+		}
 	}
 }
 
@@ -213,16 +285,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 
 	DX12DescriptorHandleBlock shadowDepthDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
 	shadowDepthDescriptorHandleBlock.Add(mShadowDepth->GetSRV());
-
-	// Update ShaderStructureCPULightPassData
-	shader_structure_cpu_lighting_data.shadow_texel_size = XMFLOAT2(1.0f / mShadowDepth->GetWidth(), 1.0f / mShadowDepth->GetHeight());
-	memcpy(mLightingCB->GetMappedData(), &shader_structure_cpu_lighting_data, sizeof(ShaderSTructureCPULightingData));
-
-	// Update ShaderStructureCPUVoxelizationData
-	float scale = 1.0f;// VCT_SCENE_VOLUME_SIZE / mWorldVoxelScale;
-	DirectX::XMStoreFloat4x4(&shader_structure_cpu_voxelization_data.voxel_grid_space, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(scale, -scale, scale), XMMatrixTranslation(-VCT_SCENE_VOLUME_SIZE * 0.25f, -VCT_SCENE_VOLUME_SIZE * 0.25f, -VCT_SCENE_VOLUME_SIZE * 0.25f))));
-	shader_structure_cpu_voxelization_data.voxel_scale = mWorldVoxelScale;
-	memcpy(mVCTVoxelizationCB->GetMappedData(), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
 
 	// Graphics command list
 	{
@@ -601,9 +663,9 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mElementSize = c_aligned_shader_structure_cpu_voxelization_data;
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-		mVCTVoxelizationCB = new DX12Buffer(descriptorManager,
+		p_constant_buffer_voxelization = new DX12Buffer(descriptorManager,
 			cbDesc,
-			1,
+			_deviceResources->GetBackBufferCount(),
 			L"VCT Voxelization Pass CB");
 	}
 
@@ -696,7 +758,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTAnisoMipmappingCB = new DX12Buffer(descriptorManager,
+		p_constant_buffer_aniso_mipmapping = new DX12Buffer(descriptorManager,
 			cbDesc, 
 			1,
 			L"VCT aniso mip mapping CB");
@@ -741,12 +803,12 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 0 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 1 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 2 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 3 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 4 CB"));
-		mVCTAnisoMipmappingMainCB.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 5 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 0 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 1 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 2 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 3 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 4 CB"));
+		p_constant_buffers_vct_mipmapping_main.push_back(new DX12Buffer(descriptorManager, cbDesc, 1, L"VCT aniso mip mapping main mip 5 CB"));
 
 	}
 
@@ -757,7 +819,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		mVCTMainCB = new DX12Buffer(descriptorManager,
+		p_constant_buffer_vct_main = new DX12Buffer(descriptorManager,
 			cbDesc, 
 			_deviceResources->GetBackBufferCount(),
 			L"VCT main CB");
@@ -773,46 +835,6 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-
-		// PS
-		{
-			mVCTMainRS.Reset(3, 1);
-			mVCTMainRS.InitStaticSampler(0, mBilinearSampler, D3D12_SHADER_VISIBILITY_ALL);
-			mVCTMainRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 2, D3D12_SHADER_VISIBILITY_ALL);
-			mVCTMainRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 1, D3D12_SHADER_VISIBILITY_ALL);
-			mVCTMainRS[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_ALL);
-			mVCTMainRS.Finalize(device, L"VCT main pass pixel version RS", rootSignatureFlags);
-
-			char* pVertexShaderByteCode;
-			int vertexShaderByteCodeLength;
-			char* pPixelShaderByteCode;
-			int pixelShaderByteCodeLength;
-			LoadShaderByteCode(GetFilePath("VoxelConeTracing_VS.cso"), pVertexShaderByteCode, vertexShaderByteCodeLength);
-			LoadShaderByteCode(GetFilePath("VoxelConeTracing_PS.cso"), pPixelShaderByteCode, pixelShaderByteCodeLength);
-
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-			};
-
-			DXGI_FORMAT formats[1];
-			formats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-			mVCTMainPSO.SetRootSignature(mVCTMainRS);
-			mVCTMainPSO.SetRasterizerState(mRasterizerState);
-			mVCTMainPSO.SetBlendState(mBlendState);
-			mVCTMainPSO.SetDepthStencilState(mDepthStateDisabled);
-			mVCTMainPSO.SetInputLayout(_countof(inputElementDescs), inputElementDescs);
-			mVCTMainPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-			mVCTMainPSO.SetRenderTargetFormats(_countof(formats), formats, DXGI_FORMAT_D32_FLOAT);
-			mVCTMainPSO.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
-			mVCTMainPSO.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-			mVCTMainPSO.Finalize(device);
-
-			delete[] pVertexShaderByteCode;
-			delete[] pPixelShaderByteCode;
-		}
 
 		// CS
 		{
@@ -914,7 +936,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 				nullptr);
 
 			DX12DescriptorHandleBlock vctVoxelizationDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
-			vctVoxelizationDescriptorHandleBlock.Add(mVCTVoxelizationCB->GetCBV());
+			vctVoxelizationDescriptorHandleBlock.Add(p_constant_buffer_voxelization->GetCBV(shader_structure_cpu_voxelization_data_most_updated_index));
 
 			commandList->SetGraphicsRootDescriptorTable(0, vctVoxelizationDescriptorHandleBlock.GetGPUHandle());
 			commandList->SetGraphicsRootDescriptorTable(1, directionalLightDescriptorHandleBlock.GetGPUHandle());
@@ -956,7 +978,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			//DX12DescriptorHandleBlock uavHandle;
 
 			//cbvHandle = gpuDescriptorHeap->GetHandleBlock(1);
-			//gpuDescriptorHeap->AddToHandle(device, cbvHandle, mVCTVoxelizationCB->GetCBV());
+			//gpuDescriptorHeap->AddToHandle(device, cbvHandle, p_constant_buffer_voxelization->GetCBV());
 
 			//uavHandle = gpuDescriptorHeap->GetHandleBlock(1);
 			//gpuDescriptorHeap->AddToHandle(device, uavHandle, mVCTVoxelization3DRT->GetUAV());
@@ -990,9 +1012,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 		
 			shader_structure_cpu_mip_mapping_data.mip_dimension = VCT_SCENE_VOLUME_SIZE >> 1;
 			shader_structure_cpu_mip_mapping_data.mip_level = 0;
-			memcpy(mVCTAnisoMipmappingCB->GetMappedData(), &shader_structure_cpu_mip_mapping_data, sizeof(ShaderStructureCPUMipMappingData));
+			memcpy(p_constant_buffer_aniso_mipmapping->GetMappedData(), &shader_structure_cpu_mip_mapping_data, sizeof(ShaderStructureCPUMipMappingData));
 			DX12DescriptorHandleBlock mipMappingDataDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
-			mipMappingDataDescriptorHandleBlock.Add(mVCTAnisoMipmappingCB->GetCBV());
+			mipMappingDataDescriptorHandleBlock.Add(p_constant_buffer_aniso_mipmapping->GetCBV());
 		
 			DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(6);
 			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[0]->GetUAV());
@@ -1031,7 +1053,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			for (int mip = 0; mip < VCT_MIPS; mip++)
 			{
 				DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(1);
-				cbvHandle.Add(mVCTAnisoMipmappingMainCB[mip]->GetCBV());
+				cbvHandle.Add(p_constant_buffers_vct_mipmapping_main[mip]->GetCBV());
 
 				DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(12);
 				if (mip == 0) 
@@ -1062,7 +1084,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 
 				shader_structure_cpu_mip_mapping_data.mip_dimension = mipDimension;
 				shader_structure_cpu_mip_mapping_data.mip_level = mip;
-				memcpy(mVCTAnisoMipmappingMainCB[mip]->GetMappedData(), &shader_structure_cpu_mip_mapping_data, sizeof(ShaderStructureCPUMipMappingData));
+				memcpy(p_constant_buffers_vct_mipmapping_main[mip]->GetMappedData(), &shader_structure_cpu_mip_mapping_data, sizeof(ShaderStructureCPUMipMappingData));
 				commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
 				commandList->SetComputeRootDescriptorTable(1, uavHandle.GetGPUHandle());
 
@@ -1103,8 +1125,8 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			srvHandle.Add(mVCTVoxelization3DRT->GetSRV());
 
 			DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
-			cbvHandle.Add(mVCTVoxelizationCB->GetCBV());
-			cbvHandle.Add(mVCTMainCB->GetCBV(shader_structure_cpu_vct_main_data_most_updated_index));
+			cbvHandle.Add(p_constant_buffer_voxelization->GetCBV(shader_structure_cpu_voxelization_data_most_updated_index));
+			cbvHandle.Add(p_constant_buffer_vct_main->GetCBV(shader_structure_cpu_vct_main_data_most_updated_index));
 
 			commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
 			commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
@@ -1218,7 +1240,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 
 	mLightingCB = new DX12Buffer(descriptorManager,
 		cbDesc,
-		1,
+		_deviceResources->GetBackBufferCount(),
 		L"Lighting Pass CB");
 
 	cbDesc.mElementSize = c_aligned_shader_structure_cpu_illumination_flags_data;
@@ -1263,7 +1285,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	commandList->ClearRenderTargetView(rtvHandlesLighting[0], gs_clear_color_black, 0, nullptr);
 
 	DX12DescriptorHandleBlock cbvHandleLighting = gpuDescriptorHeap->GetHandleBlock(2);
-	cbvHandleLighting.Add(mLightingCB->GetCBV());
+	cbvHandleLighting.Add(mLightingCB->GetCBV(shader_structure_cpu_lighting_data_most_updated_index));
 	cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV(shader_structure_cpu_illumination_flags_most_updated_index));
 
 	DX12DescriptorHandleBlock srvHandleLighting = gpuDescriptorHeap->GetHandleBlock(4);
