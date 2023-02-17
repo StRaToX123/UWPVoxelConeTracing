@@ -77,6 +77,7 @@ float4 GetVoxel(float3 worldPosition, float3 weight, float lod, bool posX, bool 
 {
 	int3 voxelIndex = (worldPosition - voxelization_data.voxel_grid_top_left_back_point_world_space) * voxelization_data.voxel_extent_rcp;
 	voxelIndex.y *= -1;
+	
 	float3 voxelTextureUV = (float3) voxelIndex / (voxelization_data.voxel_grid_res - 1);
     
 	return GetAnisotropicSample(voxelTextureUV, weight, lod, posX, posY, posZ);
@@ -99,6 +100,7 @@ float4 TraceCone(float3 pos, float3 normal, float3 direction, float aperture, ou
 	{
 		float diameter = 2.0f * aperture * dist;
 		float lodLevel = log2(diameter / voxelWorldSize);
+		//lodLevel = clamp(lodLevel, 0.0f, 6.0f);
 		float4 voxelColor = GetVoxel(startPos + dist * direction, weight, lodLevel, direction.x > 0.0, direction.y > 0.0, direction.z > 0.0);
     
         // front-to-back

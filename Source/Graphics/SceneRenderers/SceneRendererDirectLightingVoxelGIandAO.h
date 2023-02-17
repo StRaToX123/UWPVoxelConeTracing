@@ -8,8 +8,7 @@
 #include "Graphics\DirectX\DX12Buffer.h"
 #include "Graphics\DirectX\RootSignature.h"
 #include "Graphics\DirectX\PipelineStateObject.h"
-#include "Graphics\DirectX\RaytracingPipelineGenerator.h"
-#include "Graphics\DirectX\ShaderBindingTableGenerator.h"
+#include "Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli"
 
 #include "Scene\Camera.h"
 #include "Scene\Model.h"
@@ -88,25 +87,32 @@ class SceneRendererDirectLightingVoxelGIandAO
 		__declspec(align(16)) struct ShaderStructureCPUVoxelizationData
 		{
 			DirectX::XMFLOAT3 voxel_grid_top_left_back_point_world_space;
-			UINT32 voxel_grid_res;
-			float voxel_grid_extent_world_space = 256.0f;
+			UINT32 voxel_grid_res = 256;
+			float voxel_grid_extent_world_space = 80.0f;
 			float voxel_grid_half_extent_world_space_rcp;
+			// For the mip count we don't want to count the 1x1x1 mip since the anisotropic mip chain generation 
+			// requires at least a 2x2x2 texture in order to perform calculations
+			// We also don't want to count the mip level 0 (full res mip) since the anisotropic mip chain starts from what would
+			// be the original 3D textures mip level 1
+			UINT32 voxel_grid_anisotropic_mip_count = (UINT32)log2(voxel_grid_res) - 1;
 			float voxel_extent_rcp;
 			float voxel_scale;
+			DirectX::XMFLOAT3 padding;
 		};
 
 		ShaderStructureCPUVoxelizationData shader_structure_cpu_voxelization_data;
 		UINT8 shader_structure_cpu_voxelization_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
-		__declspec(align(16)) struct ShaderStructureCPUMipMappingData
+		__declspec(align(16)) struct ShaderStructureCPUAnisotropicMipGenerationData
 		{
 			int mip_dimension;
 			int mip_level;
 			DirectX::XMFLOAT2 padding;
 		};
 
-		ShaderStructureCPUMipMappingData shader_structure_cpu_mip_mapping_data;
-		static const UINT c_aligned_shader_structure_cpu_mip_mapping_data = (sizeof(ShaderStructureCPUMipMappingData) + 255) & ~255;
+		ShaderStructureCPUAnisotropicMipGenerationData shader_structure_cpu_vct_anisotropic_mip_generation_data;
+		UINT8 shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index;
+		static const UINT c_aligned_shader_structure_cpu_vct_anisotropic_mip_generation_data = (sizeof(ShaderStructureCPUAnisotropicMipGenerationData) + 255) & ~255;
 		__declspec(align(16)) struct ShaderStructureCPUVCTMainData
 		{
 			DirectX::XMFLOAT2 upsample_ratio;
@@ -189,29 +195,24 @@ class SceneRendererDirectLightingVoxelGIandAO
 		RootSignature mVCTMainRS;
 		RootSignature mVCTMainRS_Compute;
 		RootSignature mVCTMainUpsampleAndBlurRS;
-		RootSignature mVCTAnisoMipmappingPrepareRS;
-		RootSignature mVCTAnisoMipmappingMainRS;
+		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation;
 		GraphicsPSO mVCTVoxelizationPSO;
-		GraphicsPSO mVCTMainPSO;
 		ComputePSO mVCTMainPSO_Compute;
-		ComputePSO mVCTAnisoMipmappingPreparePSO;
-		ComputePSO mVCTAnisoMipmappingMainPSO;
+		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation;
 		ComputePSO mVCTMainUpsampleAndBlurPSO;
 		RootSignature mVCTVoxelizationDebugRS;
 		GraphicsPSO mVCTVoxelizationDebugPSO;
-		DXRSRenderTarget* mVCTVoxelization3DRT;
-		DXRSRenderTarget* mVCTVoxelization3DRT_CopyForAsync;
+		DXRSRenderTarget* p_render_target_vct_voxelization;
 		DXRSRenderTarget* mVCTVoxelizationDebugRT;
 		DXRSRenderTarget* mVCTMainRT;
 		DXRSRenderTarget* mVCTMainUpsampleAndBlurRT;
-		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinPrepare3DRTs;
-		std::vector<DXRSRenderTarget*> mVCTAnisoMipmappinMain3DRTs;
 		
-
+		std::vector<DXRSRenderTarget*> p_render_targets_vct_voxelization_anisotropic_mip_generation;
+		
 		DX12Buffer* p_constant_buffer_voxelization;
-		DX12Buffer* p_constant_buffer_aniso_mipmapping;
 		DX12Buffer* p_constant_buffer_vct_main;
-		std::vector<DX12Buffer*> p_constant_buffers_vct_mipmapping_main;
+		std::vector<DX12Buffer*> p_constant_buffers_vct_anisotropic_mip_generation;
+
 		bool mVCTRenderDebug = false;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
 		bool mVCTUseMainCompute = true;

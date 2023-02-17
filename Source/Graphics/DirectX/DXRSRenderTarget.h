@@ -21,7 +21,10 @@ public:
 	int GetWidth() { return mWidth; }
 	int GetHeight() { return mHeight; }
 	int GetDepth() { return mDepth; }
-	void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
+	void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, 
+		ID3D12GraphicsCommandList* commandList,
+		D3D12_RESOURCE_STATES stateAfter,
+		UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	D3D12_RESOURCE_STATES GetCurrentState() { return mCurrentResourceState; }
 
 	DX12DescriptorHandleBlock& GetRTV(int mip = 0)

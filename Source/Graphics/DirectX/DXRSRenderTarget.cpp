@@ -1,6 +1,15 @@
 #include "Graphics/DirectX/DXRSRenderTarget.h"
 
-DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager, int width, int height, DXGI_FORMAT aFormat, D3D12_RESOURCE_FLAGS flags, LPCWSTR name, int depth, int mips, D3D12_RESOURCE_STATES defaultState)
+DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, 
+	DX12DescriptorHeapManager* descriptorManager, 
+	int width, 
+	int height, 
+	DXGI_FORMAT aFormat, 
+	D3D12_RESOURCE_FLAGS flags, 
+	LPCWSTR name, 
+	int depth, 
+	int mips, 
+	D3D12_RESOURCE_STATES defaultState)
 {
 	mWidth = width;
 	mHeight = height;
@@ -47,11 +56,13 @@ DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, DX12DescriptorHeapManag
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = aFormat;
-	if (depth > 0) {
+	if (depth > 0) 
+	{
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
 		srvDesc.Texture3D.MipLevels = mips;
 	}
-	else {
+	else 
+	{
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = mips;
 	}
@@ -66,24 +77,28 @@ DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, DX12DescriptorHeapManag
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 		rtvDesc.Format = aFormat;
-		if (depth > 0) {
+		if (depth > 0) 
+		{
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
 			rtvDesc.Texture3D.MipSlice = mipLevel;
 			rtvDesc.Texture3D.WSize = (depth >> mipLevel);
 		}
-		else {
+		else 
+		{
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 			rtvDesc.Texture2D.MipSlice = mipLevel;
 		}
 
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.Format = aFormat;
-		if (depth > 0) {
+		if (depth > 0) 
+		{
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 			uavDesc.Texture3D.MipSlice = mipLevel;
 			uavDesc.Texture3D.WSize = (depth >> mipLevel);
 		}
-		else {
+		else 
+		{
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 			uavDesc.Texture2D.MipSlice = mipLevel;
 		}
@@ -99,11 +114,14 @@ DXRSRenderTarget::DXRSRenderTarget(ID3D12Device* device, DX12DescriptorHeapManag
 	}
 }
 
-void DXRSRenderTarget::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter)
+void DXRSRenderTarget::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, 
+	ID3D12GraphicsCommandList* commandList, 
+	D3D12_RESOURCE_STATES stateAfter,
+	UINT subresource)
 {
 	if (stateAfter != mCurrentResourceState)
 	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), mCurrentResourceState, stateAfter));
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), mCurrentResourceState, stateAfter, subresource));
 		mCurrentResourceState = stateAfter;
 	}
 }

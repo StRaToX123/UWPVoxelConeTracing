@@ -47,8 +47,10 @@ struct ShaderStructureGPUVoxelizationData
 	uint voxel_grid_res;
 	float voxel_grid_extent_world_space;
 	float voxel_grid_half_extent_world_space_rcp;
+	uint voxel_grid_anisotropic_mip_count;
 	float voxel_extent_rcp;
 	float voxel_scale;
+	float3 padding;
 };
 
 struct ShaderStructureGPUMipMappingData

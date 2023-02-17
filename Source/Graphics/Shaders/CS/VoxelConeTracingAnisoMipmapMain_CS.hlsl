@@ -1,24 +1,9 @@
 #include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
-
-
-RWTexture3D<float4> voxelTextureSrcPosX : register(u0);
-RWTexture3D<float4> voxelTextureSrcNegX : register(u1);
-RWTexture3D<float4> voxelTextureSrcPosY : register(u2);
-RWTexture3D<float4> voxelTextureSrcNegY : register(u3);
-RWTexture3D<float4> voxelTextureSrcPosZ : register(u4);
-RWTexture3D<float4> voxelTextureSrcNegZ : register(u5);
-
-RWTexture3D<float4> voxelTextureResultPosX : register(u6);
-RWTexture3D<float4> voxelTextureResultNegX : register(u7);
-RWTexture3D<float4> voxelTextureResultPosY : register(u8);
-RWTexture3D<float4> voxelTextureResultNegY : register(u9);
-RWTexture3D<float4> voxelTextureResultPosZ : register(u10);
-RWTexture3D<float4> voxelTextureResultNegZ : register(u11);
-
+Texture3D<float4> source[] : register(t0);
+RWTexture3D<float4> result[] : register(u0);
 ConstantBuffer<ShaderStructureGPUMipMappingData> mip_mapping_data : register(b0);
-
-static const int3 anisoOffsets[8] =
+static const int3 anisotropic_offsets[8] =
 {
 	int3(1, 1, 1),
 	int3(1, 1, 0),
@@ -30,65 +15,78 @@ static const int3 anisoOffsets[8] =
 	int3(0, 0, 0)
 };
 
-[numthreads(8, 8, 8)]
+[numthreads(DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION, DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION, DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION)]
 void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
 {
 	if (DTid.x >= mip_mapping_data.mip_dimension || DTid.y >= mip_mapping_data.mip_dimension || DTid.z >= mip_mapping_data.mip_dimension)
-		return;
-    
-	if (mip_mapping_data.mip_level == 0)
 	{
-		voxelTextureResultPosX[DTid] = voxelTextureSrcPosX[DTid];
-		voxelTextureResultNegX[DTid] = voxelTextureSrcNegX[DTid];
-		voxelTextureResultPosY[DTid] = voxelTextureSrcPosY[DTid];
-		voxelTextureResultNegY[DTid] = voxelTextureSrcNegY[DTid];
-		voxelTextureResultPosZ[DTid] = voxelTextureSrcPosZ[DTid];
-		voxelTextureResultNegZ[DTid] = voxelTextureSrcNegZ[DTid];
 		return;
 	}
+		
+
     
 	float4 values[8];
-    
 	int3 sourcePos = DTid * 2;
-    
+	
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcPosX.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcPosX.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+	}
+		
 	voxelTextureResultPosX[DTid] =
         (values[4] + values[0] * (1 - values[4].a) + values[5] + values[1] * (1 - values[5].a) +
         values[6] + values[2] * (1 - values[6].a) + values[7] + values[3] * (1 - values[7].a)) * 0.25f;
     
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcNegX.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcNegX.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+
+	}
+	
 	voxelTextureResultNegX[DTid] =
         (values[0] + values[4] * (1 - values[0].a) + values[1] + values[5] * (1 - values[1].a) +
 		values[2] + values[6] * (1 - values[2].a) + values[3] + values[7] * (1 - values[3].a)) * 0.25f;
     
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcPosY.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcPosY.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+
+	}
 	voxelTextureResultPosY[DTid] =
 	    (values[2] + values[0] * (1 - values[2].a) + values[3] + values[1] * (1 - values[3].a) +
     	values[7] + values[5] * (1 - values[7].a) + values[6] + values[4] * (1 - values[6].a)) * 0.25f;
     
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcNegY.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcNegY.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+
+	}
+	
 	voxelTextureResultNegY[DTid] =
 	    (values[0] + values[2] * (1 - values[0].a) + values[1] + values[3] * (1 - values[1].a) +
     	values[5] + values[7] * (1 - values[5].a) + values[4] + values[6] * (1 - values[4].a)) * 0.25f;
     
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcPosZ.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcPosZ.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+
+	}
+	
 	voxelTextureResultPosZ[DTid] =
 	    (values[1] + values[0] * (1 - values[1].a) + values[3] + values[2] * (1 - values[3].a) +
     	values[5] + values[4] * (1 - values[5].a) + values[7] + values[6] * (1 - values[7].a)) * 0.25f;
     
     [unroll]
 	for (int i = 0; i < 8; i++)
-		values[i] = voxelTextureSrcNegZ.Load(int4(sourcePos + anisoOffsets[i], mip_mapping_data.mip_level - 1));
+	{
+		values[i] = voxelTextureSrcNegZ.Load(int4(sourcePos + anisotropic_offsets[i], mip_mapping_data.mip_level - 1));
+	}
+		
 	voxelTextureResultNegZ[DTid] =
 	    (values[0] + values[1] * (1 - values[0].a) + values[2] + values[3] * (1 - values[2].a) +
     	values[4] + values[5] * (1 - values[4].a) + values[6] + values[7] * (1 - values[6].a)) * 0.25f;
