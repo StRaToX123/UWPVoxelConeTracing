@@ -25,7 +25,7 @@ class DX12RenderTarget
 			ID3D12GraphicsCommandList* commandList,
 			D3D12_RESOURCE_STATES stateAfter,
 			UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-		D3D12_RESOURCE_STATES GetCurrentState() { return resource_state_current; }
+		D3D12_RESOURCE_STATES GetCurrentState(UINT mip) { return resource_state_current_per_mip[mip]; }
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetRTV(UINT mip = 0)
 		{
@@ -52,11 +52,9 @@ class DX12RenderTarget
 
 		int width, height, depth;
 		DXGI_FORMAT format;
-		D3D12_RESOURCE_STATES resource_state_current;
+		std::vector<D3D12_RESOURCE_STATES> resource_state_current_per_mip;
 
-		//DX12DescriptorHandle mDescriptorUAV;
 		DX12DescriptorHandleBlock descriptor_handle_block_per_mip_srv;
-		//DX12DescriptorHandle mDescriptorRTV;
 		ComPtr<ID3D12Resource> render_target;
 
 		DX12DescriptorHandleBlock descriptor_handle_block_per_mip_uav;

@@ -9,6 +9,7 @@
 #include "imgui_impl_dx12.h"
 
 #define GAMEPAD_TRIGGER_THRESHOLD 0.2
+#define NUM_DYNAMIC_OBJECTS 40
 
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;

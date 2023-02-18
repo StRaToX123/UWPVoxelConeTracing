@@ -11,13 +11,19 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 	int mips, 
 	D3D12_RESOURCE_STATES defaultState)
 {
-	width = width;
-	height = height;
+	this->width = width;
+	this->height = height;
 	this->depth = depth;
 	format = aFormat;
 
 	XMFLOAT4 clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 	DXGI_FORMAT format = aFormat;
+
+	resource_state_current_per_mip.reserve(mips);
+	for (UINT i = 0; i < mips; i++)
+	{
+		resource_state_current_per_mip.emplace_back(defaultState);
+	}
 
 	// Describe and create a Texture2D/3D
 	D3D12_RESOURCE_DESC textureDesc = {};
@@ -38,13 +44,11 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 	optimizedClearValue.Color[2] = clearColor.z;
 	optimizedClearValue.Color[3] = clearColor.w;
 
-	resource_state_current = defaultState;
-
 	ThrowIfFailed(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&textureDesc,
-		resource_state_current,
+		defaultState,
 		&optimizedClearValue,
 		IID_PPV_ARGS(&render_target)));
 
@@ -88,14 +92,26 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 	}
 
+	descriptor_handle_block_per_mip_rtv = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, mips);
 	descriptor_handle_block_per_mip_srv = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
-	descriptor_handle_block_per_mip_uav = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
-	descriptor_handle_block_per_mip_rtv = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
+	if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+	{
+		descriptor_handle_block_per_mip_uav = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
+
+	}
 	
+	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleRTV = descriptor_handle_block_per_mip_rtv.GetCPUHandle();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleSRV = descriptor_handle_block_per_mip_srv.GetCPUHandle();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleUAV;
+	if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
+	{
+		descriptorHandleUAV = descriptor_handle_block_per_mip_uav.GetCPUHandle();
+
+	}
+
 	for (int mipLevel = 0; mipLevel < mips; mipLevel++)
 	{
 		// RTV
-		D3D12_CPU_DESCRIPTOR_HANDLE newRTV;
 		if (depth > 0)
 		{
 			rtvDesc.Texture3D.MipSlice = mipLevel;
@@ -106,11 +122,10 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 			rtvDesc.Texture2D.MipSlice = mipLevel;
 		}
 
-		device->CreateRenderTargetView(render_target.Get(), &rtvDesc, newRTV);
-		descriptor_handle_block_per_mip_rtv.Add(newRTV);
+		device->CreateRenderTargetView(render_target.Get(), &rtvDesc, descriptorHandleRTV);
+		descriptorHandleRTV.Offset(descriptor_handle_block_per_mip_rtv.GetDescriptorSize());
 
 		// SRV
-		D3D12_CPU_DESCRIPTOR_HANDLE newSRV;
 		if (mipLevel == 0)
 		{
 			if (depth > 0)
@@ -143,13 +158,12 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 			srvDesc.Texture2D.MostDetailedMip = mipLevel;
 		}
 		
-		device->CreateShaderResourceView(render_target.Get(), &srvDesc, newSRV);
-		descriptor_handle_block_per_mip_srv.Add(newSRV);
+		device->CreateShaderResourceView(render_target.Get(), &srvDesc, descriptorHandleSRV);
+		descriptorHandleSRV.Offset(descriptor_handle_block_per_mip_srv.GetDescriptorSize());
 
 		// UAV
 		if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE newUAV;
 			if (depth > 0)
 			{
 				uavDesc.Texture3D.MipSlice = mipLevel;
@@ -160,8 +174,8 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 				uavDesc.Texture2D.MipSlice = mipLevel;
 			}
 
-			device->CreateUnorderedAccessView(render_target.Get(), nullptr, &uavDesc, newUAV);
-			descriptor_handle_block_per_mip_uav.Add(newUAV);
+			device->CreateUnorderedAccessView(render_target.Get(), nullptr, &uavDesc, descriptorHandleUAV);
+			descriptorHandleUAV.Offset(descriptor_handle_block_per_mip_uav.GetDescriptorSize());
 		}
 	}
 }
@@ -171,9 +185,9 @@ void DX12RenderTarget::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barri
 	D3D12_RESOURCE_STATES stateAfter,
 	UINT subresource)
 {
-	if (stateAfter != resource_state_current)
+	if (stateAfter != resource_state_current_per_mip[subresource])
 	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), resource_state_current, stateAfter, subresource));
-		resource_state_current = stateAfter;
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), resource_state_current_per_mip[subresource], stateAfter, subresource));
+		resource_state_current_per_mip[subresource] = stateAfter;
 	}
 }
