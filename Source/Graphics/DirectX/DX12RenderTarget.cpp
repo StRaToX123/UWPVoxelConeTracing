@@ -185,6 +185,22 @@ void DX12RenderTarget::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barri
 	D3D12_RESOURCE_STATES stateAfter,
 	UINT subresource)
 {
+	if (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+	{
+		if (resource_state_current_per_mip[0] == stateAfter)
+		{
+			return;
+		}
+
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), resource_state_current_per_mip[0], stateAfter, subresource));
+		for (UINT i = 0; i < resource_state_current_per_mip.size(); i++)
+		{
+			resource_state_current_per_mip[i] = stateAfter;
+		}
+
+		return;
+	}
+
 	if (stateAfter != resource_state_current_per_mip[subresource])
 	{
 		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), resource_state_current_per_mip[subresource], stateAfter, subresource));
