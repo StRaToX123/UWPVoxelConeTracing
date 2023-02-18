@@ -29,11 +29,19 @@ SceneRendererDirectLightingVoxelGIandAO::~SceneRendererDirectLightingVoxelGIandA
 		delete p_render_target_vct_voxelization;
 	}
 
-	if (p_constant_buffers_vct_anisotropic_mip_generation.size() > 0)
+	if (P_constant_buffers_vct_anisotropic_mip_generation.size() > 0)
 	{
-		for (UINT i = 0; i < p_constant_buffers_vct_anisotropic_mip_generation.size(); i++)
+		for (UINT i = 0; i < P_constant_buffers_vct_anisotropic_mip_generation.size(); i++)
 		{
-			delete p_constant_buffers_vct_anisotropic_mip_generation[i];
+			delete P_constant_buffers_vct_anisotropic_mip_generation[i];
+		}
+	}
+
+	if (P_render_targets_gbuffer.size() > 0)
+	{
+		for (UINT i = 0; i < P_render_targets_gbuffer.size(); i++)
+		{
+			delete P_render_targets_gbuffer[i];
 		}
 	}
 
@@ -188,7 +196,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 				shader_structure_cpu_vct_main_data_most_updated_index = 0;
 			}
 
-			shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(render_targets_gbuffer[0]->GetWidth() / mVCTMainRT->GetWidth(), render_targets_gbuffer[0]->GetHeight() / mVCTMainRT->GetHeight());
+			shader_structure_cpu_vct_main_data.upsample_ratio = DirectX::XMFLOAT2(P_render_targets_gbuffer[0]->GetWidth() / mVCTMainRT->GetWidth(), P_render_targets_gbuffer[0]->GetHeight() / mVCTMainRT->GetHeight());
 			memcpy(p_constant_buffer_vct_main->GetMappedData(shader_structure_cpu_vct_main_data_most_updated_index), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
 			break;
 		}
@@ -204,8 +212,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x = -(shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space * 0.5f);
 			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.y = -shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x;
 			shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.z = shader_structure_cpu_voxelization_data.voxel_grid_top_left_back_point_world_space.x;
-			shader_structure_cpu_voxelization_data.voxel_grid_res = VCT_SCENE_VOLUME_SIZE;
-			shader_structure_cpu_voxelization_data.voxel_scale = VCT_SCENE_VOLUME_SIZE * 0.5f;
+			shader_structure_cpu_voxelization_data.voxel_scale = shader_structure_cpu_voxelization_data.voxel_grid_res * 0.5f;
 			shader_structure_cpu_voxelization_data.voxel_extent_rcp = 1.0f / (shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space / shader_structure_cpu_voxelization_data.voxel_grid_res);
 			shader_structure_cpu_voxelization_data.voxel_grid_half_extent_world_space_rcp = 1.0f / (shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space * 0.5f);
 			// For the mip count we don't want to count the 1x1x1 mip since the anisotropic mip chain generation 
@@ -293,9 +300,9 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 		// We have to transition the GBuffers here inside of the graphics command list to a non pixel shader resource,
 		// because the compute command list cannot transition resources from a state of a render target
 		_deviceResources->ResourceBarriersBegin(barriers);
-		render_targets_gbuffer[0]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		render_targets_gbuffer[1]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		render_targets_gbuffer[2]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		P_render_targets_gbuffer[0]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		P_render_targets_gbuffer[1]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		P_render_targets_gbuffer[2]->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		_deviceResources->ResourceBarriersEnd(barriers, _commandListDirect);
 
 		_commandListDirect->Close();
@@ -380,13 +387,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	DXGI_FORMAT rtFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Albedo"));
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Albedo"));
 
 	rtFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
-	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Normals"));
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Normals"));
 
 	rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	render_targets_gbuffer.push_back(new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
 
 	// Root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -457,16 +464,16 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 
 		// Transition buffers to rendertarget outputs
 		_deviceResources->ResourceBarriersBegin(barriers);
-		render_targets_gbuffer[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		render_targets_gbuffer[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		render_targets_gbuffer[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		P_render_targets_gbuffer[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		P_render_targets_gbuffer[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		P_render_targets_gbuffer[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		_deviceResources->ResourceBarriersEnd(barriers, commandList);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[] =
 		{
-			render_targets_gbuffer[0]->GetRTV().GetCPUHandle(),
-			render_targets_gbuffer[1]->GetRTV().GetCPUHandle(),
-			render_targets_gbuffer[2]->GetRTV().GetCPUHandle(),
+			P_render_targets_gbuffer[0]->GetRTV(),
+			P_render_targets_gbuffer[1]->GetRTV(),
+			P_render_targets_gbuffer[2]->GetRTV(),
 		};
 
 		commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
@@ -573,8 +580,8 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 {
 	// Voxelization
 	{
-		viewport_voxel_cone_tracing_voxelization = CD3DX12_VIEWPORT(0.0f, 0.0f, VCT_SCENE_VOLUME_SIZE, VCT_SCENE_VOLUME_SIZE);
-		scissor_rect_voxel_cone_tracing_voxelization = CD3DX12_RECT(0.0f, 0.0f, VCT_SCENE_VOLUME_SIZE, VCT_SCENE_VOLUME_SIZE);
+		viewport_voxel_cone_tracing_voxelization = CD3DX12_VIEWPORT(0.0f, 0.0f, shader_structure_cpu_voxelization_data.voxel_grid_res, shader_structure_cpu_voxelization_data.voxel_grid_res);
+		scissor_rect_voxel_cone_tracing_voxelization = CD3DX12_RECT(0.0f, 0.0f, shader_structure_cpu_voxelization_data.voxel_grid_res, shader_structure_cpu_voxelization_data.voxel_grid_res);
 		D3D12_SAMPLER_DESC shadowSampler;
 		shadowSampler.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 		shadowSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
@@ -593,14 +600,14 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		p_render_target_vct_voxelization = new DXRSRenderTarget(device, 
+		p_render_target_vct_voxelization = new DX12RenderTarget(device, 
 			descriptorManager, 
-			VCT_SCENE_VOLUME_SIZE, 
-			VCT_SCENE_VOLUME_SIZE, 
+			shader_structure_cpu_voxelization_data.voxel_grid_res,
+			shader_structure_cpu_voxelization_data.voxel_grid_res,
 			format, 
 			flags, 
 			L"Voxelization Scene Data 3D",
-			VCT_SCENE_VOLUME_SIZE,
+			shader_structure_cpu_voxelization_data.voxel_grid_res,
 			1,
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -671,7 +678,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-		mVCTVoxelizationDebugRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, format, flags, L"Voxelization Debug RT");
+		mVCTVoxelizationDebugRT = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, format, flags, L"Voxelization Debug RT");
 
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -726,27 +733,41 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		int size = VCT_SCENE_VOLUME_SIZE >> 1;
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DXRSRenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		int size = shader_structure_cpu_voxelization_data.voxel_grid_res >> 1;
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		p_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-		root_signature_vct_voxelization_anisotropic_mip_generation.Reset(3, 0);
-		root_signature_vct_voxelization_anisotropic_mip_generation[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization_anisotropic_mip_generation[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization_anisotropic_mip_generation[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization_anisotropic_mip_generation.Finalize(device, L"VCT aniso mipmapping prepare pass compute version RS", rootSignatureFlags);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.Reset(3, 0);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(device, L"VCT aniso mipmapping level zero RS", rootSignatureFlags);
 
 		char* pComputeShaderByteCode;
 		int computeShaderByteCodeLength;
-		LoadShaderByteCode(GetFilePath("VoxelConeTracingAnisoMipmapChainGeneration_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
+		LoadShaderByteCode(GetFilePath("VoxelConeTracingAnisotropicMipmapChainGenerationLevelZero_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
 
-		pipeline_state_vct_voxelization_anisotropic_mip_generation.SetRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation);
-		pipeline_state_vct_voxelization_anisotropic_mip_generation.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-		pipeline_state_vct_voxelization_anisotropic_mip_generation.Finalize(device);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation_level_zero);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(device);
+
+		delete[] pComputeShaderByteCode;
+
+		root_signature_vct_voxelization_anisotropic_mip_generation.Reset(3, 0);
+		root_signature_vct_voxelization_anisotropic_mip_generation[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_voxelization_anisotropic_mip_generation.Finalize(device, L"VCT aniso mipmapping RS", rootSignatureFlags);
+
+		LoadShaderByteCode(GetFilePath("VoxelConeTracingAnisotropicMipmapChainGeneration_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
+
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(device);
 
 		delete[] pComputeShaderByteCode;
 
@@ -754,9 +775,11 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mElementSize = c_aligned_shader_structure_cpu_vct_anisotropic_mip_generation_data;
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-		for (UINT i = 0; i < shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count; i++)
+		// The zero'th CB is for the VoxelConeTracingAnisotropicMipmapChainGenerationLevelZero_CS
+		// the rest are for the VoxelConeTracingAnisotropicMipmapChainGeneration_CS
+		for (UINT i = 0; i < shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count + 1; i++)
 		{
-			p_constant_buffers_vct_anisotropic_mip_generation.push_back(new DX12Buffer(descriptorManager,
+			P_constant_buffers_vct_anisotropic_mip_generation.push_back(new DX12Buffer(descriptorManager,
 					cbDesc,
 				    _deviceResources->GetBackBufferCount(),
 					L"VCT aniso mip mapping CB"));
@@ -778,7 +801,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		mVCTMainRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH * mVCTRTRatio, MAX_SCREEN_HEIGHT * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		mVCTMainRT = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH * mVCTRTRatio, MAX_SCREEN_HEIGHT * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -813,7 +836,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 	// Upsample and blur
 	{
 		//RTs
-		mVCTMainUpsampleAndBlurRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
+		mVCTMainUpsampleAndBlurRT = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
 			DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"VCT Main RT Upsampled & Blurred", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		//create root signature
@@ -880,7 +903,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			vctVoxelizationRenderTargetDescriptorHandleBlock.Add(p_render_target_vct_voxelization->GetUAV());
 			
 			commandList->ClearUnorderedAccessViewFloat(vctVoxelizationRenderTargetDescriptorHandleBlock.GetGPUHandle(), 
-				p_render_target_vct_voxelization->GetUAV().GetCPUHandle(),
+				p_render_target_vct_voxelization->GetUAV(),
 				p_render_target_vct_voxelization->GetResource(),
 				gs_clear_color_black, 
 				0, 
@@ -948,9 +971,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 	{
 		// Anisotropic mip chain generation
 		{
-			commandList->SetPipelineState(pipeline_state_vct_voxelization_anisotropic_mip_generation.GetPipelineStateObject());
-			commandList->SetComputeRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation.GetSignature());
-		
+			commandList->SetPipelineState(pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.GetPipelineStateObject());
+			commandList->SetComputeRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.GetSignature());
+
 			_deviceResources->ResourceBarriersBegin(barriers);
 			p_render_target_vct_voxelization->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -960,7 +983,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			_deviceResources->ResourceBarriersEnd(barriers, commandList);
-		
+
 			DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(1);
 			srvHandle.Add(p_render_target_vct_voxelization->GetSRV());
 
@@ -979,20 +1002,23 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			}
 
 			shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension = shader_structure_cpu_voxelization_data.voxel_grid_res >> 1;
-			shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_level = 0;
-			memcpy(p_constant_buffers_vct_anisotropic_mip_generation[0]->GetMappedData(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index), &shader_structure_cpu_vct_anisotropic_mip_generation_data, sizeof(ShaderStructureCPUAnisotropicMipGenerationData));
+			shader_structure_cpu_vct_anisotropic_mip_generation_data.source_mip_level = 0;
+			shader_structure_cpu_vct_anisotropic_mip_generation_data.result_mip_level = 0;
+			memcpy(P_constant_buffers_vct_anisotropic_mip_generation[0]->GetMappedData(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index), &shader_structure_cpu_vct_anisotropic_mip_generation_data, sizeof(ShaderStructureCPUAnisotropicMipGenerationData));
 
 			DX12DescriptorHandleBlock mipMappingDataDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
-			mipMappingDataDescriptorHandleBlock.Add(p_constant_buffers_vct_anisotropic_mip_generation[0]->GetCBV(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index));
+			mipMappingDataDescriptorHandleBlock.Add(P_constant_buffers_vct_anisotropic_mip_generation[0]->GetCBV(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index));
 
 			commandList->SetComputeRootDescriptorTable(0, mipMappingDataDescriptorHandleBlock.GetGPUHandle());
 			commandList->SetComputeRootDescriptorTable(1, srvHandle.GetGPUHandle());
 			commandList->SetComputeRootDescriptorTable(2, uavHandle.GetGPUHandle());
 
-			UINT dispatchBlockSize = shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension / DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION;
+			UINT dispatchBlockSize = ((shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension + (DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION - 1u)) & ~(DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION - 1u)) / DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION;
 			commandList->Dispatch(dispatchBlockSize, dispatchBlockSize, dispatchBlockSize);
 
 			// Dispatch the rest of the mips
+			commandList->SetPipelineState(pipeline_state_vct_voxelization_anisotropic_mip_generation.GetPipelineStateObject());
+			commandList->SetComputeRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation.GetSignature());
 			for (UINT i = 1; i < shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count; i++)
 			{
 				// Move onto the next mip
@@ -1006,131 +1032,68 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 				_deviceResources->ResourceBarriersEnd(barriers, commandList);
 
 				DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(6);
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetSRV());
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetSRV());
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetSRV());
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetSRV());
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetSRV());
-				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetSRV());
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetSRV(i - 1));
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetSRV(i - 1));
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetSRV(i - 1));
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetSRV(i - 1));
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetSRV(i - 1));
+				srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetSRV(i - 1));
 
 				DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(6);
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetUAV());
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetUAV());
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetUAV());
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetUAV());
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetUAV());
-				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetUAV());
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetUAV(i));
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetUAV(i));
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetUAV(i));
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetUAV(i));
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetUAV(i));
+				uavHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetUAV(i));
 
-				shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index++;
-				if (shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index == _deviceResources->GetBackBufferCount())
-				{
-					shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index = 0;
-				}
-
-				shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension = shader_structure_cpu_voxelization_data.voxel_grid_res >> 1;
-				shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_level = 0;
-				memcpy(p_constant_buffers_vct_anisotropic_mip_generation[0]->GetMappedData(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index), &shader_structure_cpu_vct_anisotropic_mip_generation_data, sizeof(ShaderStructureCPUAnisotropicMipGenerationData));
+				shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension = shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension >> 1;
+				shader_structure_cpu_vct_anisotropic_mip_generation_data.source_mip_level = i - 1;
+				shader_structure_cpu_vct_anisotropic_mip_generation_data.result_mip_level = i;
+				memcpy(P_constant_buffers_vct_anisotropic_mip_generation[i]->GetMappedData(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index), &shader_structure_cpu_vct_anisotropic_mip_generation_data, sizeof(ShaderStructureCPUAnisotropicMipGenerationData));
 
 				DX12DescriptorHandleBlock mipMappingDataDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
-				mipMappingDataDescriptorHandleBlock.Add(p_constant_buffers_vct_anisotropic_mip_generation[0]->GetCBV(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index));
+				mipMappingDataDescriptorHandleBlock.Add(P_constant_buffers_vct_anisotropic_mip_generation[i]->GetCBV(shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index));
 
 				commandList->SetComputeRootDescriptorTable(0, mipMappingDataDescriptorHandleBlock.GetGPUHandle());
 				commandList->SetComputeRootDescriptorTable(1, srvHandle.GetGPUHandle());
 				commandList->SetComputeRootDescriptorTable(2, uavHandle.GetGPUHandle());
 
-				UINT dispatchBlockSize = shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension / DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION;
+				dispatchBlockSize = ((shader_structure_cpu_vct_anisotropic_mip_generation_data.mip_dimension + (DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION - 1u)) & ~(DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION - 1u)) / DISPATCH_BLOCK_SIZE_VCT_ANISOTROPIC_MIP_GENERATION;
 				commandList->Dispatch(dispatchBlockSize, dispatchBlockSize, dispatchBlockSize);
 			}
+
+			// Transition the last mip level into a read only state as well
+			_deviceResources->ResourceBarriersBegin(barriers);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count - 1);
+			_deviceResources->ResourceBarriersEnd(barriers, commandList);
 		}
-
-		//// Anisotropic Main
-		//{
-		//	commandList->SetPipelineState(mVCTAnisoMipmappingMainPSO.GetPipelineStateObject());
-		//	commandList->SetComputeRootSignature(mVCTAnisoMipmappingMainRS.GetSignature());
-
-		//	_deviceResources->ResourceBarriersBegin(barriers);
-		//	mVCTAnisoMipmappinMain3DRTs[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	mVCTAnisoMipmappinMain3DRTs[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	mVCTAnisoMipmappinMain3DRTs[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	mVCTAnisoMipmappinMain3DRTs[3]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	mVCTAnisoMipmappinMain3DRTs[4]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	mVCTAnisoMipmappinMain3DRTs[5]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//	_deviceResources->ResourceBarriersEnd(barriers, commandList);
-
-		//	int mipDimension = VCT_SCENE_VOLUME_SIZE >> 1;
-		//	for (int mip = 0; mip < VCT_MIPS; mip++)
-		//	{
-		//		DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(1);
-		//		cbvHandle.Add(p_constant_buffers_vct_mipmapping_main[mip]->GetCBV());
-
-		//		DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(12);
-		//		if (mip == 0) 
-		//		{
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[0]->GetUAV());
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[1]->GetUAV());
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[2]->GetUAV());
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[3]->GetUAV());
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[4]->GetUAV());
-		//			uavHandle.Add(mVCTAnisoMipmappinPrepare3DRTs[5]->GetUAV());
-		//		}
-		//		else 
-		//		{
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetUAV(mip - 1));
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetUAV(mip - 1));
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetUAV(mip - 1));
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetUAV(mip - 1));
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetUAV(mip - 1));
-		//			uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetUAV(mip - 1));
-		//		}
-
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetUAV(mip));
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetUAV(mip));
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetUAV(mip));
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetUAV(mip));
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetUAV(mip));
-		//		uavHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetUAV(mip));
-
-		//		shader_structure_cpu_mip_mapping_data.mip_dimension = mipDimension;
-		//		shader_structure_cpu_mip_mapping_data.mip_level = mip;
-		//		memcpy(p_constant_buffers_vct_mipmapping_main[mip]->GetMappedData(), &shader_structure_cpu_mip_mapping_data, sizeof(ShaderStructureCPUMipMappingData));
-		//		commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
-		//		commandList->SetComputeRootDescriptorTable(1, uavHandle.GetGPUHandle());
-
-		//		commandList->Dispatch(DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u), DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u), DivideByMultiple(static_cast<UINT>(shader_structure_cpu_mip_mapping_data.mip_dimension), 8u));
-		//		mipDimension >>= 1;
-		//	}
-		//}
 		
 		// Voxel cone tracing main
 		{
 			commandList->SetPipelineState(mVCTMainPSO_Compute.GetPipelineStateObject());
 			commandList->SetComputeRootSignature(mVCTMainRS_Compute.GetSignature());
 
-			_deviceResources->ResourceBarriersBegin(barriers);
-			mVCTMainRT->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			mVCTAnisoMipmappinMain3DRTs[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			mVCTAnisoMipmappinMain3DRTs[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			mVCTAnisoMipmappinMain3DRTs[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			mVCTAnisoMipmappinMain3DRTs[3]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			mVCTAnisoMipmappinMain3DRTs[4]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			mVCTAnisoMipmappinMain3DRTs[5]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			_deviceResources->ResourceBarriersEnd(barriers, commandList);
-
 			DX12DescriptorHandleBlock uavHandle = gpuDescriptorHeap->GetHandleBlock(1);
 			uavHandle.Add(mVCTMainRT->GetUAV());
 
 			DX12DescriptorHandleBlock srvHandle = gpuDescriptorHeap->GetHandleBlock(10);
-			srvHandle.Add(render_targets_gbuffer[0]->GetSRV());
-			srvHandle.Add(render_targets_gbuffer[1]->GetSRV());
-			srvHandle.Add(render_targets_gbuffer[2]->GetSRV());
+			srvHandle.Add(P_render_targets_gbuffer[0]->GetSRV());
+			srvHandle.Add(P_render_targets_gbuffer[1]->GetSRV());
+			srvHandle.Add(P_render_targets_gbuffer[2]->GetSRV());
 
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[0]->GetSRV());
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[1]->GetSRV());
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[2]->GetSRV());
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[3]->GetSRV());
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[4]->GetSRV());
-			srvHandle.Add(mVCTAnisoMipmappinMain3DRTs[5]->GetSRV());
-			srvHandle.Add(mVCTVoxelization3DRT->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetSRV());
+			srvHandle.Add(p_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetSRV());
+			srvHandle.Add(p_render_target_vct_voxelization->GetSRV());
 
 			DX12DescriptorHandleBlock cbvHandle = gpuDescriptorHeap->GetHandleBlock(2);
 			cbvHandle.Add(p_constant_buffer_voxelization->GetCBV(shader_structure_cpu_voxelization_data_most_updated_index));
@@ -1174,7 +1137,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
 {
 	//RTs
-	mLightingRT = new DXRSRenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
+	mLightingRT = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
 		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting");
 
 	//create root signature
@@ -1276,16 +1239,16 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesLighting[] =
 	{
-		mLightingRT->GetRTV().GetCPUHandle()
+		mLightingRT->GetRTV()
 	};
 
 	_deviceResources->ResourceBarriersBegin(barriers);
 	mLightingRT->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mVCTMainUpsampleAndBlurRT->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mVCTMainRT->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	render_targets_gbuffer[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	render_targets_gbuffer[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	render_targets_gbuffer[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	P_render_targets_gbuffer[0]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	P_render_targets_gbuffer[1]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	P_render_targets_gbuffer[2]->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mShadowDepth->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	_deviceResources->ResourceBarriersEnd(barriers, commandList);
 
@@ -1297,9 +1260,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	cbvHandleLighting.Add(mIlluminationFlagsCB->GetCBV(shader_structure_cpu_illumination_flags_most_updated_index));
 
 	DX12DescriptorHandleBlock srvHandleLighting = gpuDescriptorHeap->GetHandleBlock(4);
-	srvHandleLighting.Add(render_targets_gbuffer[0]->GetSRV());
-	srvHandleLighting.Add(render_targets_gbuffer[1]->GetSRV());
-	srvHandleLighting.Add(render_targets_gbuffer[2]->GetSRV());
+	srvHandleLighting.Add(P_render_targets_gbuffer[0]->GetSRV());
+	srvHandleLighting.Add(P_render_targets_gbuffer[1]->GetSRV());
+	srvHandleLighting.Add(P_render_targets_gbuffer[2]->GetSRV());
 
 	if (mVCTRenderDebug)
 	{

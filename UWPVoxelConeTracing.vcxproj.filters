@@ -361,10 +361,10 @@
     <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracing_CS.hlsl">
       <Filter>Source\Graphics\Shaders\CS</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisoMipmapMain_CS.hlsl">
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisotropicMipmapChainGeneration_CS.hlsl">
       <Filter>Source\Graphics\Shaders\CS</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisoMipmapPrepare_CS.hlsl">
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingAnisotropicMipmapChainGenerationLevelZero_CS.hlsl">
       <Filter>Source\Graphics\Shaders\CS</Filter>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\GS\VoxelConeTracingVoxelization_GS.hlsl">

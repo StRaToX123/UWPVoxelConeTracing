@@ -3,7 +3,7 @@
 
 #include "Graphics\Shaders\ShaderGlobalsCPU.h"
 #include "Graphics\DirectX\DX12DeviceResourcesSingleton.h"
-#include "Graphics\DirectX\DXRSRenderTarget.h"
+#include "Graphics\DirectX\DX12RenderTarget.h"
 #include "Graphics\DirectX\DXRSDepthBuffer.h"
 #include "Graphics\DirectX\DX12Buffer.h"
 #include "Graphics\DirectX\RootSignature.h"
@@ -23,13 +23,7 @@
 
 
 #define SHADOWMAP_SIZE 2048
-#define RSM_SIZE 2048
-#define RSM_SAMPLES_COUNT 512
-#define LPV_DIM 32
-#define VCT_SCENE_VOLUME_SIZE 256
-#define VCT_MIPS 6 // Only 6 mips becasue we don't go lower than 8x8x8, since thats how many thrads are inside a dispatch group
-#define LOCKED_CAMERA_VIEWS 3
-#define NUM_DYNAMIC_OBJECTS 40
+
 
 class SceneRendererDirectLightingVoxelGIandAO
 {
@@ -105,9 +99,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 		static const UINT c_aligned_shader_structure_cpu_voxelization_data = (sizeof(ShaderStructureCPUVoxelizationData) + 255) & ~255;
 		__declspec(align(16)) struct ShaderStructureCPUAnisotropicMipGenerationData
 		{
-			int mip_dimension;
-			int mip_level;
-			DirectX::XMFLOAT2 padding;
+			UINT32 mip_dimension;
+			UINT32 source_mip_level;
+			UINT32 result_mip_level;
+			float padding;
 		};
 
 		ShaderStructureCPUAnisotropicMipGenerationData shader_structure_cpu_vct_anisotropic_mip_generation_data;
@@ -186,7 +181,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 		// Gbuffer
 		RootSignature root_signature_gbuffer;
-		std::vector<DXRSRenderTarget*> render_targets_gbuffer;
+		std::vector<DX12RenderTarget*> P_render_targets_gbuffer;
 		GraphicsPSO pipeline_state_gbuffer;
 		// Voxel Cone Tracing
 		CD3DX12_VIEWPORT viewport_voxel_cone_tracing_voxelization;
@@ -195,23 +190,25 @@ class SceneRendererDirectLightingVoxelGIandAO
 		RootSignature mVCTMainRS;
 		RootSignature mVCTMainRS_Compute;
 		RootSignature mVCTMainUpsampleAndBlurRS;
+		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation_level_zero;
 		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation;
 		GraphicsPSO mVCTVoxelizationPSO;
 		ComputePSO mVCTMainPSO_Compute;
+		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero;
 		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation;
 		ComputePSO mVCTMainUpsampleAndBlurPSO;
 		RootSignature mVCTVoxelizationDebugRS;
 		GraphicsPSO mVCTVoxelizationDebugPSO;
-		DXRSRenderTarget* p_render_target_vct_voxelization;
-		DXRSRenderTarget* mVCTVoxelizationDebugRT;
-		DXRSRenderTarget* mVCTMainRT;
-		DXRSRenderTarget* mVCTMainUpsampleAndBlurRT;
+		DX12RenderTarget* p_render_target_vct_voxelization;
+		DX12RenderTarget* mVCTVoxelizationDebugRT;
+		DX12RenderTarget* mVCTMainRT;
+		DX12RenderTarget* mVCTMainUpsampleAndBlurRT;
 		
-		std::vector<DXRSRenderTarget*> p_render_targets_vct_voxelization_anisotropic_mip_generation;
+		std::vector<DX12RenderTarget*> p_render_targets_vct_voxelization_anisotropic_mip_generation;
 		
 		DX12Buffer* p_constant_buffer_voxelization;
 		DX12Buffer* p_constant_buffer_vct_main;
-		std::vector<DX12Buffer*> p_constant_buffers_vct_anisotropic_mip_generation;
+		std::vector<DX12Buffer*> P_constant_buffers_vct_anisotropic_mip_generation;
 
 		bool mVCTRenderDebug = false;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
@@ -227,7 +224,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 
 		// Lighting
 		RootSignature mLightingRS;
-		DXRSRenderTarget* mLightingRT;
+		DX12RenderTarget* mLightingRT;
 		GraphicsPSO mLightingPSO;
 		
 

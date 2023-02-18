@@ -53,11 +53,12 @@ struct ShaderStructureGPUVoxelizationData
 	float3 padding;
 };
 
-struct ShaderStructureGPUMipMappingData
+struct ShaderStructureGPUAnisotropicMipGenerationData
 {
-	int mip_dimension;
-	int mip_level;
-	float2 padding;
+	uint mip_dimension;
+	uint source_mip_level;
+	uint result_mip_level;
+	float padding;
 };
 
 struct ShaderStructureGPUVCTMainData
