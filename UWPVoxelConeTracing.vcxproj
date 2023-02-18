@@ -263,7 +263,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DX12DescriptorHeap.h" />
     <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h" />
     <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.h" />
-    <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h" />
+    <ClInclude Include="Source\Graphics\DirectX\DX12RenderTarget.h" />
     <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h" />
     <ClInclude Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.h" />
     <ClInclude Include="Source\Graphics\DirectX\RootSignature.h" />
@@ -308,7 +308,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DX12DescriptorHeap.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.cpp" />
-    <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp" />
+    <ClCompile Include="Source\Graphics\DirectX\DX12RenderTarget.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.cpp" />
     <ClCompile Include="Source\Graphics\DirectX\RootSignature.cpp" />

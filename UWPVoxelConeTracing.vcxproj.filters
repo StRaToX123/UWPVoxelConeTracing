@@ -156,7 +156,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\DXRSRenderTarget.cpp">
+    <ClCompile Include="Source\Graphics\DirectX\DX12RenderTarget.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp">
@@ -239,7 +239,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\DXRSRenderTarget.h">
+    <ClInclude Include="Source\Graphics\DirectX\DX12RenderTarget.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h">

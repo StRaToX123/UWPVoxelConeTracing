@@ -1,7 +1,13 @@
 #include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
 
 Texture3D<float4> source[] : register(t0);
-RWTexture3D<float4> result[] : register(u0);
+RWTexture3D<float4> resultPosX[] : register(u0);
+RWTexture3D<float4> resultNegX[] : register(u1);
+RWTexture3D<float4> resultPosY[] : register(u2);
+RWTexture3D<float4> resultNegY[] : register(u3);
+RWTexture3D<float4> resultPosZ[] : register(u4);
+RWTexture3D<float4> resultNegZ[] : register(u5);
+
 ConstantBuffer<ShaderStructureGPUMipMappingData> mip_mapping_data : register(b0);
 static const int3 anisotropic_offsets[8] =
 {
@@ -22,8 +28,6 @@ void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV
 	{
 		return;
 	}
-		
-
     
 	float4 values[8];
 	int3 sourcePos = DTid * 2;
