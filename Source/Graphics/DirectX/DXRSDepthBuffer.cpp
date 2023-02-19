@@ -28,7 +28,7 @@ DXRSDepthBuffer::DXRSDepthBuffer(ID3D12Device* device, DX12DescriptorHeapManager
 	));
 
 	// DSV
-	mDescriptorDSV = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	mDescriptorDSV = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
 	depthStencilDesc.Format = aFormat;
 	depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -37,7 +37,7 @@ DXRSDepthBuffer::DXRSDepthBuffer(ID3D12Device* device, DX12DescriptorHeapManager
 	device->CreateDepthStencilView(mDepthStencilResource.Get(), &depthStencilDesc, mDescriptorDSV.GetCPUHandle());
 
 	// SRV
-	mDescriptorSRV = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	mDescriptorSRV = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	format = DXGI_FORMAT_R32_FLOAT;
 	if (aFormat == DXGI_FORMAT_D16_UNORM)

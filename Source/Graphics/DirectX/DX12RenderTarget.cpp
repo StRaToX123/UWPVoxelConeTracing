@@ -92,11 +92,11 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 	}
 
-	descriptor_handle_block_per_mip_rtv = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, mips);
-	descriptor_handle_block_per_mip_srv = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
+	descriptor_handle_block_per_mip_rtv = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, mips);
+	descriptor_handle_block_per_mip_srv = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
 	if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
 	{
-		descriptor_handle_block_per_mip_uav = descriptorManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
+		descriptor_handle_block_per_mip_uav = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
 
 	}
 	

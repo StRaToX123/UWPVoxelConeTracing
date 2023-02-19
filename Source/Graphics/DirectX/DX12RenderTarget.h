@@ -49,7 +49,6 @@ class DX12RenderTarget
 		}
 
 	private:
-
 		int width, height, depth;
 		DXGI_FORMAT format;
 		std::vector<D3D12_RESOURCE_STATES> resource_state_current_per_mip;

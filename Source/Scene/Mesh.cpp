@@ -166,7 +166,7 @@ Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
 	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	SRVDesc.Buffer.NumElements = mNumOfIndices;
 	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-	mIndexBufferSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	mIndexBufferSRV = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_d3dDevice->CreateShaderResourceView(mIndexBuffer.Get(), &SRVDesc, mIndexBufferSRV.GetCPUHandle());
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescVB = {};
@@ -176,7 +176,7 @@ Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
 	SRVDescVB.Buffer.NumElements = mVertices.size();
 	SRVDescVB.Buffer.StructureByteStride = sizeof(Vertex);
 	SRVDescVB.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	mVertexBufferSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	mVertexBufferSRV = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	_d3dDevice->CreateShaderResourceView(mVertexBuffer.Get(), &SRVDescVB, mVertexBufferSRV.GetCPUHandle());
 }
 

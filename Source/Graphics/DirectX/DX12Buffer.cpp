@@ -73,7 +73,7 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 			)
 		);
 
-		mDescriptorSRV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
+		mDescriptorSRV = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
 		// Describe and create a SRV for the texture.
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 
@@ -119,7 +119,7 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 
 		// Create constant buffer views to access the upload buffer.
 		D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = mBuffer->GetGPUVirtualAddress();
-		mDescriptorCBV = _descriptorHeapManager->CreateCPUHandle(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
+		mDescriptorCBV = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
 		CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
 		for (int i = 0; i < mDescriptorCBV.GetBlockSize(); i++)
 		{

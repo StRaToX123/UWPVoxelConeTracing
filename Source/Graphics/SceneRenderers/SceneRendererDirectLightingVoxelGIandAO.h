@@ -178,73 +178,59 @@ class SceneRendererDirectLightingVoxelGIandAO
 		HANDLE fence_event;
 		UINT64 fence_unused_value_direct_queue;
 		UINT64 fence_unused_value_compute_queue;
-
-		// Gbuffer
+		// GBuffer
 		RootSignature root_signature_gbuffer;
 		std::vector<DX12RenderTarget*> P_render_targets_gbuffer;
 		GraphicsPSO pipeline_state_gbuffer;
-		// Voxel Cone Tracing
-		CD3DX12_VIEWPORT viewport_voxel_cone_tracing_voxelization;
-		CD3DX12_RECT scissor_rect_voxel_cone_tracing_voxelization;
-		RootSignature mVCTVoxelizationRS;
-		RootSignature mVCTMainRS;
-		RootSignature mVCTMainRS_Compute;
-		RootSignature mVCTMainUpsampleAndBlurRS;
-		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation_level_zero;
-		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation;
-		GraphicsPSO mVCTVoxelizationPSO;
-		ComputePSO mVCTMainPSO_Compute;
-		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero;
-		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation;
-		ComputePSO mVCTMainUpsampleAndBlurPSO;
-		RootSignature mVCTVoxelizationDebugRS;
-		GraphicsPSO mVCTVoxelizationDebugPSO;
+		// Voxel Cone Tracing Voxelization
+		CD3DX12_VIEWPORT viewport_vct_voxelization;
+		CD3DX12_RECT scissor_rect_vct_voxelization;
 		DX12RenderTarget* p_render_target_vct_voxelization;
-		DX12RenderTarget* mVCTVoxelizationDebugRT;
-		DX12RenderTarget* mVCTMainRT;
-		DX12RenderTarget* mVCTMainUpsampleAndBlurRT;
-		
-		std::vector<DX12RenderTarget*> p_render_targets_vct_voxelization_anisotropic_mip_generation;
-		
+		RootSignature root_signature_vct_voxelization;
+		GraphicsPSO pipeline_state_vct_voxelization;
+		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation_level_zero;
+		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero;
+		RootSignature root_signature_vct_voxelization_anisotropic_mip_generation;
+		ComputePSO pipeline_state_vct_voxelization_anisotropic_mip_generation;
+		std::vector<DX12RenderTarget*> P_render_targets_vct_voxelization_anisotropic_mip_generation;
+		// Voxel Cone Tracing Main
+		RootSignature root_signature_vct_main;
+		RootSignature root_signature_vct_main_upsample_and_blur;
+		ComputePSO pipeline_state_vct_main;
+		ComputePSO pipeline_state_vct_main_upsample_and_blur;
+		DX12RenderTarget* p_render_target_vct_main;
+		DX12RenderTarget* p_render_target_vct_main_upsample_and_blur;
+		// Voxel Cone Tracing Debug
+		RootSignature root_signature_vct_debug;
+		GraphicsPSO pipeline_state_vct_debug;
+		// Composite
+		RootSignature root_signature_composite;
+		GraphicsPSO pipeline_state_composite;
+		// Lighting
+		RootSignature root_signature_lighting;
+		DX12RenderTarget* p_render_target_lighting;
+		GraphicsPSO pipeline_state_lighting;
+		// Shadows
+		GraphicsPSO pipeline_state_shadow_mapping;
+		DXRSDepthBuffer* p_depth_buffer_shadow_mapping;
+		RootSignature root_signature_shadow_mapping;
+		// Constant Buffers
 		DX12Buffer* p_constant_buffer_voxelization;
 		DX12Buffer* p_constant_buffer_vct_main;
 		std::vector<DX12Buffer*> P_constant_buffers_vct_anisotropic_mip_generation;
+		DX12Buffer* p_constant_buffer_lighting;
+		DX12Buffer* p_constant_buffer_illumination_flags;
 
-		bool mVCTRenderDebug = false;
+		bool vct_render_debug = false;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
-		bool mVCTUseMainCompute = true;
-		bool mVCTMainRTUseUpsampleAndBlur = true;
+		bool use_vct_main_upsample_and_blur = true;
 
-		// Composite
-		RootSignature mCompositeRS;
-		GraphicsPSO mCompositePSO;
+		D3D12_DEPTH_STENCIL_DESC depth_state_read_write;
+		D3D12_DEPTH_STENCIL_DESC depth_state_disabled;
+		D3D12_BLEND_DESC blend_state_default;
+		D3D12_RASTERIZER_DESC rasterizer_state_default;
+		D3D12_RASTERIZER_DESC rasterizer_state_no_cull_no_depth;
+		D3D12_RASTERIZER_DESC rasterizer_state_shadow_mapping;
+		D3D12_SAMPLER_DESC sampler_bilinear;
 
-		// UI
-		ComPtr<ID3D12DescriptorHeap> mUIDescriptorHeap;
-
-		// Lighting
-		RootSignature mLightingRS;
-		DX12RenderTarget* mLightingRT;
-		GraphicsPSO mLightingPSO;
-		
-
-		DX12Buffer* mLightingCB;
-		DX12Buffer* mIlluminationFlagsCB;
-
-		// Shadows
-		GraphicsPSO mShadowMappingPSO;
-		DXRSDepthBuffer* mShadowDepth;
-		XMMATRIX mLightViewProjection;
-		XMMATRIX mLightView;
-		XMMATRIX mLightProj;
-		RootSignature mShadowMappingRS;
-		float mShadowIntensity = 0.5f;
-
-		D3D12_DEPTH_STENCIL_DESC mDepthStateRW;
-		D3D12_DEPTH_STENCIL_DESC mDepthStateDisabled;
-		D3D12_BLEND_DESC mBlendState;
-		D3D12_RASTERIZER_DESC mRasterizerState;
-		D3D12_RASTERIZER_DESC mRasterizerStateNoCullNoDepth;
-		D3D12_RASTERIZER_DESC mRasterizerStateShadow;
-		D3D12_SAMPLER_DESC mBilinearSampler;
 };
