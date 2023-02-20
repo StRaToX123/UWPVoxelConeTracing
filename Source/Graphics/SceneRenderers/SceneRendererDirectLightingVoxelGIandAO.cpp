@@ -262,7 +262,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			// requires at least a 2x2x2 texture in order to perform calculations
 			// We also don't want to count the mip level 0 (full res mip) since the anisotropic mip chain starts from what would
 			// be the original 3D textures mip level 1
-			shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count = (UINT32)log2(shader_structure_cpu_voxelization_data.voxel_grid_res >> 1) - 1;
+			shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count = (UINT32)log2(shader_structure_cpu_voxelization_data.voxel_grid_res) - 1;
 			memcpy(p_constant_buffer_voxelization->GetMappedData(shader_structure_cpu_voxelization_data_most_updated_index), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
 			break;
 		}

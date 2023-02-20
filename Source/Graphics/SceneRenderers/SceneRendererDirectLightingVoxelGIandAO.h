@@ -91,7 +91,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 			// requires at least a 2x2x2 texture in order to perform calculations
 			// We also don't want to count the mip level 0 (full res mip) since the anisotropic mip chain starts from what would
 			// be the original 3D textures mip level 1
-			UINT32 voxel_grid_anisotropic_mip_count = (UINT32)log2(voxel_grid_res >> 1) - 1;
+			UINT32 voxel_grid_anisotropic_mip_count = (UINT32)log2(voxel_grid_res) - 1;
 			float voxel_extent_rcp;
 			float voxel_scale;
 			DirectX::XMFLOAT3 padding;

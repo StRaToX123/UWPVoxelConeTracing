@@ -756,7 +756,9 @@ bool UWPVoxelConeTracingMain::Render()
 		_deviceResources->WaitForGPU();
 		imgui_selected_index_voxel_grid_resolutions_previous_value = imgui_selected_index_voxel_grid_resolutions;
 		scene_renderer.shader_structure_cpu_voxelization_data.voxel_grid_res = imgui_voxel_grid_resolutions[imgui_selected_index_voxel_grid_resolutions];
+		scene_renderer.UpdateBuffers(SceneRendererDirectLightingVoxelGIandAO::UpdatableBuffers::VOXELIZATION_DATA_BUFFER);
 		scene_renderer.UpdateVoxelConeTracingVoxelizationBuffers(_deviceResources->GetD3DDevice());
+		imgui_update_voxelizer_data_buffer = false;
 	}
 	return true;
 }
