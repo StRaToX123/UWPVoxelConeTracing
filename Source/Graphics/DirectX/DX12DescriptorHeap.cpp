@@ -7,14 +7,58 @@
 DX12DescriptorHandleBlock::DX12DescriptorHandleBlock()
 {
 	gpu_handle.ptr = NULL;
-	owner_heap_index = 0;
 	block_size = 0;
 	unassigned_descriptor_block_index = 0;
+	do_not_run_destructor = false;
+}
+
+DX12DescriptorHandleBlock::DX12DescriptorHandleBlock(DX12DescriptorHandleBlock& other)
+{
+	gpu_handle.ptr = other.gpu_handle.ptr;
+	block_size = other.block_size;
+	unassigned_descriptor_block_index = 0;
+	heap_type = other.heap_type;
+	owner_cpu_handle_indexes = std::move(other.owner_cpu_handle_indexes);
+	_owner_heap = other._owner_heap;
+	do_not_run_destructor = false;
+	other.do_not_run_destructor = true;
+}
+
+DX12DescriptorHandleBlock::DX12DescriptorHandleBlock(DX12DescriptorHandleBlock&& other)
+{
+	gpu_handle.ptr = other.gpu_handle.ptr;
+	block_size = other.block_size;
+	unassigned_descriptor_block_index = 0;
+	heap_type = other.heap_type;
+	owner_cpu_handle_indexes = std::move(other.owner_cpu_handle_indexes);
+	_owner_heap = other._owner_heap;
+	do_not_run_destructor = false;
+	other.do_not_run_destructor = true;
+}
+
+DX12DescriptorHandleBlock& DX12DescriptorHandleBlock::operator=(DX12DescriptorHandleBlock&& other)
+{
+	gpu_handle.ptr = other.gpu_handle.ptr;
+	block_size = other.block_size;
+	unassigned_descriptor_block_index = 0;
+	heap_type = other.heap_type;
+	owner_cpu_handle_indexes = std::move(other.owner_cpu_handle_indexes);
+	_owner_heap = other._owner_heap;
+	do_not_run_destructor = false;
+	other.do_not_run_destructor = true;
+	return *this;
 }
 
 DX12DescriptorHandleBlock::~DX12DescriptorHandleBlock()
 {
-	// We have to return the cpu handles back to the heap manager
+	if (do_not_run_destructor == false)
+	{
+		// We have to return the cpu handles back to the heap manager
+		for (UINT i = 0; i < block_size; i++)
+		{
+			_owner_heap->available_descriptor_indexes.push(owner_cpu_handle_indexes[i]);
+		}
+	}
 }
 
 void DX12DescriptorHandleBlock::Add(DX12DescriptorHandleBlock& sourceCPUHandleBlock)
@@ -63,10 +107,6 @@ UINT DX12DescriptorHandleBlock::GetDescriptorSize()
 	return _owner_heap->GetDescriptorSize();
 }
 
-UINT DX12DescriptorHandleBlock::GetHeapIndex() const
-{
-	return owner_heap_index;
-};
 UINT DX12DescriptorHandleBlock::GetBlockSize() const
 {
 	return block_size;
@@ -94,24 +134,35 @@ DX12DescriptorHeapBase::DX12DescriptorHeapBase(ID3D12Device* device, D3D12_DESCR
 	heapDesc.NodeMask = 0;
 
 	ThrowIfFailed(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptor_heap)));
-	descriptor_heapCPUStart = descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+	descriptor_heap_cpu_start = descriptor_heap->GetCPUDescriptorHandleForHeapStart();
 	if (is_referenced_by_shader)
 	{
-		descriptor_heapGPUStart = descriptor_heap->GetGPUDescriptorHandleForHeapStart();
+		descriptor_heap_gpu_start = descriptor_heap->GetGPUDescriptorHandleForHeapStart();
 	}
 
 	descriptor_size = device->GetDescriptorHandleIncrementSize(heap_type);
 
-	available_descriptor_indexes.reserve(max_num_descriptors);
+	
 	for (UINT i = 0; i < max_num_descriptors; i++)
 	{
-		available_descriptor_indexes.emplace_back(i);
+		available_descriptor_indexes_default_value.push(i);
 	}
+
+	available_descriptor_indexes = available_descriptor_indexes_default_value;
 }
 
 void DX12DescriptorHeapBase::Reset()
 {
-	mCurrentDescriptorIndex = 0;
+	available_descriptor_indexes = available_descriptor_indexes_default_value;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeapBase::GetHeapCPUStart()
+{ 
+	return descriptor_heap_cpu_start; 
+}
+CD3DX12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeapBase::GetHeapGPUStart()
+{ 
+	return descriptor_heap_gpu_start; 
 }
 
 /////////////////////////////////////////////
@@ -121,30 +172,26 @@ void DX12DescriptorHeapBase::Reset()
 DX12DescriptorHeapCPU::DX12DescriptorHeapCPU(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors)
 	: DX12DescriptorHeapBase(device, heapType, numDescriptors, false)
 {
-	mCurrentDescriptorIndex = 0;
+	
 }
 
 
 
 DX12DescriptorHandleBlock DX12DescriptorHeapCPU::GetHandleBlock(UINT count)
 {
-	UINT newHandleID = 0;
-	UINT blockEnd = mCurrentDescriptorIndex + count;
-	if (blockEnd < max_num_descriptors)
-	{
-		newHandleID = mCurrentDescriptorIndex;
-		mCurrentDescriptorIndex = blockEnd;
-	}
-	else
+	if (count > available_descriptor_indexes.size())
 	{
 		std::exception("Ran out of dynamic descriptor heap handles, need to increase heap size.");
 	}
 
 	DX12DescriptorHandleBlock newHandleBlock;
-	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = descriptor_heapCPUStart;
-	cpuHandle.ptr += newHandleID * descriptor_size;
-	newHandleBlock.SetCPUHandle(cpuHandle);
-	newHandleBlock.owner_heap_index = newHandleID;
+	newHandleBlock.owner_cpu_handle_indexes.reserve(count);
+	for (UINT i = 0; i < count; i++)
+	{
+		newHandleBlock.owner_cpu_handle_indexes.emplace_back(available_descriptor_indexes.front());
+		available_descriptor_indexes.pop();
+	}
+	
 	newHandleBlock.block_size = count;
 	newHandleBlock.heap_type = heap_type;
 	newHandleBlock._owner_heap = this;
@@ -160,37 +207,32 @@ DX12DescriptorHandleBlock DX12DescriptorHeapCPU::GetHandleBlock(UINT count)
 DX12DescriptorHeapGPU::DX12DescriptorHeapGPU(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors)
 	: DX12DescriptorHeapBase(device, heapType, numDescriptors, true)
 {
-	mCurrentDescriptorIndex = 0;
+	
 }
 
 DX12DescriptorHandleBlock DX12DescriptorHeapGPU::GetHandleBlock(UINT count)
 {
-	UINT newHandleID = 0;
-	UINT blockEnd = mCurrentDescriptorIndex + count;
-
-	if (blockEnd < max_num_descriptors)
-	{
-		newHandleID = mCurrentDescriptorIndex;
-		mCurrentDescriptorIndex = blockEnd;
-	}
-	else
+	if (count > available_descriptor_indexes.size())
 	{
 		std::exception("Ran out of GPU descriptor heap handles, need to increase heap size.");
+
 	}
 
 	DX12DescriptorHandleBlock newHandleBlock;
-	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = descriptor_heapCPUStart;
-	cpuHandle.ptr += newHandleID * descriptor_size;
-	newHandleBlock.SetCPUHandle(cpuHandle);
+	newHandleBlock.owner_cpu_handle_indexes.reserve(count);
+	for (UINT i = 0; i < count; i++)
+	{
+		newHandleBlock.owner_cpu_handle_indexes.emplace_back(available_descriptor_indexes.front());
+		available_descriptor_indexes.pop();
+	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = descriptor_heapGPUStart;
-	gpuHandle.ptr += newHandleID * descriptor_size;
-	newHandleBlock.SetGPUHandle(gpuHandle);
+	newHandleBlock.block_size = count;
+	newHandleBlock.heap_type = heap_type;
+	newHandleBlock._owner_heap = this;
 
-	newHandleBlock.SetHeapIndex(newHandleID);
-	newHandleBlock.SetBlockSize(count);
-	newHandleBlock.SetDescriptorSize(descriptor_size);
-	newHandleBlock.SetHeapType(heap_type);
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = descriptor_heap_gpu_start;
+	gpuHandle.ptr += newHandleBlock.owner_cpu_handle_indexes[0] * descriptor_size;
+	newHandleBlock.gpu_handle = gpuHandle;
 
 	return newHandleBlock;
 }
@@ -247,7 +289,7 @@ DX12DescriptorHeapManager::~DX12DescriptorHeapManager()
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)
 {
-	return mCPUDescriptorHeaps[DX12DeviceResourcesSingleton::back_buffer_index]->GetHandleBlock(count);
+	return mCPUDescriptorHeaps[heapType]->GetHandleBlock(count);
 }
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::GetGPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)

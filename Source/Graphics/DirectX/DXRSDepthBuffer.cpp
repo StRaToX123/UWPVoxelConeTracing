@@ -61,3 +61,13 @@ void DXRSDepthBuffer::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barrie
 		mCurrentResourceState = stateAfter;
 	}
 }
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DXRSDepthBuffer::GetDSV()
+{
+	return mDescriptorDSV.GetCPUHandle();
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DXRSDepthBuffer::GetSRV()
+{
+	return mDescriptorSRV.GetCPUHandle();
+}

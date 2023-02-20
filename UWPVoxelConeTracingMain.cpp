@@ -455,132 +455,132 @@ void UWPVoxelConeTracingMain::Update()
 	timer.Tick([&]()
 	{
 		#pragma region Update The Camera
-			// Update the camera
-			// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
-			if (gamepad != nullptr)
+		// Update the camera
+		// Check to see if we should update the camera using the gamepad or using the keyboard and mouse
+		if (gamepad != nullptr)
+		{
+
+			// Update the camera using the gamepad
+			Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
+			// Toggle ImGui on the gamepad menu key press
+			// We need to guard this against key spam which occurs when the key is held down,
+			// otherwise the show_ImGui boolean will toggle rapidly and flash the UI on and off
+			static bool gamepadMenuKeySpamGuard = false;
+			if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu))
 			{
-
-				// Update the camera using the gamepad
-				Windows::Gaming::Input::GamepadReading gamepadReading = gamepad->GetCurrentReading();
-				// Toggle ImGui on the gamepad menu key press
-				// We need to guard this against key spam which occurs when the key is held down,
-				// otherwise the show_ImGui boolean will toggle rapidly and flash the UI on and off
-				static bool gamepadMenuKeySpamGuard = false;
-				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::Menu))
+				if (gamepadMenuKeySpamGuard == false)
 				{
-					if (gamepadMenuKeySpamGuard == false)
-					{
-						gamepadMenuKeySpamGuard = true;
-						show_imGui = !show_imGui;
-					}
-				}
-				else
-				{
-					gamepadMenuKeySpamGuard = false;
-				}
-
-				if (show_imGui == true)
-				{
-					ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
-				}
-				else
-				{
-					camera_controller_rotation_multiplier = 1.0f;
-					// Update the camera controller variables		
-					// We use camera_controller_left to store the leftThumbStickX value
-					// and the camera_controller_forward to store the leftThumbStickY value
-					// this makes camera_controller_right and camera_controller_down obsolete
-					camera_controller_right = 0.0f;
-					camera_controller_down = 0.0f;
-					if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
-						|| (gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
-					{
-						camera_controller_left = gamepadReading.LeftThumbstickX;
-					}
-					else
-					{
-						camera_controller_left = 0.0f;
-					}
-
-					if ((gamepadReading.LeftThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD)
-						|| (gamepadReading.LeftThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD))
-					{
-						camera_controller_forward = gamepadReading.LeftThumbstickY;
-					}
-					else
-					{
-						camera_controller_forward = 0.0f;
-					}
-
-					UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
-						((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
-
-					if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
-					{
-						camera_controller_up = 1.0f;
-					}
-					else
-					{
-						camera_controller_up = 0.0f;
-					}
-
-					if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::B))
-					{
-						camera_controller_down = 1.0f;
-					}
-					else
-					{
-						camera_controller_down = 0.0f;
-					}
-
-					// Update the camera 
-					XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
-					camera.SetRotationLocalSpaceQuaternion(cameraRotation);
-					XMVECTOR cameraTranslate = XMVectorSet(camera_controller_left,
-						camera_controller_up - camera_controller_down,
-						camera_controller_forward,
-						1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
-					camera.Translate(cameraTranslate, Space::Local);
+					gamepadMenuKeySpamGuard = true;
+					show_imGui = !show_imGui;
 				}
 			}
 			else
 			{
-				// Keyboard and mouse controlls (SPACE key cannot be handled by the HandleKeyboardInput callback, so we will have to check for it each frame, here in the update function)
-				if (show_imGui == false)
-				{
-					camera_controller_rotation_multiplier = 0.03f;
-					static bool spaceKeySpamGuard = false;
-					// Sheck space key status
-					// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
-					// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
-					if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
-					{
-						if (spaceKeySpamGuard == false)
-						{
-							spaceKeySpamGuard = true;
-							camera_controller_up = 1.0f;
-						}
-					}
-					else
-					{
-						if (spaceKeySpamGuard == true)
-						{
-							spaceKeySpamGuard = false;
-							camera_controller_up = 0.0f;
-						}
-					}
-
-					// Update the camera 
-					XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
-					camera.SetRotationLocalSpaceQuaternion(cameraRotation);
-					XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
-						camera_controller_up - camera_controller_down,
-						camera_controller_forward - camera_controller_backward,
-						1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
-					camera.Translate(cameraTranslate, Space::Local);
-				}
+				gamepadMenuKeySpamGuard = false;
 			}
-			#pragma endregion
+
+			if (show_imGui == true)
+			{
+				ImGui_ImplUWP_UpdateGamepads_Callback(gamepadReading);
+			}
+			else
+			{
+				camera_controller_rotation_multiplier = 1.0f;
+				// Update the camera controller variables		
+				// We use camera_controller_left to store the leftThumbStickX value
+				// and the camera_controller_forward to store the leftThumbStickY value
+				// this makes camera_controller_right and camera_controller_down obsolete
+				camera_controller_right = 0.0f;
+				camera_controller_down = 0.0f;
+				if ((gamepadReading.LeftThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD)
+					|| (gamepadReading.LeftThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD))
+				{
+					camera_controller_left = gamepadReading.LeftThumbstickX;
+				}
+				else
+				{
+					camera_controller_left = 0.0f;
+				}
+
+				if ((gamepadReading.LeftThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD)
+					|| (gamepadReading.LeftThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD))
+				{
+					camera_controller_forward = gamepadReading.LeftThumbstickY;
+				}
+				else
+				{
+					camera_controller_forward = 0.0f;
+				}
+
+				UpdateCameraControllerPitchAndYaw(((gamepadReading.RightThumbstickX <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickX >= GAMEPAD_TRIGGER_THRESHOLD)) ? gamepadReading.RightThumbstickX : 0.0f,
+					((gamepadReading.RightThumbstickY <= -GAMEPAD_TRIGGER_THRESHOLD) || (gamepadReading.RightThumbstickY >= GAMEPAD_TRIGGER_THRESHOLD)) ? -gamepadReading.RightThumbstickY : 0.0f);
+
+				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::A))
+				{
+					camera_controller_up = 1.0f;
+				}
+				else
+				{
+					camera_controller_up = 0.0f;
+				}
+
+				if (static_cast<int>(gamepadReading.Buttons) & static_cast<int>(Windows::Gaming::Input::GamepadButtons::B))
+				{
+					camera_controller_down = 1.0f;
+				}
+				else
+				{
+					camera_controller_down = 0.0f;
+				}
+
+				// Update the camera 
+				XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+				camera.SetRotationLocalSpaceQuaternion(cameraRotation);
+				XMVECTOR cameraTranslate = XMVectorSet(camera_controller_left,
+					camera_controller_up - camera_controller_down,
+					camera_controller_forward,
+					1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
+				camera.Translate(cameraTranslate, Space::Local);
+			}
+		}
+		else
+		{
+			// Keyboard and mouse controlls (SPACE key cannot be handled by the HandleKeyboardInput callback, so we will have to check for it each frame, here in the update function)
+			if (show_imGui == false)
+			{
+				camera_controller_rotation_multiplier = 0.03f;
+				static bool spaceKeySpamGuard = false;
+				// Sheck space key status
+				// This needs to be an async call otherwise the Control key and Space key end up conflicting with one another for some reason.
+				// The Control key if held down before the Space key, creates a delay in the Space keys keydown press for some reason.
+				if ((core_window->GetAsyncKeyState(Windows::System::VirtualKey::Space) & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down)
+				{
+					if (spaceKeySpamGuard == false)
+					{
+						spaceKeySpamGuard = true;
+						camera_controller_up = 1.0f;
+					}
+				}
+				else
+				{
+					if (spaceKeySpamGuard == true)
+					{
+						spaceKeySpamGuard = false;
+						camera_controller_up = 0.0f;
+					}
+				}
+
+				// Update the camera 
+				XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(camera_controller_pitch), XMConvertToRadians(camera_controller_yaw), 0.0f);
+				camera.SetRotationLocalSpaceQuaternion(cameraRotation);
+				XMVECTOR cameraTranslate = XMVectorSet(camera_controller_right - camera_controller_left,
+					camera_controller_up - camera_controller_down,
+					camera_controller_forward - camera_controller_backward,
+					1.0f) * camera_controller_translation_multiplier * static_cast<float>(timer.GetElapsedSeconds());
+				camera.Translate(cameraTranslate, Space::Local);
+			}
+		}
+		#pragma endregion
 
 		// Update the scene
 		if (imgui_dont_update_dynamic_objects == false)
@@ -608,10 +608,7 @@ void UWPVoxelConeTracingMain::Update()
 	});	
 
 	// Update all the buffers once
-	if (show_imGui == false)
-	{
-		camera.UpdateBuffers();
-	}
+	camera.UpdateBuffers();
 
 	if (imgui_dont_update_dynamic_objects == false)
 	{
@@ -724,6 +721,7 @@ bool UWPVoxelConeTracingMain::Render()
 		imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::Checkbox("Show Only AO", (bool*)&scene_renderer.shader_structure_cpu_illumination_flags_data.show_only_ao);
 		if (ImGui::CollapsingHeader("Global Illumination Config"))
 		{
+			imgui_update_voxelizer_data_buffer |= ImGui::Combo("Voxel Grid Resolution", &imgui_selected_index_voxel_grid_resolutions, imgui_combo_box_string_voxel_grid_resolutions);
 			//ImGui::Checkbox("Render voxels for debug", &mVCTRenderDebug);
 			imgui_update_voxelizer_data_buffer |= ImGui::SliderFloat("Voxel Grid Extent", &scene_renderer.shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space, 1.0f, 400.0f);
 			imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::SliderFloat("GI Intensity", &scene_renderer.shader_structure_cpu_illumination_flags_data.vct_gi_power, 0.0f, 15.0f);
@@ -751,18 +749,32 @@ bool UWPVoxelConeTracingMain::Render()
 	ID3D12CommandList* __commandListsDirect[] = { command_list_direct.Get() };
 	_deviceResources->GetCommandQueueDirect()->ExecuteCommandLists(1, __commandListsDirect);
 	_deviceResources->Present();
+
+	// Check if need to alter the scene_renderer because we changed the voxel grid resolution
+	if (imgui_selected_index_voxel_grid_resolutions != imgui_selected_index_voxel_grid_resolutions_previous_value)
+	{
+		_deviceResources->WaitForGPU();
+		imgui_selected_index_voxel_grid_resolutions_previous_value = imgui_selected_index_voxel_grid_resolutions;
+		scene_renderer.shader_structure_cpu_voxelization_data.voxel_grid_res = imgui_voxel_grid_resolutions[imgui_selected_index_voxel_grid_resolutions];
+		scene_renderer.UpdateVoxelConeTracingVoxelizationBuffers(_deviceResources->GetD3DDevice());
+	}
 	return true;
 }
 
 // Updates application state when the window's size changes (e.g. device orientation change)
 void UWPVoxelConeTracingMain::OnWindowSizeChanged()
 {
-	DX12DeviceResourcesSingleton* _dx12DeviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
-	if (!_dx12DeviceResources->OnWindowSizeChanged())
+	// Update the device resources
+	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
+	if (!_deviceResources->OnWindowSizeChanged())
 	{
 		return;
 	}
+	
+	// Update the scene renderers
+	scene_renderer.OnWindowSizeChanged(_deviceResources->GetD3DDevice(), core_window->Bounds.Width, core_window->Bounds.Height);
 
+	// Update the camera
 	float aspectRatio = core_window->Bounds.Width / core_window->Bounds.Height;
 	// This is a simple example of a change that can be made when the app is in
 	// portrait or snapped view.

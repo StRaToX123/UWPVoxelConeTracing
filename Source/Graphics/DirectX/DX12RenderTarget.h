@@ -27,26 +27,9 @@ class DX12RenderTarget
 			UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		D3D12_RESOURCE_STATES GetCurrentState(UINT mip) { return resource_state_current_per_mip[mip]; }
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetRTV(UINT mip = 0)
-		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE result = descriptor_handle_block_per_mip_rtv.GetCPUHandle();
-			result.Offset(mip * descriptor_handle_block_per_mip_rtv.GetDescriptorSize());
-			return result;
-		}
-
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV(UINT mip = 0)
-		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE result = descriptor_handle_block_per_mip_srv.GetCPUHandle();
-			result.Offset(mip * descriptor_handle_block_per_mip_srv.GetDescriptorSize());
-			return result;
-		}
-
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetUAV(UINT mip = 0)
-		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE result = descriptor_handle_block_per_mip_uav.GetCPUHandle();
-			result.Offset(mip * descriptor_handle_block_per_mip_uav.GetDescriptorSize());
-			return result;
-		}
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetRTV(UINT mip = 0);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV(UINT mip = 0);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetUAV(UINT mip = 0);
 
 	private:
 		int width, height, depth;

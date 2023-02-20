@@ -11,15 +11,8 @@ class DXRSDepthBuffer
 		DXGI_FORMAT GetFormat() { return mFormat; }
 		void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES stateAfter);
 
-		DX12DescriptorHandleBlock GetDSV()
-		{
-			return mDescriptorDSV;
-		}
-
-		DX12DescriptorHandleBlock& GetSRV()
-		{
-			return mDescriptorSRV;
-		}
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetDSV();
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV();
 
 		const int GetWidth() { return mWidth; }
 		const int GetHeight() { return mHeight; }

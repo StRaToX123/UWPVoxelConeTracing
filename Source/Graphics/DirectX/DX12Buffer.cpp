@@ -95,14 +95,12 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 			}
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorSRV.GetCPUHandle();
 		D3D12_GPU_VIRTUAL_ADDRESS resourceGPUAddress = mBuffer->GetGPUVirtualAddress();
 		auto descriptorIncrementSize = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		for(UINT i = 0; i < mDescriptorSRV.GetBlockSize(); i++)
 		{
 			srvDesc.Buffer.FirstElement = (UINT64)(i * mDescription.mNumElements);
-			_d3dDevice->CreateShaderResourceView(mBuffer.Get(), &srvDesc, mDescriptorSRV.GetCPUHandle());
-			cpuDescriptorHandle.ptr += descriptorIncrementSize;
+			_d3dDevice->CreateShaderResourceView(mBuffer.Get(), &srvDesc, mDescriptorSRV.GetCPUHandle(i));
 		}
 	}
 
@@ -120,16 +118,14 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 		// Create constant buffer views to access the upload buffer.
 		D3D12_GPU_VIRTUAL_ADDRESS cbvGpuAddress = mBuffer->GetGPUVirtualAddress();
 		mDescriptorCBV = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, number_of_copys);
-		CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
 		for (int i = 0; i < mDescriptorCBV.GetBlockSize(); i++)
 		{
 			D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
 			desc.BufferLocation = cbvGpuAddress;
 			desc.SizeInBytes = mBufferSize;
-			_d3dDevice->CreateConstantBufferView(&desc, cpuDescriptorHandle);
+			_d3dDevice->CreateConstantBufferView(&desc, mDescriptorCBV.GetCPUHandle(i));
 
 			cbvGpuAddress += desc.SizeInBytes;
-			cpuDescriptorHandle.Offset(mDescriptorCBV.GetDescriptorSize());
 		}
 
 		
@@ -159,15 +155,11 @@ unsigned char* DX12Buffer::GetMappedData(UINT copyIndex)
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetSRV(UINT copyIndex)
 { 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorSRV.GetCPUHandle();
-	cpuDescriptorHandle.Offset(copyIndex * mDescriptorSRV.GetDescriptorSize());
-	return cpuDescriptorHandle;
+	return mDescriptorSRV.GetCPUHandle(copyIndex);
 }
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE DX12Buffer::GetCBV(UINT copyIndex)
 { 
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = mDescriptorCBV.GetCPUHandle();
-	cpuDescriptorHandle.Offset(copyIndex * mDescriptorCBV.GetDescriptorSize());
-	return cpuDescriptorHandle;
+	return mDescriptorCBV.GetCPUHandle(copyIndex);
 }

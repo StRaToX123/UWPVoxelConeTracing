@@ -84,4 +84,8 @@ class UWPVoxelConeTracingMain
 		bool imgui_update_scene_renderer_illumination_flags_buffer = false;
 		bool imgui_update_scene_renderer_vct_main_buffer = false;
 		bool imgui_update_voxelizer_data_buffer = false;
+		const char* imgui_combo_box_string_voxel_grid_resolutions = " 256\0 128\0 64\0 32\0 16";
+		const UINT32 imgui_voxel_grid_resolutions[5] = { 256, 128, 64, 32, 16 };
+		int imgui_selected_index_voxel_grid_resolutions = 0;
+		int imgui_selected_index_voxel_grid_resolutions_previous_value = 0;
 };

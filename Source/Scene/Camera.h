@@ -42,9 +42,6 @@ class Camera
             DirectX::XMFLOAT4X4 view_projection;
             DirectX::XMFLOAT3 position_world_space;
             float padding;
-            //DirectX::XMFLOAT4X4 view;
-            //DirectX::XMFLOAT4X4 projection;
-            //DirectX::XMFLOAT4X4 inverse_view;
         };
     private:
         void UpdateViewMatrix();

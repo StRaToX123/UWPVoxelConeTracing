@@ -99,15 +99,6 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 		descriptor_handle_block_per_mip_uav = descriptorManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mips);
 
 	}
-	
-	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleRTV = descriptor_handle_block_per_mip_rtv.GetCPUHandle();
-	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleSRV = descriptor_handle_block_per_mip_srv.GetCPUHandle();
-	CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandleUAV;
-	if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-	{
-		descriptorHandleUAV = descriptor_handle_block_per_mip_uav.GetCPUHandle();
-
-	}
 
 	for (int mipLevel = 0; mipLevel < mips; mipLevel++)
 	{
@@ -122,8 +113,8 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 			rtvDesc.Texture2D.MipSlice = mipLevel;
 		}
 
-		device->CreateRenderTargetView(render_target.Get(), &rtvDesc, descriptorHandleRTV);
-		descriptorHandleRTV.Offset(descriptor_handle_block_per_mip_rtv.GetDescriptorSize());
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtcCPUDescriptorHandle = descriptor_handle_block_per_mip_rtv.GetCPUHandle(mipLevel);
+		device->CreateRenderTargetView(render_target.Get(), &rtvDesc, rtcCPUDescriptorHandle);
 
 		// SRV
 		if (mipLevel == 0)
@@ -158,8 +149,7 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 			srvDesc.Texture2D.MostDetailedMip = mipLevel;
 		}
 		
-		device->CreateShaderResourceView(render_target.Get(), &srvDesc, descriptorHandleSRV);
-		descriptorHandleSRV.Offset(descriptor_handle_block_per_mip_srv.GetDescriptorSize());
+		device->CreateShaderResourceView(render_target.Get(), &srvDesc, descriptor_handle_block_per_mip_srv.GetCPUHandle(mipLevel));
 
 		// UAV
 		if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
@@ -174,8 +164,7 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 				uavDesc.Texture2D.MipSlice = mipLevel;
 			}
 
-			device->CreateUnorderedAccessView(render_target.Get(), nullptr, &uavDesc, descriptorHandleUAV);
-			descriptorHandleUAV.Offset(descriptor_handle_block_per_mip_uav.GetDescriptorSize());
+			device->CreateUnorderedAccessView(render_target.Get(), nullptr, &uavDesc, descriptor_handle_block_per_mip_uav.GetCPUHandle(mipLevel));
 		}
 	}
 }
@@ -206,4 +195,19 @@ void DX12RenderTarget::TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barri
 		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(GetResource(), resource_state_current_per_mip[subresource], stateAfter, subresource));
 		resource_state_current_per_mip[subresource] = stateAfter;
 	}
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12RenderTarget::GetRTV(UINT mip)
+{
+	return descriptor_handle_block_per_mip_rtv.GetCPUHandle(mip);
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12RenderTarget::GetSRV(UINT mip)
+{
+	return descriptor_handle_block_per_mip_srv.GetCPUHandle(mip);
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE DX12RenderTarget::GetUAV(UINT mip)
+{
+	return descriptor_handle_block_per_mip_uav.GetCPUHandle(mip);
 }

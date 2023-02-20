@@ -3,6 +3,8 @@
 #include "Graphics/DirectXTK12/Inc/DirectXHelpers.h"
 #include "Graphics/DirectX/DX12DeviceResourcesSingleton.h"
 
+#include <queue>
+
 using namespace Microsoft::WRL;
 
 class DX12DescriptorHeapBase;
@@ -11,13 +13,16 @@ class DX12DescriptorHandleBlock
 {
 	public:
 		DX12DescriptorHandleBlock();
+		DX12DescriptorHandleBlock(DX12DescriptorHandleBlock& other);
+		DX12DescriptorHandleBlock(DX12DescriptorHandleBlock&& other);
 		~DX12DescriptorHandleBlock();
+		DX12DescriptorHandleBlock& operator=(DX12DescriptorHandleBlock&& other);
 		// Returns the CPU handle from the block, CPU handles held by this block may not be linearly laid out
-		// from inside the heap. GPU handles are always laid out linear inside the heap
+		// from inside the heap. They are if this is a gpu visible heap, likewise GPU which
+		// are only available when this is a gpu visible heap, are also laid out linear;y inside the heap
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT blockIndex = 0);
 		// Returns the start of the heap, GPU descriptor handles inside a block are linear, CPU ones may not be
 		CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle();
-		UINT GetHeapIndex() const;
 		UINT GetBlockSize() const;
 		UINT GetDescriptorSize();
 		bool IsReferencedByShader();
@@ -34,10 +39,10 @@ class DX12DescriptorHandleBlock
 		// Indexes referencing the _owner_heap's cpu descriptor heap
 		std::vector<UINT> owner_cpu_handle_indexes;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_handle;
-		UINT owner_heap_index;
 		UINT block_size;
 		UINT unassigned_descriptor_block_index;
 		DX12DescriptorHeapBase* _owner_heap;
+		bool do_not_run_destructor;
 
 };
 
@@ -48,20 +53,21 @@ class DX12DescriptorHeapBase
 
 		ID3D12DescriptorHeap* GetHeap() { return descriptor_heap.Get(); }
 		D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() { return heap_type; }
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetHeapCPUStart() { return mDescriptorHeapCPUStart; }
-		CD3DX12_GPU_DESCRIPTOR_HANDLE GetHeapGPUStart() { return mDescriptorHeapGPUStart; }
-		UINT GetMaxNoofDescriptors() { return max_num_descriptors; }
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetHeapCPUStart();
+		CD3DX12_GPU_DESCRIPTOR_HANDLE GetHeapGPUStart();
 		UINT GetDescriptorSize() { return descriptor_size; }
 		virtual DX12DescriptorHandleBlock GetHandleBlock(UINT count = 1) = 0;
 		void Reset();
 
 	protected:
+		friend class DX12DescriptorHandleBlock;
 		ComPtr<ID3D12DescriptorHeap> descriptor_heap;
 		D3D12_DESCRIPTOR_HEAP_TYPE heap_type;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mDescriptorHeapCPUStart;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mDescriptorHeapGPUStart;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE descriptor_heap_cpu_start;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE descriptor_heap_gpu_start;
 		// Which descriptors from the heap are available
-		std::vector<UINT> available_descriptor_indexes;
+		std::queue<UINT> available_descriptor_indexes;
+		std::queue<UINT> available_descriptor_indexes_default_value;
 		UINT max_num_descriptors;
 		UINT descriptor_size;
 		bool is_referenced_by_shader;

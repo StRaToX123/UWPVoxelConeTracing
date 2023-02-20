@@ -183,6 +183,7 @@ void Camera::UpdateViewMatrix()
 void Camera::UpdateProjectionMatrix()
 {
     projection_matrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(vertical_fov_degrees), aspect_ratio, z_near, z_far);
+    DirectX::XMStoreFloat4x4(&shader_structure_cpu_camera_data.view_projection, DirectX::XMMatrixTranspose(DirectX::XMMatrixMultiply(view_matrix, projection_matrix)));
     is_dirty_projection_matrix = false;
 }
 

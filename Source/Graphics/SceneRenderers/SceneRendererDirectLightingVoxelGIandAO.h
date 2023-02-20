@@ -46,6 +46,9 @@ class SceneRendererDirectLightingVoxelGIandAO
 			ID3D12GraphicsCommandList* _commandListDirect, 
 			ID3D12GraphicsCommandList* _commandListCompute,
 			ID3D12CommandAllocator* _commandAllocatorDirect);
+		void OnWindowSizeChanged(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		// So that we can change the voxel grid from outside of the renderer
+		void UpdateVoxelConeTracingVoxelizationBuffers(ID3D12Device* _d3dDevice);
 
 		enum UpdatableBuffers
 		{
@@ -88,7 +91,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 			// requires at least a 2x2x2 texture in order to perform calculations
 			// We also don't want to count the mip level 0 (full res mip) since the anisotropic mip chain starts from what would
 			// be the original 3D textures mip level 1
-			UINT32 voxel_grid_anisotropic_mip_count = (UINT32)log2(voxel_grid_res) - 1;
+			UINT32 voxel_grid_anisotropic_mip_count = (UINT32)log2(voxel_grid_res >> 1) - 1;
 			float voxel_extent_rcp;
 			float voxel_scale;
 			DirectX::XMFLOAT3 padding;
@@ -123,12 +126,18 @@ class SceneRendererDirectLightingVoxelGIandAO
 		UINT8 shader_structure_cpu_vct_main_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
 	private:
-		void InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-		void InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager);
-
+		void InitGbuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void UpdateGBuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void InitShadowMapping(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void UpdateShadowMappingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void UpdateVoxelConeTracingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		// This function 
+		
+		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void UpdateLightingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice);
+		
 	
 
 		void RenderGbuffer(DX12DeviceResourcesSingleton* _deviceResources,

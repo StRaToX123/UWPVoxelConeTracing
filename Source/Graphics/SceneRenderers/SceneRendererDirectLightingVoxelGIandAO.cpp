@@ -203,11 +203,11 @@ void SceneRendererDirectLightingVoxelGIandAO::Initialize(Windows::UI::Core::Core
 	shader_structure_cpu_lighting_data_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
 	shader_structure_cpu_vct_anisotropic_mip_generation_data_most_updated_index = shader_structure_cpu_vct_main_data_most_updated_index;
 
-	InitGbuffer(_d3dDevice, &descriptor_heap_manager);
-	InitShadowMapping(_d3dDevice, &descriptor_heap_manager);
-	InitVoxelConeTracing(_deviceResources, _d3dDevice, &descriptor_heap_manager);
-	InitLighting(_deviceResources, _d3dDevice, &descriptor_heap_manager);
-	InitComposite(_deviceResources, _d3dDevice, &descriptor_heap_manager);
+	InitGbuffer(_d3dDevice, coreWindow->Bounds.Width, coreWindow->Bounds.Height);
+	InitShadowMapping(_d3dDevice, coreWindow->Bounds.Width, coreWindow->Bounds.Height);
+	InitVoxelConeTracing(_deviceResources, _d3dDevice, coreWindow->Bounds.Width, coreWindow->Bounds.Height);
+	InitLighting(_deviceResources, _d3dDevice, coreWindow->Bounds.Width, coreWindow->Bounds.Height);
+	InitComposite(_deviceResources, _d3dDevice);
 	UpdateBuffers(UpdatableBuffers::ILLUMINATION_FLAGS_DATA_BUFFER);
 	UpdateBuffers(UpdatableBuffers::VCT_MAIN_DATA_BUFFER);
 	UpdateBuffers(UpdatableBuffers::VOXELIZATION_DATA_BUFFER);
@@ -262,7 +262,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			// requires at least a 2x2x2 texture in order to perform calculations
 			// We also don't want to count the mip level 0 (full res mip) since the anisotropic mip chain starts from what would
 			// be the original 3D textures mip level 1
-			shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count = (UINT32)log2(shader_structure_cpu_voxelization_data.voxel_grid_res) - 1;
+			shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count = (UINT32)log2(shader_structure_cpu_voxelization_data.voxel_grid_res >> 1) - 1;
 			memcpy(p_constant_buffer_voxelization->GetMappedData(shader_structure_cpu_voxelization_data_most_updated_index), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
 			break;
 		}
@@ -282,6 +282,115 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 	}
 }
 
+void SceneRendererDirectLightingVoxelGIandAO::UpdateGBuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+{
+	if (P_render_targets_gbuffer.size() != 0)
+	{
+		for (UINT i = 0; i < P_render_targets_gbuffer.size(); i++)
+		{
+			delete P_render_targets_gbuffer[i];
+		}
+	}
+
+	P_render_targets_gbuffer.clear();
+	DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight, format, flags, L"Albedo"));
+	format = DXGI_FORMAT_R16G16B16A16_SNORM;
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight, format, flags, L"Normals"));
+	format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	P_render_targets_gbuffer.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight, format, flags, L"World Positions"));
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::UpdateShadowMappingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+{
+	if (p_depth_buffer_shadow_mapping != nullptr)
+	{
+		delete p_depth_buffer_shadow_mapping;
+	}
+	
+	p_depth_buffer_shadow_mapping = new DXRSDepthBuffer(_d3dDevice, &descriptor_heap_manager, SHADOWMAP_SIZE, SHADOWMAP_SIZE, DXGI_FORMAT_D32_FLOAT);
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingVoxelizationBuffers(ID3D12Device* _d3dDevice)
+{
+	if (p_render_target_vct_voxelization != nullptr)
+	{
+		delete p_render_target_vct_voxelization;
+	}
+
+	DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	p_render_target_vct_voxelization = new DX12RenderTarget(_d3dDevice,
+		&descriptor_heap_manager,
+		shader_structure_cpu_voxelization_data.voxel_grid_res,
+		shader_structure_cpu_voxelization_data.voxel_grid_res,
+		format,
+		flags,
+		L"Voxelization Scene Data 3D",
+		shader_structure_cpu_voxelization_data.voxel_grid_res,
+		1,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	if (P_render_targets_vct_voxelization_anisotropic_mip_generation.size() != 0)
+	{
+		for (UINT i = 0; i < P_render_targets_vct_voxelization_anisotropic_mip_generation.size(); i++)
+		{
+			delete P_render_targets_vct_voxelization_anisotropic_mip_generation[i];
+		}
+	}
+
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.clear();
+	format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	int size = shader_structure_cpu_voxelization_data.voxel_grid_res >> 1;
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare X+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare X- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+{
+	if (p_render_target_vct_main != nullptr)
+	{
+		delete p_render_target_vct_main;
+	}
+	
+	DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	p_render_target_vct_main = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth * mVCTRTRatio, backBufferHeight * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	if (p_render_target_vct_main_upsample_and_blur != nullptr)
+	{
+		delete p_render_target_vct_main_upsample_and_blur;
+	}
+	
+	p_render_target_vct_main_upsample_and_blur = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight,
+		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"VCT Main RT Upsampled & Blurred", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::UpdateLightingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+{
+	if (p_render_target_lighting != nullptr)
+	{
+		delete p_render_target_lighting;
+	}
+
+	p_render_target_lighting = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight,
+		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting");
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::OnWindowSizeChanged(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+{
+	UpdateGBuffer(_d3dDevice, backBufferWidth, backBufferHeight);
+	UpdateShadowMappingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+	UpdateVoxelConeTracingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+	UpdateLightingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+}
+
 // !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
 // This function expects to be given an already reset direct command list and a an already reset compute command list.
 // When returning the functions leaves the direct command list in a reset state and the compute command list in an unreset state
@@ -299,7 +408,6 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	// This function expects to be given an already reset direct command list and a an already reset compute command list.
 	// When returning the functions leaves the direct command list in a reset state and the compute command list in an unreset state
 	// !!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!
-
 	DX12DeviceResourcesSingleton* _deviceResources = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
 	ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
 	ID3D12CommandList* __commandListsCompute[] = { _commandListCompute };
@@ -409,12 +517,14 @@ void SceneRendererDirectLightingVoxelGIandAO::ThrowFailedErrorBlob(ID3DBlob* blo
 {
 	std::string message = "";
 	if (blob)
+	{
 		message.append((char*)blob->GetBufferPointer());
+	}
 
 	throw std::runtime_error(message.c_str());
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
+void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
 {
 	D3D12_SAMPLER_DESC sampler;
 	sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -427,16 +537,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	sampler.MinLOD = 0.0f;
 	sampler.MaxLOD = D3D12_FLOAT32_MAX;
 
-	DXGI_FORMAT rtFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Albedo"));
-
-	rtFormat = DXGI_FORMAT_R16G16B16A16_SNORM;
-	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"Normals"));
-
-	rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	P_render_targets_gbuffer.push_back(new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, rtFormat, flags, L"World Positions"));
+	UpdateGBuffer(_d3dDevice, backBufferWidth, backBufferHeight);
 
 	// Root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -449,7 +550,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	root_signature_gbuffer.InitStaticSampler(0, sampler, D3D12_SHADER_VISIBILITY_PIXEL);
 	root_signature_gbuffer[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 	root_signature_gbuffer[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, D3D12_SHADER_VISIBILITY_ALL);
-	root_signature_gbuffer.Finalize(device, L"GPrepassRS", rootSignatureFlags);
+	root_signature_gbuffer.Finalize(_d3dDevice, L"GPrepassRS", rootSignatureFlags);
 
 	char* pVertexShaderByteCode;
 	int vertexShaderByteCodeLength;
@@ -482,7 +583,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitGbuffer(ID3D12Device* device, 
 	pipeline_state_gbuffer.SetRenderTargetFormats(_countof(formats), formats, DXGI_FORMAT_D32_FLOAT);
 	pipeline_state_gbuffer.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
 	pipeline_state_gbuffer.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	pipeline_state_gbuffer.Finalize(device);
+	pipeline_state_gbuffer.Finalize(_d3dDevice);
 
 	delete[] pVertexShaderByteCode;
 	delete[] pPixelShaderByteCode;
@@ -535,11 +636,11 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderGbuffer(DX12DeviceResourcesS
 	}
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::InitShadowMapping(ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
+void SceneRendererDirectLightingVoxelGIandAO::InitShadowMapping(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
 // Create resources for shadow mapping
 {
-	p_depth_buffer_shadow_mapping = new DXRSDepthBuffer(device, descriptorManager, SHADOWMAP_SIZE, SHADOWMAP_SIZE, DXGI_FORMAT_D32_FLOAT);
-
+	UpdateShadowMappingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+	
 	// Create root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -550,7 +651,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitShadowMapping(ID3D12Device* de
 	root_signature_shadow_mapping.Reset(2, 0);
 	root_signature_shadow_mapping[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_VERTEX);
 	root_signature_shadow_mapping[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, D3D12_SHADER_VISIBILITY_VERTEX);
-	root_signature_shadow_mapping.Finalize(device, L"Shadow Mapping pass RS", rootSignatureFlags);
+	root_signature_shadow_mapping.Finalize(_d3dDevice, L"Shadow Mapping pass RS", rootSignatureFlags);
 
 	char* pVertexShaderByteCode;
 	int vertexShaderByteCodeLength;
@@ -571,7 +672,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitShadowMapping(ID3D12Device* de
 	pipeline_state_shadow_mapping.SetInputLayout(_countof(inputElementDescs), inputElementDescs);
 	pipeline_state_shadow_mapping.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	pipeline_state_shadow_mapping.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
-	pipeline_state_shadow_mapping.Finalize(device);
+	pipeline_state_shadow_mapping.Finalize(_d3dDevice);
 
 	delete[] pVertexShaderByteCode;
 }
@@ -599,8 +700,8 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderShadowMapping(DX12DeviceReso
 		p_depth_buffer_shadow_mapping->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		_deviceResources->ResourceBarriersEnd(barriers, commandList);
 
-		commandList->OMSetRenderTargets(0, nullptr, FALSE, &p_depth_buffer_shadow_mapping->GetDSV().GetCPUHandle());
-		commandList->ClearDepthStencilView(p_depth_buffer_shadow_mapping->GetDSV().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		commandList->OMSetRenderTargets(0, nullptr, FALSE, &p_depth_buffer_shadow_mapping->GetDSV());
+		commandList->ClearDepthStencilView(p_depth_buffer_shadow_mapping->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		commandList->SetGraphicsRootDescriptorTable(0, directionalLightDataDescriptorHeapBlock.GetGPUHandle());
 		CD3DX12_GPU_DESCRIPTOR_HANDLE modelDataGPUdescriptorHandle = modelDataDescriptorHandleBlock.GetGPUHandle();
@@ -618,8 +719,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderShadowMapping(DX12DeviceReso
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, 
-	ID3D12Device* device, 
-	DX12DescriptorHeapManager* descriptorManager)
+	ID3D12Device* _d3dDevice,
+	float backBufferWidth, 
+	float backBufferHeight)
 {
 	// Voxelization
 	{
@@ -640,19 +742,8 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		shadowSampler.BorderColor[2] = 1.0f;
 		shadowSampler.BorderColor[3] = 1.0f;
 
-		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-		p_render_target_vct_voxelization = new DX12RenderTarget(device, 
-			descriptorManager, 
-			shader_structure_cpu_voxelization_data.voxel_grid_res,
-			shader_structure_cpu_voxelization_data.voxel_grid_res,
-			format, 
-			flags, 
-			L"Voxelization Scene Data 3D",
-			shader_structure_cpu_voxelization_data.voxel_grid_res,
-			1,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		UpdateVoxelConeTracingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+		UpdateVoxelConeTracingVoxelizationBuffers(_d3dDevice);
 
 		//create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -668,7 +759,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		root_signature_vct_voxelization[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization.Finalize(device, L"VCT voxelization pass RS", rootSignatureFlags);
+		root_signature_vct_voxelization.Finalize(_d3dDevice, L"VCT voxelization pass RS", rootSignatureFlags);
 
 		char* pVertexShaderByteCode;
 		int vertexShaderByteCodeLength;
@@ -699,7 +790,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		pipeline_state_vct_voxelization.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
 		pipeline_state_vct_voxelization.SetGeometryShader(pGeometryShadeByteCode, geometryShaderByteCodeLength);
 		pipeline_state_vct_voxelization.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-		pipeline_state_vct_voxelization.Finalize(device);
+		pipeline_state_vct_voxelization.Finalize(_d3dDevice);
 
 		delete[] pVertexShaderByteCode;
 		delete[] pGeometryShadeByteCode;
@@ -710,7 +801,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mElementSize = c_aligned_shader_structure_cpu_voxelization_data;
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
-		p_constant_buffer_voxelization = new DX12Buffer(descriptorManager,
+		p_constant_buffer_voxelization = new DX12Buffer(&descriptor_heap_manager,
 			cbDesc,
 			_deviceResources->GetBackBufferCount(),
 			L"VCT Voxelization Pass CB");
@@ -731,7 +822,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		root_signature_vct_debug.Reset(2, 0);
 		root_signature_vct_debug[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_debug[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_debug.Finalize(device, L"VCT voxelization debug pass RS", rootSignatureFlags);
+		root_signature_vct_debug.Finalize(_d3dDevice, L"VCT voxelization debug pass RS", rootSignatureFlags);
 
 		char* pVertexShaderByteCode;
 		int vertexShaderByteCodeLength;
@@ -756,7 +847,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		pipeline_state_vct_debug.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
 		pipeline_state_vct_debug.SetGeometryShader(pGeometryShadeByteCode, geometryShaderByteCodeLength);
 		pipeline_state_vct_debug.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-		pipeline_state_vct_debug.Finalize(device);
+		pipeline_state_vct_debug.Finalize(_d3dDevice);
 
 		delete[] pVertexShaderByteCode;
 		delete[] pGeometryShadeByteCode;
@@ -771,22 +862,11 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
 
-		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-		int size = shader_structure_cpu_voxelization_data.voxel_grid_res >> 1;
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare X- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Y- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z+ 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(device, descriptorManager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-
 		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.Reset(3, 0);
 		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(device, L"VCT aniso mipmapping level zero RS", rootSignatureFlags);
+		root_signature_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(_d3dDevice, L"VCT aniso mipmapping level zero RS", rootSignatureFlags);
 
 		char* pComputeShaderByteCode;
 		int computeShaderByteCodeLength;
@@ -794,7 +874,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation_level_zero);
 		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(device);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation_level_zero.Finalize(_d3dDevice);
 
 		delete[] pComputeShaderByteCode;
 
@@ -802,13 +882,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		root_signature_vct_voxelization_anisotropic_mip_generation[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization_anisotropic_mip_generation[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_voxelization_anisotropic_mip_generation[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 6, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_voxelization_anisotropic_mip_generation.Finalize(device, L"VCT aniso mipmapping RS", rootSignatureFlags);
+		root_signature_vct_voxelization_anisotropic_mip_generation.Finalize(_d3dDevice, L"VCT aniso mipmapping RS", rootSignatureFlags);
 
 		LoadShaderByteCode(GetFilePath("VoxelConeTracingAnisotropicMipmapChainGeneration_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
 
 		pipeline_state_vct_voxelization_anisotropic_mip_generation.SetRootSignature(root_signature_vct_voxelization_anisotropic_mip_generation);
 		pipeline_state_vct_voxelization_anisotropic_mip_generation.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-		pipeline_state_vct_voxelization_anisotropic_mip_generation.Finalize(device);
+		pipeline_state_vct_voxelization_anisotropic_mip_generation.Finalize(_d3dDevice);
 
 		delete[] pComputeShaderByteCode;
 
@@ -820,7 +900,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		// the rest are for the VoxelConeTracingAnisotropicMipmapChainGeneration_CS
 		for (UINT i = 0; i < shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count + 1; i++)
 		{
-			P_constant_buffers_vct_anisotropic_mip_generation.push_back(new DX12Buffer(descriptorManager,
+			P_constant_buffers_vct_anisotropic_mip_generation.push_back(new DX12Buffer(&descriptor_heap_manager,
 					cbDesc,
 				    _deviceResources->GetBackBufferCount(),
 					L"VCT aniso mip mapping CB"));
@@ -834,15 +914,10 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-		p_constant_buffer_vct_main = new DX12Buffer(descriptorManager,
+		p_constant_buffer_vct_main = new DX12Buffer(&descriptor_heap_manager,
 			cbDesc, 
 			_deviceResources->GetBackBufferCount(),
 			L"VCT main CB");
-		
-		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-		p_render_target_vct_main = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH * mVCTRTRatio, MAX_SCREEN_HEIGHT * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -859,7 +934,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			root_signature_vct_main[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 1, D3D12_SHADER_VISIBILITY_ALL);
 			root_signature_vct_main[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_ALL);
 			root_signature_vct_main[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main.Finalize(device, L"VCT main pass compute version RS", rootSignatureFlags);
+			root_signature_vct_main.Finalize(_d3dDevice, L"VCT main pass compute version RS", rootSignatureFlags);
 
 			char* pComputeShaderByteCode;
 			int computeShaderByteCodeLength;
@@ -868,7 +943,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 			pipeline_state_vct_main.SetRootSignature(root_signature_vct_main);
 			pipeline_state_vct_main.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-			pipeline_state_vct_main.Finalize(device);
+			pipeline_state_vct_main.Finalize(_d3dDevice);
 
 			delete[] pComputeShaderByteCode;
 		}
@@ -876,10 +951,6 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 	// Upsample and blur
 	{
-		//RTs
-		p_render_target_vct_main_upsample_and_blur = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
-			DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"VCT Main RT Upsampled & Blurred", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
 		//create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -891,7 +962,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		root_signature_vct_main_upsample_and_blur.InitStaticSampler(0, sampler_bilinear, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_main_upsample_and_blur[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 		root_signature_vct_main_upsample_and_blur[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_main_upsample_and_blur.Finalize(device, L"VCT Main RT Upsample & Blur pass RS", rootSignatureFlags);
+		root_signature_vct_main_upsample_and_blur.Finalize(_d3dDevice, L"VCT Main RT Upsample & Blur pass RS", rootSignatureFlags);
 
 		char* pComputeShaderByteCode;
 		int computeShaderByteCodeLength;
@@ -899,13 +970,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		pipeline_state_vct_main_upsample_and_blur.SetRootSignature(root_signature_vct_main_upsample_and_blur);
 		pipeline_state_vct_main_upsample_and_blur.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-		pipeline_state_vct_main_upsample_and_blur.Finalize(device);
+		pipeline_state_vct_main_upsample_and_blur.Finalize(_d3dDevice);
 
 		delete[] pComputeShaderByteCode;
 	}
 }
 void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources,
-	ID3D12Device* device,
+	ID3D12Device* _d3dDevice,
 	ID3D12GraphicsCommandList* commandList,
 	DX12DescriptorHeapGPU* gpuDescriptorHeap,
 	std::vector<Model*>& scene,
@@ -1175,11 +1246,9 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 	}
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
+void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
 {
-	//RTs
-	p_render_target_lighting = new DX12RenderTarget(device, descriptorManager, MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
-		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting");
+	UpdateLightingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
 
 	//create root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -1211,7 +1280,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 	root_signature_lighting[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 3, 1, D3D12_SHADER_VISIBILITY_ALL);
 	root_signature_lighting[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 4, D3D12_SHADER_VISIBILITY_PIXEL);
 	root_signature_lighting[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-	root_signature_lighting.Finalize(device, L"Lighting pass RS", rootSignatureFlags);
+	root_signature_lighting.Finalize(_d3dDevice, L"Lighting pass RS", rootSignatureFlags);
 
 	//PSO
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -1239,7 +1308,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 	pipeline_state_lighting.SetRenderTargetFormats(_countof(m_rtFormats), m_rtFormats, DXGI_FORMAT_D32_FLOAT);
 	pipeline_state_lighting.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
 	pipeline_state_lighting.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
-	pipeline_state_lighting.Finalize(device);
+	pipeline_state_lighting.Finalize(_d3dDevice);
 
 	delete[] pVertexShaderByteCode;
 	delete[] pPixelShaderByteCode;
@@ -1250,13 +1319,13 @@ void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSi
 	cbDesc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
 	cbDesc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
 
-	p_constant_buffer_lighting = new DX12Buffer(descriptorManager,
+	p_constant_buffer_lighting = new DX12Buffer(&descriptor_heap_manager,
 		cbDesc,
 		_deviceResources->GetBackBufferCount(),
 		L"Lighting Pass CB");
 
 	cbDesc.mElementSize = c_aligned_shader_structure_cpu_illumination_flags_data;
-	p_constant_buffer_illumination_flags = new DX12Buffer(descriptorManager,
+	p_constant_buffer_illumination_flags = new DX12Buffer(&descriptor_heap_manager,
 		cbDesc, 
 		_deviceResources->GetBackBufferCount(),
 		L"Illumination Flags CB");
@@ -1326,7 +1395,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderLighting(DX12DeviceResources
 	commandList->DrawInstanced(4, 1, 0, 0);
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device, DX12DescriptorHeapManager* descriptorManager)
+void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* device)
 {
 	//create root signature
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
