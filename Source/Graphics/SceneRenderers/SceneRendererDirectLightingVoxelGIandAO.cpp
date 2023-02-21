@@ -18,10 +18,22 @@ SceneRendererDirectLightingVoxelGIandAO::SceneRendererDirectLightingVoxelGIandAO
 	p_render_target_lighting = nullptr;
 	
 	p_depth_buffer_shadow_mapping = nullptr;
+	p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav = nullptr;
+	p_voxel_debug_cube = nullptr;
 }
 
 SceneRendererDirectLightingVoxelGIandAO::~SceneRendererDirectLightingVoxelGIandAO()
 {
+	if (p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav != nullptr)
+	{
+		delete p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav;
+	}
+
+	if (p_voxel_debug_cube != nullptr)
+	{
+		delete p_voxel_debug_cube;
+	}
+
 	if (p_constant_buffer_voxelization != nullptr)
 	{
 		delete p_constant_buffer_voxelization;
@@ -309,7 +321,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateShadowMappingBuffers(ID3D12D
 		delete p_depth_buffer_shadow_mapping;
 	}
 	
-	p_depth_buffer_shadow_mapping = new DXRSDepthBuffer(_d3dDevice, &descriptor_heap_manager, SHADOWMAP_SIZE, SHADOWMAP_SIZE, DXGI_FORMAT_D32_FLOAT);
+	p_depth_buffer_shadow_mapping = new DX12DepthBuffer(_d3dDevice, &descriptor_heap_manager, SHADOWMAP_SIZE, SHADOWMAP_SIZE, DXGI_FORMAT_D32_FLOAT);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingVoxelizationBuffers(ID3D12Device* _d3dDevice)
@@ -807,10 +819,124 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			L"VCT Voxelization Pass CB");
 	}
 
-	// Debug 
+	// Vct debug generate indirect draw data 
 	{
-		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		#pragma region Indirect Draw Voxel Debug
+		// Create the indirect command signature
+		D3D12_INDIRECT_ARGUMENT_DESC argumentDescs[1] = {};
+		argumentDescs[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+		D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
+		commandSignatureDesc.pArgumentDescs = argumentDescs;
+		commandSignatureDesc.NumArgumentDescs = _countof(argumentDescs);
+		commandSignatureDesc.ByteStride = sizeof(IndirectCommand);
+
+		ThrowIfFailed(_d3dDevice->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(&indirect_draw_command_signature)));
+		indirect_draw_command_signature->SetName(L"indirect_draw_command_signature");
+
+		// Allocate a buffer that can be used to reset the append buffer counter and initialize it to 0.
+		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT)),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&counter_reset_buffer)));
+
+		UINT8* pMappedCounterReset = nullptr;
+		ThrowIfFailed(counter_reset_buffer->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&pMappedCounterReset)));
+		std::ZeroMemory(pMappedCounterReset, sizeof(UINT));
+		counter_reset_buffer->Unmap(0, nullptr);
+
+		UINT numberOfVoxelsInTheGrid = shader_structure_cpu_voxelization_data.voxel_grid_res * shader_structure_cpu_voxelization_data.voxel_grid_res * shader_structure_cpu_voxelization_data.voxel_grid_res;
+		counter_offset_append_buffer_indirect_draw_voxel_debug_per_instance_data = ((sizeof(ShaderStructureCPUVoxelDebugData) * numberOfVoxelsInTheGrid) + (D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1)) & ~(D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT - 1);
+		// Allocate a buffer large enough to hold all of the indirect commands
+		// for a single frame as well as a UAV counter.
+		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(counter_offset_append_buffer_indirect_draw_voxel_debug_per_instance_data + sizeof(UINT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(&append_buffer_indirect_draw_voxel_debug_per_instance_data)));
+		append_buffer_indirect_draw_voxel_debug_per_instance_data->SetName(L"append_buffer_indirect_draw_voxel_debug_per_instance_data");
+
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uavDesc.Buffer.FirstElement = 0;
+		uavDesc.Buffer.NumElements = numberOfVoxelsInTheGrid;
+		uavDesc.Buffer.StructureByteStride = sizeof(ShaderStructureCPUVoxelDebugData);
+		uavDesc.Buffer.CounterOffsetInBytes = counter_offset_append_buffer_indirect_draw_voxel_debug_per_instance_data;
+		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+		p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav = new DX12DescriptorHandleBlock();
+		*p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav = descriptor_heap_manager.GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+		_d3dDevice->CreateUnorderedAccessView(
+			append_buffer_indirect_draw_voxel_debug_per_instance_data.Get(),
+			append_buffer_indirect_draw_voxel_debug_per_instance_data.Get(),
+			&uavDesc,
+			p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav->GetCPUHandle());
+
+		// Create the indirect command buffer
+		IndirectCommand indirectCommand;
+		indirectCommand.draw_indexed_arguments.IndexCountPerInstance = voxel_debug_cube.indices.size();
+		indirectCommand.draw_indexed_arguments.StartIndexLocation = 0;
+		indirectCommand.draw_indexed_arguments.StartInstanceLocation = 0;
+		indirectCommand.draw_indexed_arguments.BaseVertexLocation = 0;
+
+		ThrowIfFailed(d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand)), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&indirect_command_buffer_voxel_debug)));
+		NAME_D3D12_OBJECT(indirect_command_buffer_voxel_debug);
+
+		ThrowIfFailed(d3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(AlignForUavCounter(sizeof(IndirectCommand))),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&indirect_command_upload_buffer_voxel_debug)));
+		NAME_D3D12_OBJECT(indirect_command_upload_buffer_voxel_debug);
+
+		D3D12_SUBRESOURCE_DATA perFrameIndirectCommandSubresourceData;
+		perFrameIndirectCommandSubresourceData.pData = &indirectCommand;
+		perFrameIndirectCommandSubresourceData.RowPitch = sizeof(IndirectCommand);
+		perFrameIndirectCommandSubresourceData.SlicePitch = perFrameIndirectCommandSubresourceData.RowPitch;
+		UpdateSubresources(command_list_direct.Get(),
+			indirect_command_buffer_voxel_debug.Get(),
+			indirect_command_upload_buffer_voxel_debug.Get(),
+			0,
+			0,
+			1,
+			&perFrameIndirectCommandSubresourceData);
+
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		uavDesc.Buffer.FirstElement = 0;
+		uavDesc.Buffer.NumElements = 1;
+		uavDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);
+		uavDesc.Buffer.CounterOffsetInBytes = 0;
+		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+		d3dDevice->CreateUnorderedAccessView(
+			indirect_command_buffer_voxel_debug.Get(),
+			nullptr,
+			&uavDesc,
+			descriptor_cpu_handle_cbv_srv_uav_all_other_resources);
+
+		descriptor_cpu_handle_cbv_srv_uav_all_other_resources.Offset(device_resources->GetDescriptorSizeDescriptorHeapCbvSrvUav());
+		descriptor_heap_cbv_srv_uav_all_other_resources_number_of_filled_descriptors++;
+
+		// Voxel debug cube
+		p_voxel_debug_cube = new Model(&descriptor_heap_manager,
+			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			DirectX::XMQuaternionIdentity());
+		#pragma endregion
 
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -819,38 +945,68 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
 
+		root_signature_vct_debug_generate_indirect_draw_data.Reset(3, 1);
+		root_signature_vct_debug_generate_indirect_draw_data.InitStaticSampler(0, sampler_bilinear, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug_generate_indirect_draw_data[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug_generate_indirect_draw_data[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug_generate_indirect_draw_data[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug_generate_indirect_draw_data.Finalize(_d3dDevice, L"VCT voxelization debug pass RS", rootSignatureFlags);
+
+		char* pComputeShaderByteCode;
+		int computeShaderByteCodeLength;
+		LoadShaderByteCode(GetFilePath("VoxelConeTracingDebugGenerateIndirectDrawData_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
+
+		pipeline_state_vct_debug_generate_indirect_draw_data.SetRootSignature(root_signature_vct_debug_generate_indirect_draw_data);
+		pipeline_state_vct_debug_generate_indirect_draw_data.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
+		pipeline_state_vct_debug_generate_indirect_draw_data.Finalize(_d3dDevice);
+
+		delete[] pComputeShaderByteCode;
+	}
+
+	// Vct debug 
+	{
+		//create root signature
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+
 		root_signature_vct_debug.Reset(2, 0);
-		root_signature_vct_debug[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_debug[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-		root_signature_vct_debug.Finalize(_d3dDevice, L"VCT voxelization debug pass RS", rootSignatureFlags);
+		root_signature_vct_debug[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 2, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_debug.Finalize(_d3dDevice, L"VCT voxelization pass RS", rootSignatureFlags);
 
 		char* pVertexShaderByteCode;
 		int vertexShaderByteCodeLength;
-		char* pGeometryShadeByteCode;
-		int geometryShaderByteCodeLength;
 		char* pPixelShaderByteCode;
 		int pixelShaderByteCodeLength;
-		LoadShaderByteCode(GetFilePath("VoxelConeTracingVoxelizationDebug_VS.cso"), pVertexShaderByteCode, vertexShaderByteCodeLength);
-		LoadShaderByteCode(GetFilePath("VoxelConeTracingVoxelizationDebug_GS.cso"), pGeometryShadeByteCode, geometryShaderByteCodeLength);
-		LoadShaderByteCode(GetFilePath("VoxelConeTracingVoxelizationDebug_PS.cso"), pPixelShaderByteCode, pixelShaderByteCodeLength);
+		LoadShaderByteCode(GetFilePath("VoxelConeTracingVoxelization_VS.cso"), pVertexShaderByteCode, vertexShaderByteCodeLength);
+		LoadShaderByteCode(GetFilePath("VoxelConeTracingVoxelization_PS.cso"), pPixelShaderByteCode, pixelShaderByteCodeLength);
+
+		// Define the vertex input layout.
+		D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		};
 
 		DXGI_FORMAT formats[1];
-		formats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
+		formats[0] = _deviceResources->GetBackBufferFormat();
 		pipeline_state_vct_debug.SetRootSignature(root_signature_vct_debug);
 		pipeline_state_vct_debug.SetRasterizerState(rasterizer_state_default);
 		pipeline_state_vct_debug.SetRenderTargetFormats(_countof(formats), formats, DXGI_FORMAT_D32_FLOAT);
 		pipeline_state_vct_debug.SetBlendState(blend_state_default);
 		pipeline_state_vct_debug.SetDepthStencilState(depth_state_read_write);
-		pipeline_state_vct_debug.SetInputLayout(0, nullptr);
-		pipeline_state_vct_debug.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT);
+		pipeline_state_vct_debug.SetInputLayout(_countof(inputElementDescs), inputElementDescs);
+		pipeline_state_vct_debug.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 		pipeline_state_vct_debug.SetVertexShader(pVertexShaderByteCode, vertexShaderByteCodeLength);
-		pipeline_state_vct_debug.SetGeometryShader(pGeometryShadeByteCode, geometryShaderByteCodeLength);
 		pipeline_state_vct_debug.SetPixelShader(pPixelShaderByteCode, pixelShaderByteCodeLength);
 		pipeline_state_vct_debug.Finalize(_d3dDevice);
 
 		delete[] pVertexShaderByteCode;
-		delete[] pGeometryShadeByteCode;
 		delete[] pPixelShaderByteCode;
 	}
 
@@ -921,32 +1077,30 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
-
-		// CS
-		{
-			root_signature_vct_main.Reset(4, 1);
-			root_signature_vct_main.InitStaticSampler(0, sampler_bilinear, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 2, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 1, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
-			root_signature_vct_main.Finalize(_d3dDevice, L"VCT main pass compute version RS", rootSignatureFlags);
-
-			char* pComputeShaderByteCode;
-			int computeShaderByteCodeLength;
-			LoadShaderByteCode(GetFilePath("VoxelConeTracing_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
 
 
-			pipeline_state_vct_main.SetRootSignature(root_signature_vct_main);
-			pipeline_state_vct_main.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
-			pipeline_state_vct_main.Finalize(_d3dDevice);
+		root_signature_vct_main.Reset(4, 1);
+		root_signature_vct_main.InitStaticSampler(0, sampler_bilinear, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_main[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 2, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_main[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_main[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 10, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_main[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+		root_signature_vct_main.Finalize(_d3dDevice, L"VCT main pass compute version RS", rootSignatureFlags);
 
-			delete[] pComputeShaderByteCode;
-		}
+		char* pComputeShaderByteCode;
+		int computeShaderByteCodeLength;
+		LoadShaderByteCode(GetFilePath("VoxelConeTracing_CS.cso"), pComputeShaderByteCode, computeShaderByteCodeLength);
+
+
+		pipeline_state_vct_main.SetRootSignature(root_signature_vct_main);
+		pipeline_state_vct_main.SetComputeShader(pComputeShaderByteCode, computeShaderByteCodeLength);
+		pipeline_state_vct_main.Finalize(_d3dDevice);
+
+		delete[] pComputeShaderByteCode;
 	}
 
 	// Upsample and blur
@@ -975,6 +1129,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		delete[] pComputeShaderByteCode;
 	}
 }
+
 void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources,
 	ID3D12Device* _d3dDevice,
 	ID3D12GraphicsCommandList* commandList,
@@ -1040,43 +1195,6 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			commandList->RSSetViewports(1, &viewport);
 			commandList->RSSetScissorRects(1, &rect);
 		}
-
-		if (vct_render_debug) 
-		{
-			////PIXBeginEvent(commandList, 0, "VCT Voxelization Debug");
-			//commandList->SetPipelineState(pipeline_state_vct_debug.GetPipelineStateObject());
-			//commandList->SetGraphicsRootSignature(root_signature_vct_debug.GetSignature());
-
-			//D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
-			//{
-			//	mVCTVoxelizationDebugRT->GetRTV().GetCPUHandle()
-			//};
-
-			//commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, &_deviceResources->GetDepthStencilView());
-			//commandList->ClearRenderTargetView(rtvHandlesFinal[0], clearColorBlack, 0, nullptr);
-			//commandList->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-			//_deviceResources->ResourceBarriersBegin(barriers);
-			//mVCTVoxelization3DRT->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			//_deviceResources->ResourceBarriersEnd(barriers, commandList);
-
-			//DX12DescriptorHandleBlock cbvHandle;
-			//DX12DescriptorHandleBlock uavHandle;
-
-			//cbvHandle = gpuDescriptorHeap->GetHandleBlock(1);
-			//gpuDescriptorHeap->AddToHandle(device, cbvHandle, p_constant_buffer_voxelization->GetCBV());
-
-			//uavHandle = gpuDescriptorHeap->GetHandleBlock(1);
-			//gpuDescriptorHeap->AddToHandle(device, uavHandle, mVCTVoxelization3DRT->GetUAV());
-
-			//commandList->SetGraphicsRootDescriptorTable(0, cbvHandle.GetGPUHandle());
-			//commandList->SetGraphicsRootDescriptorTable(1, uavHandle.GetGPUHandle());
-
-			//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-			//commandList->DrawInstanced(VCT_SCENE_VOLUME_SIZE * VCT_SCENE_VOLUME_SIZE * VCT_SCENE_VOLUME_SIZE, 1, 0, 0);
-			////PIXEndEvent(commandList);
-		}
-	
 	}
 
 	if (aQueue == COMPUTE_QUEUE) 
@@ -1244,6 +1362,149 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 			}
 		}
 	}
+}
+
+void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracingDebug(DX12DeviceResourcesSingleton* _deviceResources,
+	ID3D12Device* _d3dDevice,
+	ID3D12GraphicsCommandList* _commandList,
+	DX12DescriptorHeapGPU* _gpuDescriptorHeap,
+	RenderQueue aQueue)
+{
+	if (aQueue == COMPUTE_QUEUE)
+	{
+		// Vct debug generate indirect draw data 
+		_commandList->SetPipelineState(pipeline_state_vct_debug_generate_indirect_draw_data.GetPipelineStateObject());
+		_commandList->SetComputeRootSignature(root_signature_vct_debug_generate_indirect_draw_data.GetSignature());
+
+		_commandList->CopyBufferRegion(append_buffer_indirect_draw_voxel_debug_per_instance_data.Get(), counter_offset_append_buffer_indirect_draw_voxel_debug_per_instance_data, counter_reset_buffer.Get(), 0, sizeof(UINT));
+		_commandList->CopyBufferRegion(indirect_command_buffer_voxel_debug.Get(), sizeof(UINT), counter_reset_buffer.Get(), 0, sizeof(UINT));
+
+		DX12DescriptorHandleBlock cbvHandle = _gpuDescriptorHeap->GetHandleBlock(1);
+		cbvHandle.Add(p_constant_buffer_voxelization->GetCBV(shader_structure_cpu_voxelization_data_most_updated_index));
+
+		DX12DescriptorHandleBlock srvHandle = _gpuDescriptorHeap->GetHandleBlock(1);
+		srvHandle.Add(p_render_target_vct_voxelization->GetSRV());
+
+		DX12DescriptorHandleBlock uavHandle = _gpuDescriptorHeap->GetHandleBlock(2);
+		uavHandle.Add(p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav->GetCPUHandle());
+
+		
+
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[0]->GetSRV());
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[1]->GetSRV());
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[2]->GetSRV());
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[3]->GetSRV());
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[4]->GetSRV());
+		srvHandle.Add(P_render_targets_vct_voxelization_anisotropic_mip_generation[5]->GetSRV());
+		srvHandle.Add(p_render_target_vct_voxelization->GetSRV());
+
+		
+
+		commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
+		commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
+		commandList->SetComputeRootDescriptorTable(2, srvHandle.GetGPUHandle());
+		commandList->SetComputeRootDescriptorTable(3, uavHandle.GetGPUHandle());
+
+		commandList->Dispatch(DivideByMultiple(static_cast<UINT>(p_render_target_vct_main->GetWidth()), 8u), DivideByMultiple(static_cast<UINT>(p_render_target_vct_main->GetHeight()), 8u), 1u);
+	}
+
+	if (aQueue == GRAPHICS_QUEUE)
+	{
+
+	}
+	
+
+	
+
+	D3D12_RESOURCE_BARRIER perFrameIndirectProcesedCommandsBufferBarriers[2];
+	perFrameIndirectProcesedCommandsBufferBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_voxel_debug_data_buffer.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	perFrameIndirectProcesedCommandsBufferBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer_voxel_debug.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	command_list_compute->ResourceBarrier(2, perFrameIndirectProcesedCommandsBufferBarriers);
+
+
+	command_list_compute->SetComputeRoot32BitConstants(12, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
+	UINT dispatchBlockSize = max(1u, (radiance_texture_3D_generate_mip_chain_data.output_resolution + GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE - 1) / GENERATE_3D_MIP_CHAIN_DISPATCH_BLOCK_SIZE);
+	command_list_compute->Dispatch(dispatchBlockSize, dispatchBlockSize, dispatchBlockSize);
+
+	command_list_compute->Close();
+	ID3D12CommandList* _pCommandListsCompute[] = { command_list_compute.Get() };
+	device_resources->GetCommandQueueCompute()->Wait(fence_command_list_direct_progress.Get(), fence_command_list_direct_progress_latest_unused_value - 1);
+	device_resources->GetCommandQueueCompute()->ExecuteCommandLists(_countof(_pCommandListsCompute), _pCommandListsCompute);
+	device_resources->GetCommandQueueCompute()->Signal(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value);
+	fence_command_list_compute_progress_latest_unused_value++;
+
+
+	ThrowIfFailed(command_list_direct->Reset(device_resources->GetCommandAllocatorDirect(), pipeline_voxel_debug_draw.Get()));
+	command_list_direct->SetGraphicsRootSignature(root_signature.Get());
+	command_list_direct->SetDescriptorHeaps(_countof(_pHeaps), _pHeaps);
+
+	descriptorHeapGPUHandleDeviceResources.InitOffsetted(device_resources->GetDescriptorHeapCbvSrvUav()->GetGPUDescriptorHandleForHeapStart(), 0);
+	camera.AssignDescriptors(command_list_direct.Get(), descriptorHeapGPUHandleDeviceResources, 1, false);
+	spotLight.AssignDescriptors(command_list_direct.Get(), descriptorHeapGPUHandleDeviceResources, 2, false);
+	AssignDescriptors(command_list_direct.Get(), descriptorHeapGPUHandleDeviceResources, 4, (bool)voxel_grid_data.secondary_bounce_enabled, false);
+
+	command_list_direct->RSSetViewports(1, &device_resources->GetScreenViewport());
+	command_list_direct->RSSetScissorRects(1, &device_resources->GetScissorRect());
+	// Bind the render target and depth buffer
+	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = device_resources->GetRenderTargetView();
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = device_resources->GetDepthStencilView();
+	// We have to clear the device_resources depth buffer since we used it in the shadow map render pass
+	command_list_direct->ClearDepthStencilView(device_resources->GetDepthStencilView(), D3D12_CLEAR_FLAGS::D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, NULL);
+	command_list_direct->OMSetRenderTargets(1, &renderTargetView, false, &depthStencilView);
+	command_list_direct->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	command_list_direct->IASetVertexBuffers(0, 1, &voxel_debug_cube.vertex_buffer_view);
+	command_list_direct->IASetIndexBuffer(&voxel_debug_cube.index_buffer_view);
+
+	// Indicate that the command buffer will be used for indirect drawing
+	// and that the back buffer will be used as a render target.
+	D3D12_RESOURCE_BARRIER voxelDebugVisualizationPassBarriers[4];
+	voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(
+		indirect_command_buffer_voxel_debug.Get(),
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+
+	command_list_direct->ResourceBarrier(1, voxelDebugVisualizationPassBarriers);
+
+	command_list_direct->SetGraphicsRoot32BitConstants(12, sizeof(ShaderStructureCPUGenerate3DMipChainData) / sizeof(UINT32), &radiance_texture_3D_generate_mip_chain_data, 0);
+	command_list_direct->ExecuteIndirect(
+		indirect_draw_command_signature.Get(),
+		1,
+		indirect_command_buffer_voxel_debug.Get(),
+		0,
+		nullptr,
+		0);
+
+	voxelDebugVisualizationPassBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_draw_required_voxel_debug_data_buffer.Get(),
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_COPY_DEST);
+	voxelDebugVisualizationPassBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(indirect_command_buffer_voxel_debug.Get(),
+		D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,
+		D3D12_RESOURCE_STATE_COPY_DEST);
+	voxelDebugVisualizationPassBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(
+		radiance_texture_3D.Get(),
+		D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	if ((bool)voxel_grid_data.secondary_bounce_enabled == true)
+	{
+		voxelDebugVisualizationPassBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(
+			radiance_texture_3D_helper.Get(),
+			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		command_list_direct->ResourceBarrier(4, voxelDebugVisualizationPassBarriers);
+	}
+	else
+	{
+		command_list_direct->ResourceBarrier(3, voxelDebugVisualizationPassBarriers);
+	}
+
+	command_list_direct->Close();
+	device_resources->GetCommandQueueDirect()->Wait(fence_command_list_compute_progress.Get(), fence_command_list_compute_progress_latest_unused_value - 1);
+	device_resources->GetCommandQueueDirect()->ExecuteCommandLists(_countof(_pCommandListsDirect), _pCommandListsDirect);
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)

@@ -75,10 +75,10 @@ float4 GetAnisotropicSample(float3 uv, float3 weight, float lod, bool posX, bool
 
 float4 GetVoxel(float3 worldPosition, float3 weight, float lod, bool posX, bool posY, bool posZ)
 {
-	int3 voxelIndex = (worldPosition - voxelization_data.voxel_grid_top_left_back_point_world_space) * voxelization_data.voxel_extent_rcp;
+	float3 voxelIndex = (worldPosition - voxelization_data.voxel_grid_top_left_back_point_world_space) * voxelization_data.voxel_extent_rcp;
 	voxelIndex.y *= -1;
 	
-	float3 voxelTextureUV = (float3) voxelIndex / (voxelization_data.voxel_grid_res - 1);
+	float3 voxelTextureUV = voxelIndex / (float)(voxelization_data.voxel_grid_res - 1);
     
 	return GetAnisotropicSample(voxelTextureUV, weight, lod, posX, posY, posZ);
 }

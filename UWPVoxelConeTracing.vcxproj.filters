@@ -150,7 +150,7 @@
     <ClCompile Include="Source\Graphics\DirectX\DX12DescriptorHeap.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\DXRSDepthBuffer.cpp">
+    <ClCompile Include="Source\Graphics\DirectX\DX12DepthBuffer.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.cpp">
@@ -162,13 +162,7 @@
     <ClCompile Include="Source\Graphics\DirectX\PipelineStateObject.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.cpp">
-      <Filter>Source\Graphics\DirectX\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Graphics\DirectX\RootSignature.cpp">
-      <Filter>Source\Graphics\DirectX\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.cpp">
       <Filter>Source\Graphics\DirectX\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.cpp">
@@ -233,7 +227,7 @@
     <ClInclude Include="Source\Graphics\DirectX\DX12DescriptorHeap.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\DXRSDepthBuffer.h">
+    <ClInclude Include="Source\Graphics\DirectX\DX12DepthBuffer.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\DirectX\DX12DeviceResourcesSingleton.h">
@@ -245,13 +239,7 @@
     <ClInclude Include="Source\Graphics\DirectX\PipelineStateObject.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\RaytracingPipelineGenerator.h">
-      <Filter>Source\Graphics\DirectX\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Graphics\DirectX\RootSignature.h">
-      <Filter>Source\Graphics\DirectX\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\DirectX\ShaderBindingTableGenerator.h">
       <Filter>Source\Graphics\DirectX\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h">
@@ -314,7 +302,7 @@
     <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli">
       <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
-    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelizationDebug_HF.hlsli">
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsli">
       <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
@@ -370,9 +358,6 @@
     <FxCompile Include="Source\Graphics\Shaders\GS\VoxelConeTracingVoxelization_GS.hlsl">
       <Filter>Source\Graphics\Shaders\GS</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\GS\VoxelConeTracingVoxelizationDebug_GS.hlsl">
-      <Filter>Source\Graphics\Shaders\GS</Filter>
-    </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\PS\Composite_PS.hlsl">
       <Filter>Source\Graphics\Shaders\PS</Filter>
     </FxCompile>
@@ -383,9 +368,6 @@
       <Filter>Source\Graphics\Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelization_PS.hlsl">
-      <Filter>Source\Graphics\Shaders\PS</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelizationDebug_PS.hlsl">
       <Filter>Source\Graphics\Shaders\PS</Filter>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\VS\Composite_VS.hlsl">
@@ -403,8 +385,8 @@
     <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingVoxelization_VS.hlsl">
       <Filter>Source\Graphics\Shaders\VS</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingVoxelizationDebug_VS.hlsl">
-      <Filter>Source\Graphics\Shaders\VS</Filter>
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsl">
+      <Filter>Source\Graphics\Shaders\CS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

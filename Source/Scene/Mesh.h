@@ -10,6 +10,8 @@ class DX12Buffer;
 class Mesh
 {
 	public:
+		// Default constructor creates a cube
+		Mesh(DX12DescriptorHeapManager* _descriptorHeapManager);
 		Mesh(const Mesh& rhs);
 		~Mesh();
 
@@ -29,11 +31,11 @@ class Mesh
 		Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh);
 		
 
-		ID3D12Resource* GetVertexBuffer() { return mVertexBuffer.Get(); }
-		ID3D12Resource* GetIndexBuffer() { return mIndexBuffer.Get(); }
+		ID3D12Resource* GetVertexBuffer() { return vertex_buffer.Get(); }
+		ID3D12Resource* GetIndexBuffer() { return index_buffer.Get(); }
 
-		D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() { return mVertexBufferView; }
-		D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() { return mIndexBufferView; }
+		D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() { return vertex_buffer_view; }
+		D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() { return index_buffer_view; }
 
 		const std::vector<XMFLOAT3>& Vertices() const;
 		const std::vector<XMFLOAT3>& Normals() const;
@@ -42,28 +44,27 @@ class Mesh
 		UINT FaceCount() const;
 		const std::vector<UINT>& Indices() const;
 
-		UINT GetIndicesNum() { return mIndices.size(); }
+		UINT GetIndicesNum() { return indices.size(); }
 
-		DX12DescriptorHandleBlock& GetIndexBufferSRV() { return mIndexBufferSRV; }
-		DX12DescriptorHandleBlock& GetVertexBufferSRV() { return mVertexBufferSRV; }
+		DX12DescriptorHandleBlock& GetIndexBufferSRV() { return index_buffer_srv; }
+		DX12DescriptorHandleBlock& GetVertexBufferSRV() { return vertex_buffer_srv; }
+		void ReverseWinding(std::vector<UINT>& indices, std::vector<Vertex>& vertices);
 
 	private:
-		std::vector<Vertex> mVertices;
-		std::vector<XMFLOAT3> mPositions;
-		std::vector<XMFLOAT3> mNormals;
-		std::vector<XMFLOAT3> mTangents;
-		std::vector<std::vector<XMFLOAT4>*> mVertexColors;
-		UINT mFaceCount;
-		std::vector<UINT> mIndices;
+		std::vector<Vertex> vertices;
+		std::vector<XMFLOAT3> positions;
+		std::vector<XMFLOAT3> normals;
+		std::vector<XMFLOAT3> tangents;
+		std::vector<std::vector<XMFLOAT4>*> P_vertex_colors;
+		UINT face_count;
+		std::vector<UINT> indices;
 
-		UINT mNumOfIndices;
+		ComPtr<ID3D12Resource> vertex_buffer;
+		ComPtr<ID3D12Resource> index_buffer;
 
-		ComPtr<ID3D12Resource> mVertexBuffer;
-		ComPtr<ID3D12Resource> mIndexBuffer;
+		D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
+		D3D12_INDEX_BUFFER_VIEW index_buffer_view;
 
-		D3D12_VERTEX_BUFFER_VIEW mVertexBufferView;
-		D3D12_INDEX_BUFFER_VIEW mIndexBufferView;
-
-		DX12DescriptorHandleBlock mIndexBufferSRV;
-		DX12DescriptorHandleBlock mVertexBufferSRV;
+		DX12DescriptorHandleBlock index_buffer_srv;
+		DX12DescriptorHandleBlock vertex_buffer_srv;
 };

@@ -250,20 +250,20 @@ DX12DescriptorHeapManager::DX12DescriptorHeapManager()
 void DX12DescriptorHeapManager::Initialize()
 {
 	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
-	ZeroMemory(mCPUDescriptorHeaps, sizeof(mCPUDescriptorHeaps));
+	ZeroMemory(P_descriptor_heaps_cpu, sizeof(P_descriptor_heaps_cpu));
 
 	static const int MaxNoofSRVDescriptors = 4 * 4096;
 
-	mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxNoofSRVDescriptors);
-	mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 128);
-	mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 128);
-	mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16);
+	P_descriptor_heaps_cpu[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxNoofSRVDescriptors);
+	P_descriptor_heaps_cpu[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 128);
+	P_descriptor_heaps_cpu[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 128);
+	P_descriptor_heaps_cpu[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new DX12DescriptorHeapCPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16);
 
 	for (UINT i = 0; i < DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT; i++)
 	{
-		ZeroMemory(mGPUDescriptorHeaps[i], sizeof(mGPUDescriptorHeaps[i]));
-		mGPUDescriptorHeaps[i][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new DX12DescriptorHeapGPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxNoofSRVDescriptors);
-		mGPUDescriptorHeaps[i][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new DX12DescriptorHeapGPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16);
+		ZeroMemory(P_descriptor_heaps_gpu[i], sizeof(P_descriptor_heaps_gpu[i]));
+		P_descriptor_heaps_gpu[i][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = new DX12DescriptorHeapGPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxNoofSRVDescriptors);
+		P_descriptor_heaps_gpu[i][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = new DX12DescriptorHeapGPU(_d3dDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 16);
 	}
 }
 
@@ -271,17 +271,17 @@ DX12DescriptorHeapManager::~DX12DescriptorHeapManager()
 {
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i++)
 	{
-		if (mCPUDescriptorHeaps[i])
+		if (P_descriptor_heaps_cpu[i])
 		{
-			delete mCPUDescriptorHeaps[i];
+			delete P_descriptor_heaps_cpu[i];
 
 		}
 
 		for (UINT j = 0; j < DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT; j++)
 		{
-			if (mGPUDescriptorHeaps[j][i])
+			if (P_descriptor_heaps_gpu[j][i])
 			{
-				delete mGPUDescriptorHeaps[j][i];
+				delete P_descriptor_heaps_gpu[j][i];
 			}
 		}
 	}
@@ -289,10 +289,10 @@ DX12DescriptorHeapManager::~DX12DescriptorHeapManager()
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)
 {
-	return mCPUDescriptorHeaps[heapType]->GetHandleBlock(count);
+	return P_descriptor_heaps_cpu[heapType]->GetHandleBlock(count);
 }
 
 DX12DescriptorHandleBlock DX12DescriptorHeapManager::GetGPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT count)
 {
-	return mGPUDescriptorHeaps[DX12DeviceResourcesSingleton::back_buffer_index][heapType]->GetHandleBlock(count);
+	return P_descriptor_heaps_gpu[DX12DeviceResourcesSingleton::back_buffer_index][heapType]->GetHandleBlock(count);
 }

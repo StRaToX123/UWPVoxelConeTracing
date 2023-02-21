@@ -722,7 +722,7 @@ bool UWPVoxelConeTracingMain::Render()
 		if (ImGui::CollapsingHeader("Global Illumination Config"))
 		{
 			imgui_update_voxelizer_data_buffer |= ImGui::Combo("Voxel Grid Resolution", &imgui_selected_index_voxel_grid_resolutions, imgui_combo_box_string_voxel_grid_resolutions);
-			//ImGui::Checkbox("Render voxels for debug", &mVCTRenderDebug);
+			ImGui::Checkbox("Voxel Debug", &scene_renderer.vct_render_debug);
 			imgui_update_voxelizer_data_buffer |= ImGui::SliderFloat("Voxel Grid Extent", &scene_renderer.shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space, 1.0f, 400.0f);
 			imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::SliderFloat("GI Intensity", &scene_renderer.shader_structure_cpu_illumination_flags_data.vct_gi_power, 0.0f, 15.0f);
 			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Diffuse Strength", &scene_renderer.shader_structure_cpu_vct_main_data.indirect_diffuse_strength, 0.0f, 1.0f);

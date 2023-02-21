@@ -706,7 +706,8 @@ void ImGui_ImplUWP_PointerButton_Callback(Windows::UI::Input::PointerPointProper
 void ImGui_ImplUWP_PointerWheelChanged_Callback(int wheelDelta)
 {
     ImGuiIO& io = ImGui::GetIO();
-    io.AddMouseWheelEvent(0.0f, wheelDelta);
+    io.AddMouseWheelEvent(0.0f, (wheelDelta / abs(wheelDelta)) * 0.55f);
+    DisplayDebugMessage("Wheel delta: %d\n", wheelDelta);
 }
 
 void ImGui_ImplUWP_KeyEvent_Callback(int vk, bool down)

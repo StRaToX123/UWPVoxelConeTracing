@@ -52,7 +52,7 @@ class DX12Buffer
 		DX12Buffer() {}
 		virtual ~DX12Buffer();
 
-		ID3D12Resource* GetResource() { return mBuffer.Get(); }
+		ID3D12Resource* GetResource() { return buffer.Get(); }
 		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV(UINT copyIndex = 0);
 		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV(UINT copyIndex = 0);
 		unsigned char* GetMappedData(UINT copyIndex = 0);
@@ -60,14 +60,14 @@ class DX12Buffer
 	protected:
 		Description mDescription;
 
-		UINT mBufferSize;
-		UINT8* mCBVMappedData;
+		UINT buffer_size_in_bytes;
+		UINT8* _buffer_mapped_data;
 
-		ComPtr<ID3D12Resource> mBuffer;
-		ComPtr<ID3D12Resource> mBufferUpload;
+		ComPtr<ID3D12Resource> buffer;
+		ComPtr<ID3D12Resource> buffer_upload;
 
-		DX12DescriptorHandleBlock mDescriptorCBV;
-		DX12DescriptorHandleBlock mDescriptorSRV;
+		DX12DescriptorHandleBlock descriptor_handle_block_cbv;
+		DX12DescriptorHandleBlock descriptor_handle_block_srv;
 
 		UINT number_of_copys;
 

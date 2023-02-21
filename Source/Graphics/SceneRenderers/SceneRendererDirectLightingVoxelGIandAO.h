@@ -4,7 +4,7 @@
 #include "Graphics\Shaders\ShaderGlobalsCPU.h"
 #include "Graphics\DirectX\DX12DeviceResourcesSingleton.h"
 #include "Graphics\DirectX\DX12RenderTarget.h"
-#include "Graphics\DirectX\DXRSDepthBuffer.h"
+#include "Graphics\DirectX\DX12DepthBuffer.h"
 #include "Graphics\DirectX\DX12Buffer.h"
 #include "Graphics\DirectX\RootSignature.h"
 #include "Graphics\DirectX\PipelineStateObject.h"
@@ -125,6 +125,8 @@ class SceneRendererDirectLightingVoxelGIandAO
 		ShaderStructureCPUVCTMainData shader_structure_cpu_vct_main_data;
 		UINT8 shader_structure_cpu_vct_main_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
+
+		bool vct_render_debug = false;
 	private:
 		void InitGbuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateGBuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
@@ -132,50 +134,50 @@ class SceneRendererDirectLightingVoxelGIandAO
 		void UpdateShadowMappingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateVoxelConeTracingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
-		// This function 
-		
 		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateLightingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice);
-		
-	
-
 		void RenderGbuffer(DX12DeviceResourcesSingleton* _deviceResources,
-			ID3D12Device* device,
-			ID3D12GraphicsCommandList* commandList,
-			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			ID3D12Device* _d3dDevice,
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock);
 		void RenderShadowMapping(DX12DeviceResourcesSingleton* _deviceResources,
-			ID3D12Device* device,
-			ID3D12GraphicsCommandList* commandList,
-			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			ID3D12Device* _d3dDevice,
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& directionalLightDataDescriptorHeapBlock);
 		void RenderVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources,
-			ID3D12Device* device,
-			ID3D12GraphicsCommandList* commandList,
-			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			ID3D12Device* _d3dDevice,
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
 			std::vector<Model*>& scene,
 			DX12DescriptorHandleBlock& modelDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
 			RenderQueue aQueue = GRAPHICS_QUEUE);
+		void RenderVoxelConeTracingDebug(DX12DeviceResourcesSingleton* _deviceResources,
+			ID3D12Device* _d3dDevice,
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
+			RenderQueue aQueue);
 		void RenderLighting(DX12DeviceResourcesSingleton* _deviceResources, 
-			ID3D12Device* device, 
-			ID3D12GraphicsCommandList* commandList,
-			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			ID3D12Device* _d3dDevice,
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
 			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView);
 		void RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
-			ID3D12Device* device, 
-			ID3D12GraphicsCommandList* commandList, 
-			DX12DescriptorHeapGPU* gpuDescriptorHeap,
+			ID3D12Device* _d3dDevice, 
+			ID3D12GraphicsCommandList* _commandList,
+			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
 			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView);
 
 		void ThrowFailedErrorBlob(ID3DBlob* blob);
@@ -210,8 +212,35 @@ class SceneRendererDirectLightingVoxelGIandAO
 		DX12RenderTarget* p_render_target_vct_main;
 		DX12RenderTarget* p_render_target_vct_main_upsample_and_blur;
 		// Voxel Cone Tracing Debug
+		RootSignature root_signature_vct_debug_generate_indirect_draw_data;
+		ComputePSO pipeline_state_vct_debug_generate_indirect_draw_data;
 		RootSignature root_signature_vct_debug;
 		GraphicsPSO pipeline_state_vct_debug;
+		struct IndirectCommand
+		{
+			D3D12_DRAW_INDEXED_ARGUMENTS draw_indexed_arguments;
+		};
+
+		struct ShaderStructureCPUVoxelDebugData
+		{
+			DirectX::XMFLOAT3 position_world_space;
+			float padding;
+			DirectX::XMFLOAT4 color;
+		};
+
+		// Holds the current frame's debug voxel instance data
+		ComPtr<ID3D12Resource> append_buffer_indirect_draw_voxel_debug_per_instance_data;
+		// This handle block is a pointer, so that we can delete it manually in the destructor.
+		// That way we can guarantee that it will be destroyed before the descriptor_heap_manager deletes itself
+		// so that the _owner_heap reference the block has inside doesn't end up referencing released memory
+		DX12DescriptorHandleBlock* p_append_buffer_indirect_draw_voxel_debug_per_instance_data_uav;
+		// A buffer that holds a single zero number, used to copy that zero into other indirect draw buffers in order to reset their counters
+		Microsoft::WRL::ComPtr<ID3D12Resource> counter_reset_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> indirect_command_buffer_voxel_debug;
+		Microsoft::WRL::ComPtr<ID3D12Resource> indirect_command_upload_buffer_voxel_debug;
+		UINT counter_offset_append_buffer_indirect_draw_voxel_debug_per_instance_data;
+		Model* p_voxel_debug_cube;
+		ComPtr<ID3D12CommandSignature> indirect_draw_command_signature;
 		// Composite
 		RootSignature root_signature_composite;
 		GraphicsPSO pipeline_state_composite;
@@ -221,7 +250,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		GraphicsPSO pipeline_state_lighting;
 		// Shadows
 		GraphicsPSO pipeline_state_shadow_mapping;
-		DXRSDepthBuffer* p_depth_buffer_shadow_mapping;
+		DX12DepthBuffer* p_depth_buffer_shadow_mapping;
 		RootSignature root_signature_shadow_mapping;
 		// Constant Buffers
 		DX12Buffer* p_constant_buffer_voxelization;
@@ -230,7 +259,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 		DX12Buffer* p_constant_buffer_lighting;
 		DX12Buffer* p_constant_buffer_illumination_flags;
 
-		bool vct_render_debug = false;
 		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
 		bool use_vct_main_upsample_and_blur = true;
 

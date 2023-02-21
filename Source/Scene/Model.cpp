@@ -22,6 +22,9 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	mAmplitude = amplitude;
 	shader_structure_cpu_model_data.diffuse_color = color;
 
+	// Initialize the model as a default cube
+	mMeshes.push_back(new Mesh(_descriptorHeapManager));
+
 	DX12Buffer::Description desc;
 	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
 	desc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;

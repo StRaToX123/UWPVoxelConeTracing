@@ -101,12 +101,12 @@ class DX12DescriptorHeapManager
 
 		DX12DescriptorHeapGPU* GetGPUHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType)
 		{
-			return mGPUDescriptorHeaps[DX12DeviceResourcesSingleton::back_buffer_index][heapType];
+			return P_descriptor_heaps_gpu[DX12DeviceResourcesSingleton::back_buffer_index][heapType];
 		}
 
 	private:
-		DX12DescriptorHeapCPU* mCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-		DX12DescriptorHeapGPU* mGPUDescriptorHeaps[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT][D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		DX12DescriptorHeapCPU* P_descriptor_heaps_cpu[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		DX12DescriptorHeapGPU* P_descriptor_heaps_gpu[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT][D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
 };
 

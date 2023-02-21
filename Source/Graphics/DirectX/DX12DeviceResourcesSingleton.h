@@ -37,25 +37,25 @@ class DX12DeviceResourcesSingleton
         static DX12DeviceResourcesSingleton* GetDX12DeviceResources();
         void                        Present();
         void                        WaitForGPU();
-        ID3D12Device*               GetD3DDevice() const { return mDevice.Get(); }
-        ID3D12Device5*              GetDXRDevice() const { return (ID3D12Device5*)(mDevice.Get());}
-        IDXGISwapChain3*            GetSwapChain() const { return mSwapChain.Get(); }
-        IDXGIFactory4*              GetDXGIFactory() const { return mDXGIFactory.Get(); }
-        D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return mD3DFeatureLevel; }
+        ID3D12Device*               GetD3DDevice() const { return d3d_device.Get(); }
+        ID3D12Device5*              GetDXRDevice() const { return (ID3D12Device5*)(d3d_device.Get());}
+        IDXGISwapChain3*            GetSwapChain() const { return swap_chain.Get(); }
+        IDXGIFactory4*              GetDXGIFactory() const { return dxgi_factory.Get(); }
+        D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return d3d_feature_level; }
         ID3D12CommandQueue*         GetCommandQueueDirect() const { return command_queue_direct.Get(); }
         ID3D12CommandQueue*         GetCommandQueueCompute() const { return command_queue_compute.Get(); }
-        DXGI_FORMAT                 GetBackBufferFormat() const { return mBackBufferFormat; }
-        DXGI_FORMAT                 GetDepthBufferFormat() const { return mDepthBufferFormat; }
-        D3D12_VIEWPORT              GetScreenViewport() const { return mScreenViewport; }
-        D3D12_RECT                  GetScissorRect() const { return mScissorRect; }
+        DXGI_FORMAT                 GetBackBufferFormat() const { return format_back_buffer; }
+        DXGI_FORMAT                 GetDepthBufferFormat() const { return format_depth_buffer; }
+        D3D12_VIEWPORT              GetScreenViewport() const { return viewport_screen; }
+        D3D12_RECT                  GetScissorRect() const { return scissor_rect_screen; }
         UINT                        GetCurrentFrameIndex() const { return back_buffer_index; }
-        UINT                        GetBackBufferCount() const { return mBackBufferCount; }
-        RECT                        GetOutputSize() const { return mOutputSize; }
+        UINT                        GetBackBufferCount() const { return back_buffer_count; }
+        RECT                        GetOutputSize() const { return output_size; }
 
-        ID3D12Resource*             GetRenderTarget() const { return mRenderTargets[back_buffer_index].Get(); }
-        ID3D12Resource*             GetDepthStencil() const { return mDepthStencilTarget.Get(); }
-        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(back_buffer_index), mRTVDescriptorSize); }
-        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart()); }
+        ID3D12Resource*             GetRenderTarget() const { return render_targets_back_buffer[back_buffer_index].Get(); }
+        ID3D12Resource*             GetDepthStencil() const { return depth_stencil.Get(); }
+        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_heap_rtv->GetCPUDescriptorHandleForHeapStart(), static_cast<INT>(back_buffer_index), descriptor_size_rtv); }
+        inline CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const { return CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptor_heap_dsv->GetCPUDescriptorHandleForHeapStart()); }
         bool OnWindowSizeChanged();
         void ResourceBarriersBegin(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers) { barriers.clear(); }
         void ResourceBarriersEnd(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, ID3D12GraphicsCommandList* commandList) {
@@ -67,8 +67,8 @@ class DX12DeviceResourcesSingleton
         static const size_t                 MAX_BACK_BUFFER_COUNT = 3;
         static UINT                         back_buffer_index;
 
-        bool IsRaytracingSupported() { return mRaytracingTierAvailable; }
-        Platform::Agile<Windows::UI::Core::CoreWindow> mAppWindow;
+        bool IsRaytracingSupported() { return is_ray_tracing_available; }
+        Platform::Agile<Windows::UI::Core::CoreWindow> core_window;
     private:
         void CreateResources();
         void CreateWindowResources();
@@ -78,9 +78,9 @@ class DX12DeviceResourcesSingleton
         void MoveToNextFrame();
         void GetAdapter(IDXGIAdapter1** ppAdapter);
     
-        ComPtr<IDXGIFactory4>               mDXGIFactory;
-        ComPtr<IDXGISwapChain3>             mSwapChain;
-        ComPtr<ID3D12Device>                mDevice;
+        ComPtr<IDXGIFactory4>               dxgi_factory;
+        ComPtr<IDXGISwapChain3>             swap_chain;
+        ComPtr<ID3D12Device>                d3d_device;
 
         ComPtr<ID3D12CommandQueue>          command_queue_direct;
 	    ComPtr<ID3D12CommandQueue>          command_queue_compute;
@@ -91,26 +91,25 @@ class DX12DeviceResourcesSingleton
         UINT64                              fence_unused_values_direct_queue[MAX_BACK_BUFFER_COUNT];
 	    UINT64                              fence_unused_value_compute_queue;
 
-        ComPtr<ID3D12Resource>              mRenderTargets[MAX_BACK_BUFFER_COUNT];
+        ComPtr<ID3D12Resource>              render_targets_back_buffer[MAX_BACK_BUFFER_COUNT];
         D3D12_RESOURCE_STATES               back_buffer_render_targets_before_states[MAX_BACK_BUFFER_COUNT];
-        ComPtr<ID3D12Resource>              mDepthStencilTarget;
-        ComPtr<ID3D12DescriptorHeap>        mRTVDescriptorHeap;
-        ComPtr<ID3D12DescriptorHeap>        mDSVDescriptorHeap;
-        UINT                                mRTVDescriptorSize;
-        D3D12_VIEWPORT                      mScreenViewport;
-        D3D12_RECT                          mScissorRect;
+        ComPtr<ID3D12Resource>              depth_stencil;
+        ComPtr<ID3D12DescriptorHeap>        descriptor_heap_rtv;
+        ComPtr<ID3D12DescriptorHeap>        descriptor_heap_dsv;
+        UINT                                descriptor_size_rtv;
+        D3D12_VIEWPORT                      viewport_screen;
+        D3D12_RECT                          scissor_rect_screen;
 
-        DXGI_FORMAT                         mBackBufferFormat;
-        DXGI_FORMAT                         mDepthBufferFormat;
-        UINT                                mBackBufferCount;
-        D3D_FEATURE_LEVEL                   mD3DMinimumFeatureLevel;
+        DXGI_FORMAT                         format_back_buffer;
+        DXGI_FORMAT                         format_depth_buffer;
+        UINT                                back_buffer_count;
+        D3D_FEATURE_LEVEL                   d3d_minimum_feature_level;
 
     
-        RECT                                mOutputSize;
-        D3D_FEATURE_LEVEL                   mD3DFeatureLevel;
-        DWORD                               mDXGIFactoryFlags;
+        RECT                                output_size;
+        D3D_FEATURE_LEVEL                   d3d_feature_level;
+        DWORD                               dxgi_factory_flags;
 
-        std::filesystem::path               mCurrentPath;
-        std::wstring ExecutableDirectory();
-        bool mRaytracingTierAvailable = false;
+        std::filesystem::path               current_path;
+        bool is_ray_tracing_available = false;
 };
