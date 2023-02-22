@@ -280,7 +280,7 @@ void Mesh::CreateVertexAndIndexBuffersAndViews(DX12DescriptorHeapManager* _descr
 	// Create the vertex buffer
 	DX12Buffer::Description vertexBufferDesc;
 	vertexBufferDesc.element_size = vertexBufferSize;
-	vertexBufferDesc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	vertexBufferDesc.state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	p_vertex_buffer = new DX12Buffer(_descriptorHeapManager,
 		vertexBufferDesc,
 		1,
@@ -297,7 +297,7 @@ void Mesh::CreateVertexAndIndexBuffersAndViews(DX12DescriptorHeapManager* _descr
 	// Create the index buffer
 	DX12Buffer::Description indexBufferDesc;
 	indexBufferDesc.element_size = indexBufferSize;
-	indexBufferDesc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	indexBufferDesc.state = D3D12_RESOURCE_STATE_INDEX_BUFFER;
 	p_index_buffer = new DX12Buffer(_descriptorHeapManager,
 		indexBufferDesc,
 		1,

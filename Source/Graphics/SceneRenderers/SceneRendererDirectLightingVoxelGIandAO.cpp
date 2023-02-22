@@ -444,41 +444,41 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 	ID3D12CommandList* __commandListsDirect[] = { _commandListDirect };
 	ID3D12CommandList* __commandListsCompute[] = { _commandListCompute };
 	auto _d3dDevice = _deviceResources->GetD3DDevice();
-	DX12DescriptorHeapGPU* gpuDescriptorHeap = descriptor_heap_manager.GetGPUHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	gpuDescriptorHeap->Reset();
-	ID3D12DescriptorHeap* ppHeaps[] = { gpuDescriptorHeap->GetHeap() };
+	DX12DescriptorHeapGPU* _gpuDescriptorHeap = descriptor_heap_manager.GetGPUHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	_gpuDescriptorHeap->Reset();
+	ID3D12DescriptorHeap* ppHeaps[] = { _gpuDescriptorHeap->GetHeap() };
 	
-	DX12DescriptorHandleBlock modelDataDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock(scene.size());
+	DX12DescriptorHandleBlock modelDataDescriptorHandleBlock = _gpuDescriptorHeap->GetHandleBlock(scene.size());
 	for (int i = 0; i < scene.size(); i++)
 	{
 		modelDataDescriptorHandleBlock.Add(scene[i]->GetCBV());
 	}
 
-	DX12DescriptorHandleBlock cameraDataDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
+	DX12DescriptorHandleBlock cameraDataDescriptorHandleBlock = _gpuDescriptorHeap->GetHandleBlock();
 	cameraDataDescriptorHandleBlock.Add(camera.GetCBV());
 
-	DX12DescriptorHandleBlock directionalLightDataDescriptorHeapBlock = gpuDescriptorHeap->GetHandleBlock();
+	DX12DescriptorHandleBlock directionalLightDataDescriptorHeapBlock = _gpuDescriptorHeap->GetHandleBlock();
 	directionalLightDataDescriptorHeapBlock.Add(directionalLight.GetCBV());
 
-	DX12DescriptorHandleBlock shadowDepthDescriptorHandleBlock = gpuDescriptorHeap->GetHandleBlock();
+	DX12DescriptorHandleBlock shadowDepthDescriptorHandleBlock = _gpuDescriptorHeap->GetHandleBlock();
 	shadowDepthDescriptorHandleBlock.Add(p_depth_buffer_shadow_mapping->GetSRV());
 
 	// Graphics command list
 	{
 		_commandListDirect->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		_commandListDirect->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		RenderGbuffer(_deviceResources, _d3dDevice, _commandListDirect, gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, cameraDataDescriptorHandleBlock);
-		RenderShadowMapping(_deviceResources, _d3dDevice, _commandListDirect, gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, directionalLightDataDescriptorHeapBlock);
+		RenderGbuffer(_deviceResources, _d3dDevice, _commandListDirect, _gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, cameraDataDescriptorHandleBlock);
+		RenderShadowMapping(_deviceResources, _d3dDevice, _commandListDirect, _gpuDescriptorHeap, scene, modelDataDescriptorHandleBlock, directionalLightDataDescriptorHeapBlock);
 		RenderVoxelConeTracing(_deviceResources, 
 			_d3dDevice, 
 			_commandListDirect, 
-			gpuDescriptorHeap, 
+			_gpuDescriptorHeap,
 			scene, 
 			modelDataDescriptorHandleBlock, 
 			directionalLightDataDescriptorHeapBlock,
 			cameraDataDescriptorHandleBlock,
 			shadowDepthDescriptorHandleBlock,
-			GRAPHICS_QUEUE); // Only voxelization there which can't go to compute
+			DIRECT_QUEUE); // Only voxelization there which can't go to compute
 
 		// We have to transition the GBuffers here inside of the graphics command list to a non pixel shader resource,
 		// because the compute command list cannot transition resources from a state of a render target
@@ -494,54 +494,98 @@ void SceneRendererDirectLightingVoxelGIandAO::Render(std::vector<Model*>& scene,
 		fence_unused_value_direct_queue++;
 	}
 
-	// Compute command list
+	if (render_vct_debug == true)
 	{
-		_commandListCompute->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		RenderVoxelConeTracing(_deviceResources,
-			_d3dDevice,
-			_commandListCompute,
-			gpuDescriptorHeap,
-			scene,
-			modelDataDescriptorHandleBlock,
-			directionalLightDataDescriptorHeapBlock,
-			cameraDataDescriptorHandleBlock,
-			shadowDepthDescriptorHandleBlock,
-			COMPUTE_QUEUE);
+		// Compute queue
+		{
+			_commandListCompute->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			RenderVoxelConeTracingDebug(_deviceResources,
+				_d3dDevice,
+				_commandListCompute,
+				_gpuDescriptorHeap,
+				cameraDataDescriptorHandleBlock,
+				COMPUTE_QUEUE);
 
-		_deviceResources->GetCommandQueueCompute()->Wait(fence_direct_queue.Get(), fence_unused_value_direct_queue - 1);
-		_commandListCompute->Close();
-		_deviceResources->GetCommandQueueCompute()->ExecuteCommandLists(1, __commandListsCompute);
-		_deviceResources->GetCommandQueueCompute()->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue);
-		fence_unused_value_compute_queue++;
+			_deviceResources->GetCommandQueueCompute()->Wait(fence_direct_queue.Get(), fence_unused_value_direct_queue - 1);
+			_commandListCompute->Close();
+			_deviceResources->GetCommandQueueCompute()->ExecuteCommandLists(1, __commandListsCompute);
+			_deviceResources->GetCommandQueueCompute()->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue);
+			fence_unused_value_compute_queue++;
+		}
+			
+		// Graphics queue
+		{
+			_commandListDirect->Reset(_commandAllocatorDirect, nullptr);
+			_commandListDirect->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			RenderVoxelConeTracingDebug(_deviceResources,
+				_d3dDevice,
+				_commandListDirect,
+				_gpuDescriptorHeap,
+				cameraDataDescriptorHandleBlock,
+				DIRECT_QUEUE);
+			RenderComposite(_deviceResources,
+				_d3dDevice,
+				_commandListDirect,
+				_gpuDescriptorHeap,
+				p_render_target_vct_debug,
+				fullScreenQuadVertexBufferView);
+
+			_deviceResources->GetCommandQueueDirect()->Wait(fence_compute_queue.Get(), fence_unused_value_compute_queue - 1);
+		}
+			
 	}
-
-	// Submit the rest of the frame to graphics command list
+	else
 	{
-		_commandListDirect->Reset(_commandAllocatorDirect, nullptr);
-		_commandListDirect->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		RenderLighting(_deviceResources,
-			_d3dDevice,
-			_commandListDirect,
-			gpuDescriptorHeap,
-			directionalLightDataDescriptorHeapBlock,
-			cameraDataDescriptorHandleBlock,
-			shadowDepthDescriptorHandleBlock,
-			fullScreenQuadVertexBufferView);
-		RenderComposite(_deviceResources, 
-			_d3dDevice, 
-			_commandListDirect, 
-			gpuDescriptorHeap, 
-			fullScreenQuadVertexBufferView);
+		// Compute queue
+		{
+			_commandListCompute->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			RenderVoxelConeTracing(_deviceResources,
+				_d3dDevice,
+				_commandListCompute,
+				_gpuDescriptorHeap,
+				scene,
+				modelDataDescriptorHandleBlock,
+				directionalLightDataDescriptorHeapBlock,
+				cameraDataDescriptorHandleBlock,
+				shadowDepthDescriptorHandleBlock,
+				COMPUTE_QUEUE);
 
-		// We need to transition these resources here inside of the graphics command list,
-		// since the compute command list will not allow us to transition a resource 
-		// from a pixel shader resource state.
-		_deviceResources->ResourceBarriersBegin(barriers);
-		p_render_target_vct_main->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
-		p_render_target_vct_main_upsample_and_blur->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
-		_deviceResources->ResourceBarriersEnd(barriers, _commandListDirect);
+			_deviceResources->GetCommandQueueCompute()->Wait(fence_direct_queue.Get(), fence_unused_value_direct_queue - 1);
+			_commandListCompute->Close();
+			_deviceResources->GetCommandQueueCompute()->ExecuteCommandLists(1, __commandListsCompute);
+			_deviceResources->GetCommandQueueCompute()->Signal(fence_compute_queue.Get(), fence_unused_value_compute_queue);
+			fence_unused_value_compute_queue++;
+		}
 
-		_deviceResources->GetCommandQueueDirect()->Wait(fence_compute_queue.Get(), fence_unused_value_compute_queue - 1);
+		// Graphics queue
+		{
+			_commandListDirect->Reset(_commandAllocatorDirect, nullptr);
+			_commandListDirect->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+			RenderLighting(_deviceResources,
+				_d3dDevice,
+				_commandListDirect,
+				_gpuDescriptorHeap,
+				directionalLightDataDescriptorHeapBlock,
+				cameraDataDescriptorHandleBlock,
+				shadowDepthDescriptorHandleBlock,
+				fullScreenQuadVertexBufferView);
+			RenderComposite(_deviceResources,
+				_d3dDevice,
+				_commandListDirect,
+				_gpuDescriptorHeap,
+				p_render_target_lighting,
+				fullScreenQuadVertexBufferView);
+
+			// We need to transition these resources here inside of the graphics command list,
+			// since the compute command list will not allow us to transition a resource 
+			// from a pixel shader resource state.
+			_deviceResources->ResourceBarriersBegin(barriers);
+			p_render_target_vct_main->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
+			p_render_target_vct_main_upsample_and_blur->TransitionTo(barriers, _commandListDirect, D3D12_RESOURCE_STATE_COMMON);
+			_deviceResources->ResourceBarriersEnd(barriers, _commandListDirect);
+
+			_deviceResources->GetCommandQueueDirect()->Wait(fence_compute_queue.Get(), fence_unused_value_compute_queue - 1);
+		}
 	}
 }
 
@@ -1132,7 +1176,7 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracing(DX12DeviceR
 	CD3DX12_VIEWPORT viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 	CD3DX12_RECT rect = CD3DX12_RECT(0.0f, 0.0f, _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
 
-	if (aQueue == GRAPHICS_QUEUE) 
+	if (aQueue == DIRECT_QUEUE) 
 	{
 		// Voxelizer
 		{
@@ -1395,15 +1439,23 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracingDebug(DX12De
 		_commandList->Dispatch(dispatchBlockSize, dispatchBlockSize, dispatchBlockSize);
 	}
 
-	if (aQueue == GRAPHICS_QUEUE)
+	if (aQueue == DIRECT_QUEUE)
 	{
 		_commandList->SetPipelineState(pipeline_state_vct_debug.GetPipelineStateObject());
-		_commandList->SetComputeRootSignature(root_signature_vct_debug.GetSignature());
+		_commandList->SetGraphicsRootSignature(root_signature_vct_debug.GetSignature());
 		_commandList->RSSetViewports(1, &_deviceResources->GetScreenViewport());
 		_commandList->RSSetScissorRects(1, &_deviceResources->GetScissorRect());
 
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[] =
+		{
+			p_render_target_vct_debug->GetRTV()
+		};
+		_commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
+		_commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
+		_commandList->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		_deviceResources->ResourceBarriersBegin(barriers);
+		p_render_target_vct_debug->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		p_indirect_command_buffer_voxel_debug->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 		p_append_buffer_indirect_draw_voxel_debug_per_instance_data->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		_deviceResources->ResourceBarriersEnd(barriers, _commandList);
@@ -1415,10 +1467,13 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracingDebug(DX12De
 		srvHandle.Add(p_append_buffer_indirect_draw_voxel_debug_per_instance_data->GetSRV());
 
 
-		_commandList->SetComputeRootDescriptorTable(0, cbvHandle.GetGPUHandle());
-		_commandList->SetComputeRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
-		_commandList->SetComputeRootDescriptorTable(2, srvHandle.GetGPUHandle());
+		_commandList->SetGraphicsRootDescriptorTable(0, cbvHandle.GetGPUHandle());
+		_commandList->SetGraphicsRootDescriptorTable(1, cameraDataDescriptorHandleBlock.GetGPUHandle());
+		_commandList->SetGraphicsRootDescriptorTable(2, srvHandle.GetGPUHandle());
 
+		_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_commandList->IASetVertexBuffers(0, 1, &p_voxel_debug_cube->Meshes()[0]->GetVertexBufferView());
+		_commandList->IASetIndexBuffer(&p_voxel_debug_cube->Meshes()[0]->GetIndexBufferView());
 		_commandList->ExecuteIndirect(
 			indirect_draw_command_signature.Get(),
 			1,
@@ -1612,33 +1667,37 @@ void SceneRendererDirectLightingVoxelGIandAO::InitComposite(DX12DeviceResourcesS
 	delete[] pVertexShaderByteCode;
 	delete[] pPixelShaderByteCode;
 }
+
 void SceneRendererDirectLightingVoxelGIandAO::RenderComposite(DX12DeviceResourcesSingleton* _deviceResources, 
 	ID3D12Device* device, 
-	ID3D12GraphicsCommandList* commandList, 
-	DX12DescriptorHeapGPU* gpuDescriptorHeap,
+	ID3D12GraphicsCommandList* _commandList, 
+	DX12DescriptorHeapGPU* _gpuDescriptorHeap,
+	DX12RenderTarget* _compositeSource,
 	D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView)
 {
 	
-	commandList->SetPipelineState(pipeline_state_composite.GetPipelineStateObject());
-	commandList->SetGraphicsRootSignature(root_signature_composite.GetSignature());
+	_commandList->SetPipelineState(pipeline_state_composite.GetPipelineStateObject());
+	_commandList->SetGraphicsRootSignature(root_signature_composite.GetSignature());
+	_commandList->RSSetViewports(1, &_deviceResources->GetScreenViewport());
+	_commandList->RSSetScissorRects(1, &_deviceResources->GetScissorRect());
 
 	_deviceResources->ResourceBarriersBegin(barriers);
-	p_render_target_lighting->TransitionTo(barriers, commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	_deviceResources->ResourceBarriersEnd(barriers, commandList);
+	_compositeSource->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	_deviceResources->ResourceBarriersEnd(barriers, _commandList);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandlesFinal[] =
 	{
-			_deviceResources->GetRenderTargetView()
+		_deviceResources->GetRenderTargetView()
 	};
-	commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
-	commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
+	_commandList->OMSetRenderTargets(_countof(rtvHandlesFinal), rtvHandlesFinal, FALSE, nullptr);
+	_commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
 		
-	DX12DescriptorHandleBlock srvHandleComposite = gpuDescriptorHeap->GetHandleBlock(1);
-	srvHandleComposite.Add(p_render_target_lighting->GetSRV());
+	DX12DescriptorHandleBlock srvHandleComposite = _gpuDescriptorHeap->GetHandleBlock(1);
+	srvHandleComposite.Add(_compositeSource->GetSRV());
 		
-	commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
-	commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	commandList->DrawInstanced(4, 1, 0, 0);
+	_commandList->SetGraphicsRootDescriptorTable(0, srvHandleComposite.GetGPUHandle());
+	_commandList->IASetVertexBuffers(0, 1, &fullScreenQuadVertexBufferView);
+	_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	_commandList->DrawInstanced(4, 1, 0, 0);
 	
 }

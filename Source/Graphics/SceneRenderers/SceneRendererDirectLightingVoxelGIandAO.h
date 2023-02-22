@@ -29,7 +29,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 {
 	enum RenderQueue 
 	{
-		GRAPHICS_QUEUE,
+		DIRECT_QUEUE,
 		COMPUTE_QUEUE
 	};
 
@@ -128,7 +128,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 		UINT8 shader_structure_cpu_vct_main_data_most_updated_index;
 		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
 
-		bool vct_render_debug = false;
+		bool render_vct_debug = false;
 	private:
 		void InitGbuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateGBuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
@@ -162,7 +162,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 			DX12DescriptorHandleBlock& directionalLightDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& cameraDataDescriptorHandleBlock,
 			DX12DescriptorHandleBlock& shadowDepthDescriptorHandleBlock,
-			RenderQueue aQueue = GRAPHICS_QUEUE);
+			RenderQueue aQueue = DIRECT_QUEUE);
 		void RenderVoxelConeTracingDebug(DX12DeviceResourcesSingleton* _deviceResources,
 			ID3D12Device* _d3dDevice,
 			ID3D12GraphicsCommandList* _commandList,
@@ -181,6 +181,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 			ID3D12Device* _d3dDevice, 
 			ID3D12GraphicsCommandList* _commandList,
 			DX12DescriptorHeapGPU* _gpuDescriptorHeap,
+			DX12RenderTarget* _compositeSource,
 			D3D12_VERTEX_BUFFER_VIEW& fullScreenQuadVertexBufferView);
 
 		void ThrowFailedErrorBlob(ID3DBlob* blob);

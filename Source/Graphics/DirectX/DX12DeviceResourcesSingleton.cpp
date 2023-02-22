@@ -1,5 +1,3 @@
-//DirectX 12 wrapper with useful functions like device creation etc.
-
 #include "Graphics\DirectX\DX12DeviceResourcesSingleton.h"
 
 
@@ -307,7 +305,7 @@ void DX12DeviceResourcesSingleton::CreateWindowResources()
 
         D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
             format_depth_buffer,
-            MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT,
+            output_size.right, output_size.bottom,
             1, // This depth stencil view has only one texture.
             1  // Use a single mipmap level.
         );
@@ -370,7 +368,7 @@ bool DX12DeviceResourcesSingleton::OnWindowSizeChanged()
 void DX12DeviceResourcesSingleton::Present()
 {
     HRESULT hr;
-    hr = swap_chain->Present(1, 0);
+    hr = swap_chain->Present(use_vsync, 0);
     // If the device was reset we must completely reinitialize the renderer.
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {

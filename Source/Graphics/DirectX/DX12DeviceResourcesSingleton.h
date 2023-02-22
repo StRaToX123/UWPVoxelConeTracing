@@ -15,12 +15,7 @@
 #include <filesystem>
 #include <deque>
 
-#define MAX_SCREEN_WIDTH 1920
-#define MAX_SCREEN_HEIGHT 1080
-#define D3D_COMPILE_STANDARD_FILE_INCLUDE ((ID3DInclude*)(UINT_PTR)1)
-
 using namespace Microsoft::WRL;
-
 
 class DX12DeviceResourcesSingleton
 {
@@ -69,6 +64,8 @@ class DX12DeviceResourcesSingleton
 
         bool IsRaytracingSupported() { return is_ray_tracing_available; }
         Platform::Agile<Windows::UI::Core::CoreWindow> core_window;
+
+        bool use_vsync = true;
     private:
         void CreateResources();
         void CreateWindowResources();
