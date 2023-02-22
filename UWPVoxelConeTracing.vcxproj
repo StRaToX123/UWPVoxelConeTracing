@@ -277,6 +277,7 @@
     <ClInclude Include="Source\Graphics\ImGUI\imstb_textedit.h" />
     <ClInclude Include="Source\Graphics\ImGUI\imstb_truetype.h" />
     <ClInclude Include="Source\Graphics\SceneRenderers\SceneRendererDirectLightingVoxelGIandAO.h" />
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugIndirectDraw_HF.hlsli" />
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
@@ -340,7 +341,6 @@
     <None Include="Source\Graphics\Shaders\HF\GBuffer_HF.hlsli" />
     <None Include="Source\Graphics\Shaders\HF\Lighting_HF.hlsli" />
     <None Include="Source\Graphics\Shaders\HF\ShadowMapping_HF.hlsli" />
-    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsli" />
     <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli" />
     <None Include="Source\Graphics\Shaders\HF\VoxelConeTracing_HF.hlsli" />
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
@@ -373,7 +373,11 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsl" />
+    <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracing_CS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
@@ -394,6 +398,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingDebugIndirectDraw_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingVoxelization_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -411,6 +419,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\VS\ShadowMapping_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingDebugIndirectDraw_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>

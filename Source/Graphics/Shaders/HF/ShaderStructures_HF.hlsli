@@ -48,9 +48,11 @@ struct ShaderStructureGPUVoxelizationData
 	float voxel_grid_extent_world_space;
 	float voxel_grid_half_extent_world_space_rcp;
 	uint voxel_grid_anisotropic_mip_count;
+	float voxel_extent;
 	float voxel_extent_rcp;
+	float voxel_half_extent;
 	float voxel_scale;
-	float3 padding;
+	float padding;
 };
 
 struct ShaderStructureGPUAnisotropicMipGenerationData
@@ -81,4 +83,20 @@ struct ShaderStructureGPUIlluminationFlagsData
 	float vct_gi_power;
 	int show_only_ao;
 	float2 padding;
+};
+
+struct IndirectCommandGPU
+{
+	uint index_count_per_instance;
+	uint instance_count;
+	uint start_index_location;
+	int base_vertex_location;
+	uint start_instance_location;
+};
+
+struct ShaderStructureGPUVoxelDebugData
+{
+	float3 position_world_space;
+	uint padding1;
+	float4 color;
 };

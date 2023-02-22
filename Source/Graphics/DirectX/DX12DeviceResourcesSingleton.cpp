@@ -46,7 +46,6 @@ void DX12DeviceResourcesSingleton::Initialize(Windows::UI::Core::CoreWindow^ cor
     gs_dx12_device_resources.core_window = nullptr;
     gs_dx12_device_resources.viewport_screen = {};
     gs_dx12_device_resources.scissor_rect_screen = {};
-    gs_dx12_device_resources.output_size = { 0, 0, 1, 1 };
     gs_dx12_device_resources.core_window = coreWindow;
     gs_dx12_device_resources.output_size.left = gs_dx12_device_resources.output_size.top = gs_dx12_device_resources.output_size.right = gs_dx12_device_resources.output_size.bottom = 0;
 

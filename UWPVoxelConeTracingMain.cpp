@@ -42,7 +42,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	#pragma endregion
 
 	descriptor_heap_manager.Initialize();
-	scene_renderer.Initialize(coreWindow);
+	scene_renderer.Initialize(coreWindow, command_list_direct.Get());
 
 	#pragma region Initialize The Camera
 	camera_controller_translation_multiplier = 12.0f;

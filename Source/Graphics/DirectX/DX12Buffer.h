@@ -1,5 +1,5 @@
 #pragma once
-#include "Common.h"
+
 #include "Graphics\DirectX\DX12DescriptorHeap.h"
 #include <string>
 
@@ -20,45 +20,61 @@ class DX12Buffer
 
 		struct Description
 		{
-			UINT mNumElements;
+			UINT num_of_elements;
 			union
 			{
-				UINT mElementSize;
-				UINT mSize;
+				UINT element_size;
+				UINT size;
 			};
-			UINT64 mAlignment;
-			DXGI_FORMAT mFormat;
-			UINT mDescriptorType;
-			D3D12_RESOURCE_FLAGS mResourceFlags;
-			D3D12_RESOURCE_STATES mState;
-			D3D12_HEAP_TYPE mHeapType;
+
+			UINT64 alignment;
+			DXGI_FORMAT format;
+			UINT descriptor_type;
+			D3D12_RESOURCE_FLAGS resource_flags;
+			D3D12_RESOURCE_STATES state;
+			D3D12_HEAP_TYPE heap_type;
+			UINT64 counter_offset;
 
 			Description() :
-				mNumElements(1)
-				, mElementSize(0)
-				, mAlignment(0)
-				, mDescriptorType(DX12Buffer::DescriptorType::SRV)
-				, mFormat(DXGI_FORMAT_UNKNOWN)
-				, mResourceFlags(D3D12_RESOURCE_FLAG_NONE)
-				, mState(D3D12_RESOURCE_STATE_COMMON)
-				, mHeapType(D3D12_HEAP_TYPE_DEFAULT)
-			{}
+				num_of_elements(1),
+				element_size(0),
+				alignment(0),
+				descriptor_type(DX12Buffer::DescriptorType::SRV),
+				format(DXGI_FORMAT_UNKNOWN),
+				resource_flags(D3D12_RESOURCE_FLAG_NONE),
+				state(D3D12_RESOURCE_STATE_COMMON),
+				heap_type(D3D12_HEAP_TYPE_DEFAULT),
+				counter_offset(UINT64_MAX)
+
+			{
+
+			}
 		};
 
 		DX12Buffer(DX12DescriptorHeapManager* _descriptorHeapManager,
-			Description& description,
+			Description& aDescription,
 			UINT numberOfCopys = 1,
-			LPCWSTR name = nullptr);
+			LPCWSTR name = nullptr,
+			void* _data = nullptr,
+			LONG_PTR dataSize = 0,
+			ID3D12GraphicsCommandList* _commandList = nullptr);
 		DX12Buffer() {}
 		virtual ~DX12Buffer();
 
 		ID3D12Resource* GetResource() { return buffer.Get(); }
+		Description& GetDescription() { return description; }
 		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetSRV(UINT copyIndex = 0);
+		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetUAV(UINT copyIndex = 0);
 		virtual CD3DX12_CPU_DESCRIPTOR_HANDLE GetCBV(UINT copyIndex = 0);
 		unsigned char* GetMappedData(UINT copyIndex = 0);
+		void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers,
+			ID3D12GraphicsCommandList* commandList,
+			D3D12_RESOURCE_STATES stateAfter);
 
 	protected:
-		Description mDescription;
+		Description description;
+
+		D3D12_RESOURCE_STATES resource_state_current;
 
 		UINT buffer_size_in_bytes;
 		UINT8* _buffer_mapped_data;
@@ -68,9 +84,13 @@ class DX12Buffer
 
 		DX12DescriptorHandleBlock descriptor_handle_block_cbv;
 		DX12DescriptorHandleBlock descriptor_handle_block_srv;
+		DX12DescriptorHandleBlock descriptor_handle_block_uav;
 
 		UINT number_of_copys;
 
-		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager);
+		virtual void CreateResources(DX12DescriptorHeapManager* _descriptorHeapManager, 
+			void* _data = nullptr,
+			LONG_PTR dataSize = 0,
+			ID3D12GraphicsCommandList* _commandList = nullptr);
 };
 

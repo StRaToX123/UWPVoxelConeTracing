@@ -33,9 +33,9 @@ void DirectionalLight::Initialize(DX12DescriptorHeapManager* _descriptorHeapMana
 	projection_matrix = XMMatrixOrthographicLH(orthographicWidth, orthographicHeight, zNear, zFar);
 
 	DX12Buffer::Description constantBufferDescriptor;
-	constantBufferDescriptor.mElementSize = c_aligned_shader_structure_cpu_directional_light_data;
-	constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
-	constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
+	constantBufferDescriptor.element_size = c_aligned_shader_structure_cpu_directional_light_data;
+	constantBufferDescriptor.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	constantBufferDescriptor.descriptor_type = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager, 
 		constantBufferDescriptor, 

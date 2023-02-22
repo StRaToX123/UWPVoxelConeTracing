@@ -302,9 +302,6 @@
     <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli">
       <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
-    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsli">
-      <Filter>Source\Graphics\Shaders\HF</Filter>
-    </None>
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli">
       <Filter>Source\Graphics\Shaders</Filter>
     </None>
@@ -340,6 +337,9 @@
     </None>
     <None Include="Source\Graphics\Shaders\ShaderGlobalsCPU.h">
       <Filter>Source\Graphics\Shaders</Filter>
+    </None>
+    <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugIndirectDraw_HF.hlsli">
+      <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -387,6 +387,12 @@
     </FxCompile>
     <FxCompile Include="Source\Graphics\Shaders\CS\VoxelConeTracingDebugGenerateIndirectDrawData_CS.hlsl">
       <Filter>Source\Graphics\Shaders\CS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\PS\VoxelConeTracingDebugIndirectDraw_PS.hlsl">
+      <Filter>Source\Graphics\Shaders\PS</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Graphics\Shaders\VS\VoxelConeTracingDebugIndirectDraw_VS.hlsl">
+      <Filter>Source\Graphics\Shaders\VS</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

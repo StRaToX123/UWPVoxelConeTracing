@@ -29,9 +29,9 @@ void Camera::Initialize(DX12DescriptorHeapManager* _descriptorHeapManager)
     DX12DeviceResourcesSingleton* _dx12DeviceResourcesSingleton = DX12DeviceResourcesSingleton::GetDX12DeviceResources();
     most_updated_cbv_index = _dx12DeviceResourcesSingleton->GetBackBufferCount() - 1;
     DX12Buffer::Description constantBufferDescriptor;
-    constantBufferDescriptor.mElementSize = c_aligned_shader_structure_cpu_camera;
-    constantBufferDescriptor.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
-    constantBufferDescriptor.mDescriptorType = DX12Buffer::DescriptorType::CBV;
+    constantBufferDescriptor.element_size = c_aligned_shader_structure_cpu_camera;
+    constantBufferDescriptor.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+    constantBufferDescriptor.descriptor_type = DX12Buffer::DescriptorType::CBV;
     p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
         constantBufferDescriptor, 
         _dx12DeviceResourcesSingleton->GetBackBufferCount(), // <- we need a copy of the constant buffer per frame

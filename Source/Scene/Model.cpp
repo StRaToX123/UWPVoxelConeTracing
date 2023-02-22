@@ -26,9 +26,9 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	mMeshes.push_back(new Mesh(_descriptorHeapManager));
 
 	DX12Buffer::Description desc;
-	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
-	desc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
-	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
+	desc.element_size = c_aligned_shader_structure_cpu_model_data;
+	desc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	desc.descriptor_type = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
 		desc, 
@@ -102,9 +102,9 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 
 
 	DX12Buffer::Description desc;
-	desc.mElementSize = c_aligned_shader_structure_cpu_model_data;
-	desc.mState = D3D12_RESOURCE_STATE_GENERIC_READ;
-	desc.mDescriptorType = DX12Buffer::DescriptorType::CBV;
+	desc.element_size = c_aligned_shader_structure_cpu_model_data;
+	desc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	desc.descriptor_type = DX12Buffer::DescriptorType::CBV;
 
 	p_constant_buffer = new DX12Buffer(_descriptorHeapManager,
 		desc,
