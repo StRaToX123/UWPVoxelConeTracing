@@ -886,6 +886,7 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 		// Voxel debug cube
 		p_voxel_debug_cube = new Model(&descriptor_heap_manager,
+			_commandList,
 			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			DirectX::XMQuaternionIdentity());
 

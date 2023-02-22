@@ -95,7 +95,7 @@ void DX12Buffer::CreateResources(DX12DescriptorHeapManager* _descriptorHeapManag
 		D3D12_SUBRESOURCE_DATA data = {};
 		data.pData = _data;
 		data.RowPitch = dataSize;
-		data.SlicePitch = 0;
+		data.SlicePitch = dataSize;
 
 		UpdateSubresources(_commandList, buffer.Get(), buffer_upload.Get(), 0, 0, 1, &data);
 		if (description.state != D3D12_RESOURCE_STATE_COPY_DEST)

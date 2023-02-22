@@ -66,6 +66,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 
 	#pragma region Initialize The Scene
 	Model* model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\room.fbx"),
 		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2), 
@@ -73,6 +74,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\dragon.fbx"), 
 		DirectX::XMVectorSet(1.5f, 0.0f, -7.0f, 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -80,6 +82,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\bunny.fbx"), 
 		DirectX::XMVectorSet(21.0f, 13.9f, -19.0f, 1.0f),
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), -0.3752457f), 
@@ -87,6 +90,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\torus.fbx"), 
 		DirectX::XMVectorSet(21.0f, 4.0f, -9.6f, 1.0f),
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2) * DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), 1.099557f),
@@ -94,6 +98,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\sphere_big.fbx"),
 		DirectX::XMVectorSet(-17.25f, -1.15f, -24.15f, 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -101,6 +106,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager,
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\sphere_medium.fbx"), 
 		DirectX::XMVectorSet(-21.0f, -0.95f, -13.20f, 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -108,6 +114,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\sphere_small.fbx"),
 		DirectX::XMVectorSet(-11.25f, -0.45f, -16.20f, 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -115,13 +122,15 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager, 
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\block.fbx"), 
 		DirectX::XMVectorSet(3.0f, 8.0f, -30.0f, 1.0f),
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2),
 		DirectX::XMFLOAT4(0.9, 0.15, 1.0, 0.0));
 	scene.emplace_back(model);
 
-	model = new Model(&descriptor_heap_manager, 
+	model = new Model(&descriptor_heap_manager,
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\cube.fbx"), 
 		DirectX::XMVectorSet(21.0f, 5.0f, -19.0f, 1.0f), 
 		DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f), -XM_PIDIV2) * DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f), -0.907571f),
@@ -129,6 +138,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	scene.emplace_back(model);
 
 	model = new Model(&descriptor_heap_manager,
+		command_list_direct.Get(),
 		GetFilePath("Assets\\Models\\sphere_medium.fbx"), 
 		DirectX::XMVectorSet(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f), 1.0f),
 		DirectX::XMQuaternionIdentity(),
@@ -140,12 +150,14 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	for (int i = 0; i < NUM_DYNAMIC_OBJECTS - 1; i++)
 	{
 		Model* modelCopy = new Model(&descriptor_heap_manager,
+			command_list_direct.Get(),
 			DirectX::XMVectorSet(RandomFloat(-35.0f, 35.0f), RandomFloat(5.0f, 30.0f), RandomFloat(-35.0f, 35.0f), 1.0f),
 			DirectX::XMQuaternionIdentity(), 
 			XMFLOAT4(RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), 0.8),
 			true,
 			RandomFloat(-1.0f, 1.0f), 
-			RandomFloat(1.0f, 5.0f));
+			RandomFloat(1.0f, 5.0f),
+			false);
 		*modelCopy = *model;
 		scene.emplace_back(modelCopy);
 
@@ -158,6 +170,7 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 
 	#pragma region Initialize Full ScreenQuad
 	{
+		p_fullscreen_quad_vertex_buffer = nullptr;
 		// Create full screen quad
 		struct FullscreenVertex
 		{
@@ -168,44 +181,28 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 		// Define the geometry for a fullscreen triangle.
 		FullscreenVertex quadVertices[] =
 		{
-			{ { -1.0f, -1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },       // Bottom left.
-			{ { -1.0f, 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },        // Top left.
-			{ { 1.0f, -1.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },        // Bottom right.
-			{ { 1.0f, 1.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },         // Top right.
+			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },       // Bottom left.
+			{ { -1.0f, 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },        // Top left.
+			{ { 1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },        // Bottom right.
+			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 0.0f } },         // Top right.
 		};
 
 		const UINT vertexBufferSize = sizeof(quadVertices);
-
-		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT /*D3D12_HEAP_TYPE_UPLOAD*/),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-			/*D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER*/ D3D12_RESOURCE_STATE_COPY_DEST /*D3D12_RESOURCE_STATE_GENERIC_READ*/,
-			nullptr,
-			IID_PPV_ARGS(&fullscreen_quad_vertex_buffer)));
-
-		ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&fullscreen_quad_vertex_upload_buffer)));
-
-		// Copy data to the intermediate upload heap and then schedule a copy
-		// from the upload heap to the vertex buffer.
-		D3D12_SUBRESOURCE_DATA vertexData = {};
-		vertexData.pData = reinterpret_cast<BYTE*>(quadVertices);
-		vertexData.RowPitch = vertexBufferSize;
-		vertexData.SlicePitch = vertexData.RowPitch;
-
-		UpdateSubresources<1>(command_list_direct.Get(), fullscreen_quad_vertex_buffer.Get(), fullscreen_quad_vertex_upload_buffer.Get(), 0, 0, 1, &vertexData);
-		command_list_direct.Get()->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(fullscreen_quad_vertex_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+		DX12Buffer::Description fullScreenQuadDesc;
+		fullScreenQuadDesc.element_size = vertexBufferSize;
+		fullScreenQuadDesc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+		p_fullscreen_quad_vertex_buffer = new DX12Buffer(&descriptor_heap_manager, 
+			fullScreenQuadDesc, 
+			1, 
+			L"FullScreenQuad", 
+			quadVertices, 
+			vertexBufferSize,
+			command_list_direct.Get());
 
 		// Initialize the vertex buffer view.
-		fullscreen_quad_vertex_buffer_view.BufferLocation = fullscreen_quad_vertex_buffer->GetGPUVirtualAddress();
+		fullscreen_quad_vertex_buffer_view.BufferLocation = p_fullscreen_quad_vertex_buffer->GetResource()->GetGPUVirtualAddress();
 		fullscreen_quad_vertex_buffer_view.StrideInBytes = sizeof(FullscreenVertex);
-		fullscreen_quad_vertex_buffer_view.SizeInBytes = sizeof(quadVertices);
+		fullscreen_quad_vertex_buffer_view.SizeInBytes = vertexBufferSize;
 	}
 	#pragma endregion
 
@@ -231,6 +228,11 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
 {
 	DX12DeviceResourcesSingleton::GetDX12DeviceResources()->WaitForGPU();
+	if (p_fullscreen_quad_vertex_buffer != nullptr)
+	{
+		delete p_fullscreen_quad_vertex_buffer;
+	}
+
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplUWP_Shutdown();
 	ImGui::DestroyContext();

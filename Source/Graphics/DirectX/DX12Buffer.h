@@ -39,7 +39,7 @@ class DX12Buffer
 				num_of_elements(1),
 				element_size(0),
 				alignment(0),
-				descriptor_type(DX12Buffer::DescriptorType::SRV),
+				descriptor_type(0),
 				format(DXGI_FORMAT_UNKNOWN),
 				resource_flags(D3D12_RESOURCE_FLAG_NONE),
 				state(D3D12_RESOURCE_STATE_COMMON),

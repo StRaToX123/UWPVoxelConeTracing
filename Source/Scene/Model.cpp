@@ -3,12 +3,14 @@
 #include "Model.h"
 
 Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
+	ID3D12GraphicsCommandList* _commandList,
 	DirectX::XMVECTOR positionWorldSpace,
 	DirectX::XMVECTOR rotationLocalSpaceQuaternion,
 	DirectX::XMFLOAT4 color,
 	bool isDynamic,
 	float speed,
-	float amplitude)
+	float amplitude,
+	bool initializeAsACube)
 {
 	// We start we the last back buffer index, because the most_updated_cbv_index gets incremented first before
 	// representing a cbv slot which will get updated. This way the first time the most_updated_cbv_index gets incremented,
@@ -18,12 +20,16 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	position_world_space = positionWorldSpace;
 	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
 	is_dynamic = isDynamic;
-	mSpeed = speed;
-	mAmplitude = amplitude;
+	this->speed = speed;
+	this->amplitude = amplitude;
 	shader_structure_cpu_model_data.diffuse_color = color;
 
 	// Initialize the model as a default cube
-	mMeshes.push_back(new Mesh(_descriptorHeapManager));
+	if (initializeAsACube == true)
+	{
+		std::string defaultCubeName = "Default Cube";
+		P_meshes.push_back(new Mesh(_descriptorHeapManager, _commandList, defaultCubeName));
+	}
 
 	DX12Buffer::Description desc;
 	desc.element_size = c_aligned_shader_structure_cpu_model_data;
@@ -39,7 +45,8 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 }
 
 Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager, 
-	const std::string& filename, 
+	ID3D12GraphicsCommandList* _commandList,
+	std::string& filename, 
 	DirectX::XMVECTOR positionWorldSpace,
 	DirectX::XMVECTOR rotationLocalSpaceQuaternion,
 	XMFLOAT4 color,
@@ -52,12 +59,12 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	// it will loop around to 0, representing the 0'th backBuffer index
 	most_updated_cbv_index = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetBackBufferCount() - 1;
 	referenced_meshes = false;
-	mFilename = filename;
+	file_name = filename;
 	position_world_space = positionWorldSpace;
 	rotation_local_space_quaternion = rotationLocalSpaceQuaternion;
 	is_dynamic = isDynamic;
-	mSpeed = speed;
-	mAmplitude = amplitude;
+	this->speed = speed;
+	this->amplitude = amplitude;
 	shader_structure_cpu_model_data.diffuse_color = color;
 
 	// Create the FBX SDK manager
@@ -95,8 +102,11 @@ Model::Model(DX12DescriptorHeapManager* _descriptorHeapManager,
 	{
 		for (UINT i = 0; i < pScene->GetGeometryCount(); i++)
 		{
-			Mesh* pMesh = new Mesh(_descriptorHeapManager, static_cast<FbxMesh*>(fbxGeomConverter.Triangulate(static_cast<FbxNodeAttribute*>(pScene->GetGeometry(i)), true, true)));
-			mMeshes.push_back(pMesh);
+			Mesh* pMesh = new Mesh(_descriptorHeapManager,
+				_commandList,
+				static_cast<FbxMesh*>(fbxGeomConverter.Triangulate(static_cast<FbxNodeAttribute*>(pScene->GetGeometry(i)), true, true)),
+				filename);
+			P_meshes.push_back(pMesh);
 		}
 	}
 
@@ -118,7 +128,7 @@ Model::~Model()
 {
 	if (referenced_meshes == false)
 	{
-		for (Mesh* mesh : mMeshes)
+		for (Mesh* mesh : P_meshes)
 		{
 			delete mesh;
 		}
@@ -146,7 +156,7 @@ void Model::UpdateBuffers()
 
 bool Model::HasMeshes() const
 {
-	return (mMeshes.size() > 0);
+	return (P_meshes.size() > 0);
 }
 
 bool Model::HasMaterials() const
@@ -159,7 +169,7 @@ void Model::Render(ID3D12GraphicsCommandList* commandList)
 {
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	for (Mesh* mesh : mMeshes)
+	for (Mesh* mesh : P_meshes)
 	{
 		commandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
 		commandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
@@ -169,7 +179,7 @@ void Model::Render(ID3D12GraphicsCommandList* commandList)
 
 const std::vector<Mesh*>& Model::Meshes() const
 {
-	return mMeshes;
+	return P_meshes;
 }
 
 //const std::vector<DXRSModelMaterial*>& DXRSModel::Materials() const
@@ -181,7 +191,7 @@ std::vector<XMFLOAT3> Model::GenerateAABB()
 {
 	std::vector<XMFLOAT3> vertices;
 
-	for (Mesh* mesh : mMeshes)
+	for (Mesh* mesh : P_meshes)
 	{
 		vertices.insert(vertices.end(), mesh->Vertices().begin(), mesh->Vertices().end());
 	}
@@ -216,8 +226,13 @@ std::vector<XMFLOAT3> Model::GenerateAABB()
 
 Model& Model::operator=(const Model& rhs)
 {
-	this->mMeshes = rhs.mMeshes;
-	this->mFilename = rhs.mFilename;
+	for (UINT i = 0; i < P_meshes.size(); i++)
+	{
+		delete P_meshes[i];
+	}
+
+	this->P_meshes = rhs.P_meshes;
+	this->file_name = rhs.file_name;
 	referenced_meshes = true;
 	return *this;
 }

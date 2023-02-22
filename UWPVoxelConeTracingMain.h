@@ -46,9 +46,8 @@ class UWPVoxelConeTracingMain
 		ComPtr<ID3D12CommandAllocator> command_allocators_compute[DX12DeviceResourcesSingleton::MAX_BACK_BUFFER_COUNT];
 
 		// Fullscreen Quad
-		ComPtr<ID3D12Resource>              fullscreen_quad_vertex_buffer;
-		ComPtr<ID3D12Resource>              fullscreen_quad_vertex_upload_buffer;
-		D3D12_VERTEX_BUFFER_VIEW            fullscreen_quad_vertex_buffer_view;
+		DX12Buffer* p_fullscreen_quad_vertex_buffer;
+		D3D12_VERTEX_BUFFER_VIEW fullscreen_quad_vertex_buffer_view;
 
 		Windows::UI::Core::CoreWindow^ core_window;
 		DXRSTimer timer;

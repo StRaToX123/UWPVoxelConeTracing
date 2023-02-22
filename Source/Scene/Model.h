@@ -25,14 +25,17 @@ class Model
 
 	public:
 		Model(DX12DescriptorHeapManager* _descriptorHeapManager,
+			ID3D12GraphicsCommandList* _commandList,
 			DirectX::XMVECTOR positionWorldSpace,
 			DirectX::XMVECTOR rotationLocalSpaceQuaternion,
 			XMFLOAT4 color = XMFLOAT4(1, 0, 1, 1),
 			bool isDynamic = false,
 			float speed = 0.0f,
-			float amplitude = 1.0f);
+			float amplitude = 1.0f,
+			bool initializeAsACube = true);
 		Model(DX12DescriptorHeapManager* _descriptorHeapManager, 
-			const std::string& filename, 
+			ID3D12GraphicsCommandList* _commandList,
+			std::string& filename, 
 			DirectX::XMVECTOR positionWorldSpace,
 			DirectX::XMVECTOR rotationLocalSpaceQuaternion,
 			XMFLOAT4 color = XMFLOAT4(1, 0, 1, 1),
@@ -49,14 +52,14 @@ class Model
 		void Render(ID3D12GraphicsCommandList* commandList);
 
 		const std::vector<Mesh*>& Meshes() const;
-		const std::string GetFileName() { return mFilename; }
-		const char* GetFileNameChar() { return mFilename.c_str(); }
+		const std::string GetFileName() { return file_name; }
+		const char* GetFileNameChar() { return file_name.c_str(); }
 		std::vector<XMFLOAT3> GenerateAABB();
 
 		XMFLOAT4 GetDiffuseColor() { return shader_structure_cpu_model_data.diffuse_color; }
 		bool GetIsDynamic() { return is_dynamic; }
-		float GetSpeed() { return mSpeed; }
-		float GetAmplitude() { return mAmplitude; }
+		float GetSpeed() { return speed; }
+		float GetAmplitude() { return amplitude; }
 
 		Model& operator=(const Model& rhs);
 
@@ -69,17 +72,17 @@ class Model
 		static const UINT c_aligned_shader_structure_cpu_model_data = (sizeof(ShaderStructureCPUModelData) + 255) & ~255;
 		DX12Buffer* p_constant_buffer;
 
-		std::vector<Mesh*> mMeshes;
+		std::vector<Mesh*> P_meshes;
 		// If this bool is set to true, then that means this models is referencing someone elses mesh data.
 		// So since it doesn't own it, this bool will signal to us that we should't delete the mesh data
 		// inside of the destructor
 		bool referenced_meshes;
-		std::string mFilename;
+		std::string file_name;
 
-		XMFLOAT4 mDiffuseColor;
+		XMFLOAT4 diffuse_color;
 		bool is_dynamic;
 		UINT8 most_updated_cbv_index;
-		float mSpeed;
-		float mAmplitude;
+		float speed;
+		float amplitude;
 };
 

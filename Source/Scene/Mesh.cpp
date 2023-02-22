@@ -2,8 +2,10 @@
 
 #include "Mesh.h"
 
-Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager)
+Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList, std::string& name)
 {
+	p_vertex_buffer = nullptr;
+	p_index_buffer = nullptr;
 	// A cube has six faces, each one pointing in a different direction.
 	const int FaceCount = 6;
 
@@ -89,77 +91,10 @@ Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager)
 	// Make sure to invert the indices and vertices winding orders, to match
 	// directX's left hand coordinate system
 	ReverseWinding(indices, vertices);
-
-	const UINT vertexBufferSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
-	const UINT indexBufferSize = indices.size() * sizeof(indices[0]);
-
-	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
-	// Note: using upload heaps to transfer static data like vert buffers is not 
-	// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-	// over. Please read up on Default Heap usage. An upload heap is used here for 
-	// code simplicity and because there are very few verts to actually transfer.
-	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&vertex_buffer)));
-
-	// Copy the triangle data to the vertex buffer.
-	UINT8* pVertexDataBegin;
-	CD3DX12_RANGE readRange(0, 0);
-
-	ThrowIfFailed(vertex_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-	memcpy(pVertexDataBegin, &vertices[0], vertexBufferSize);
-	vertex_buffer->Unmap(0, nullptr);
-
-	// Initialize the vertex buffer view.
-	vertex_buffer_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-	vertex_buffer_view.StrideInBytes = sizeof(Vertex);
-	vertex_buffer_view.SizeInBytes = vertexBufferSize;
-
-	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&index_buffer)));
-
-	// Copy the triangle data to the vertex buffer.
-	UINT8* pIndexDataBegin;
-
-	ThrowIfFailed(index_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
-	memcpy(pIndexDataBegin, &indices[0], indexBufferSize);
-	index_buffer->Unmap(0, nullptr);
-
-	// Initialize the vertex buffer view
-	index_buffer_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-	index_buffer_view.Format = DXGI_FORMAT_R32_UINT/*DXGI_FORMAT_R16_UINT*/;
-	index_buffer_view.SizeInBytes = indexBufferSize;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	SRVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	SRVDesc.Buffer.NumElements = indices.size();
-	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-	index_buffer_srv = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_d3dDevice->CreateShaderResourceView(index_buffer.Get(), &SRVDesc, index_buffer_srv.GetCPUHandle());
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescVB = {};
-	SRVDescVB.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	SRVDescVB.Format = DXGI_FORMAT_UNKNOWN;
-	SRVDescVB.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	SRVDescVB.Buffer.NumElements = vertices.size();
-	SRVDescVB.Buffer.StructureByteStride = sizeof(Vertex);
-	SRVDescVB.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	vertex_buffer_srv = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_d3dDevice->CreateShaderResourceView(vertex_buffer.Get(), &SRVDescVB, vertex_buffer_srv.GetCPUHandle());
+	CreateVertexAndIndexBuffersAndViews(_descriptorHeapManager, _commandList, name);
 }
 
-Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
+Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, ID3D12GraphicsCommandList* _commandList, FbxMesh* _mesh, std::string& name)
 {
 	_mesh->GenerateTangentsDataForAllUVSets();
 	UINT counter = 0;
@@ -266,73 +201,7 @@ Mesh::Mesh(DX12DescriptorHeapManager* _descriptorHeapManager, FbxMesh* _mesh)
 		}
 	}
 
-	const UINT vertexBufferSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
-	const UINT indexBufferSize = indices.size() * sizeof(indices[0]);
-
-	ID3D12Device* _d3dDevice = DX12DeviceResourcesSingleton::GetDX12DeviceResources()->GetD3DDevice();
-	// Note: using upload heaps to transfer static data like vert buffers is not 
-	// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-	// over. Please read up on Default Heap usage. An upload heap is used here for 
-	// code simplicity and because there are very few verts to actually transfer.
-	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&vertex_buffer)));
-
-	// Copy the triangle data to the vertex buffer.
-	UINT8* pVertexDataBegin;
-	CD3DX12_RANGE readRange(0, 0);
-
-	ThrowIfFailed(vertex_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-	memcpy(pVertexDataBegin, &vertices[0], vertexBufferSize);
-	vertex_buffer->Unmap(0, nullptr);
-
-	// Initialize the vertex buffer view.
-	vertex_buffer_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-	vertex_buffer_view.StrideInBytes = sizeof(Vertex);
-	vertex_buffer_view.SizeInBytes = vertexBufferSize;
-
-	ThrowIfFailed(_d3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&index_buffer)));
-
-	// Copy the triangle data to the vertex buffer.
-	UINT8* pIndexDataBegin;
-
-	ThrowIfFailed(index_buffer->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin)));
-	memcpy(pIndexDataBegin, &indices[0], indexBufferSize);
-	index_buffer->Unmap(0, nullptr);
-
-	// Initialize the vertex buffer view
-	index_buffer_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-	index_buffer_view.Format = DXGI_FORMAT_R32_UINT/*DXGI_FORMAT_R16_UINT*/;
-	index_buffer_view.SizeInBytes = indexBufferSize;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-	SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	SRVDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-	SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	SRVDesc.Buffer.NumElements = indices.size();
-	SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-	index_buffer_srv = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_d3dDevice->CreateShaderResourceView(index_buffer.Get(), &SRVDesc, index_buffer_srv.GetCPUHandle());
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDescVB = {};
-	SRVDescVB.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-	SRVDescVB.Format = DXGI_FORMAT_UNKNOWN;
-	SRVDescVB.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	SRVDescVB.Buffer.NumElements = vertices.size();
-	SRVDescVB.Buffer.StructureByteStride = sizeof(Vertex);
-	SRVDescVB.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	vertex_buffer_srv = _descriptorHeapManager->GetCPUHandleBlock(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_d3dDevice->CreateShaderResourceView(vertex_buffer.Get(), &SRVDescVB, vertex_buffer_srv.GetCPUHandle());
+	CreateVertexAndIndexBuffersAndViews(_descriptorHeapManager, _commandList, name);
 }
 
 Mesh::~Mesh()
@@ -340,6 +209,16 @@ Mesh::~Mesh()
 	for (std::vector<XMFLOAT4>* vertexColors : P_vertex_colors)
 	{
 		delete vertexColors;
+	}
+
+	if (p_vertex_buffer != nullptr)
+	{
+		delete p_vertex_buffer;
+	}
+
+	if (p_index_buffer != nullptr)
+	{
+		delete p_index_buffer;
 	}
 }
 
@@ -385,4 +264,49 @@ void Mesh::ReverseWinding(std::vector<UINT>& indices, std::vector<Vertex>& verti
 	{
 		it->texcoord.x = (1.f - it->texcoord.x);
 	}
+}
+
+void Mesh::CreateVertexAndIndexBuffersAndViews(DX12DescriptorHeapManager* _descriptorHeapManager, 
+	ID3D12GraphicsCommandList* _commandList, 
+	std::string& name)
+{
+	std::wstring vertexBufferName(name.begin(), name.end());
+	std::wstring indexBufferName = vertexBufferName;
+	vertexBufferName += L" VertexBuffer";
+	indexBufferName += L" IndexBuffer";
+	const UINT vertexBufferSize = ((UINT)vertices.size()) * sizeof(Vertex);
+	const UINT indexBufferSize = indices.size() * sizeof(indices[0]);
+
+	// Create the vertex buffer
+	DX12Buffer::Description vertexBufferDesc;
+	vertexBufferDesc.element_size = vertexBufferSize;
+	vertexBufferDesc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	p_vertex_buffer = new DX12Buffer(_descriptorHeapManager,
+		vertexBufferDesc,
+		1,
+		vertexBufferName.c_str(),
+		&vertices[0],
+		vertexBufferSize,
+		_commandList);
+
+	// Create the vertex buffer view
+	vertex_buffer_view.BufferLocation = p_vertex_buffer->GetResource()->GetGPUVirtualAddress();
+	vertex_buffer_view.StrideInBytes = sizeof(Vertex);
+	vertex_buffer_view.SizeInBytes = vertexBufferSize;
+
+	// Create the index buffer
+	DX12Buffer::Description indexBufferDesc;
+	indexBufferDesc.element_size = indexBufferSize;
+	indexBufferDesc.state = D3D12_RESOURCE_STATE_GENERIC_READ;
+	p_index_buffer = new DX12Buffer(_descriptorHeapManager,
+		indexBufferDesc,
+		1,
+		indexBufferName.c_str(),
+		&indices[0],
+		indexBufferSize,
+		_commandList);
+
+	index_buffer_view.BufferLocation = p_index_buffer->GetResource()->GetGPUVirtualAddress();
+	index_buffer_view.SizeInBytes = indexBufferSize;
+	index_buffer_view.Format = DXGI_FORMAT_R32_UINT;
 }
