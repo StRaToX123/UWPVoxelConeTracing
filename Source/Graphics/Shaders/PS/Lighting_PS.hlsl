@@ -1,5 +1,5 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\Lighting_HF.hlsli"
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+#include "Lighting_HF.hlsli"
+#include "ShaderStructures_HF.hlsli"
 
 SamplerState BilinearSampler : register(s0);
 SamplerComparisonState PcfShadowMapSampler : register(s1);

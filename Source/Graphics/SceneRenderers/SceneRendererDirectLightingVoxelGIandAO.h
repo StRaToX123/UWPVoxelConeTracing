@@ -74,7 +74,7 @@ class SceneRendererDirectLightingVoxelGIandAO
 			int use_shadows = 1;
 			int use_vct = 1;
 			int use_vct_debug = 0;
-			float vct_gi_power = 1.0f;
+			float vct_gi_power = 1.323f;
 			int show_only_ao = 0;
 			DirectX::XMFLOAT2 padding;
 		};

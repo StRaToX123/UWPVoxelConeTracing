@@ -1,4 +1,4 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\Composite_HF.hlsli"
+#include "Composite_HF.hlsli"
 
 
 

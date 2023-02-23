@@ -1,5 +1,5 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\VoxelConeTracingVoxelization_HF.hlsli"
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+#include "VoxelConeTracingVoxelization_HF.hlsli"
+#include "ShaderStructures_HF.hlsli"
 
 RWTexture3D<float4> outputTexture : register(u0);
 Texture2D<float> shadowBuffer : register(t0);

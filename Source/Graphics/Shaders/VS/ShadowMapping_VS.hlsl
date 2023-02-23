@@ -1,5 +1,5 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShadowMapping_HF.hlsli"
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+#include "ShadowMapping_HF.hlsli"
+#include "ShaderStructures_HF.hlsli"
 
 ConstantBuffer<ShaderStructureGPUDirectionalLightData> directional_light_data : register(b0);
 ConstantBuffer<ShaderStructureGPUModelData> model_data : register(b1);

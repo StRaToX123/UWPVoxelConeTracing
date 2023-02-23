@@ -1,4 +1,4 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\VoxelConeTracingDebugIndirectDraw_HF.hlsli"
+#include "VoxelConeTracingDebugIndirectDraw_HF.hlsli"
 
 
 float4 main(PixelShaderInputVoxelConeTracingDebugIndirectDraw input) : SV_TARGET

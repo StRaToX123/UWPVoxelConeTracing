@@ -1,4 +1,4 @@
-#include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+#include "ShaderStructures_HF.hlsli"
 
 Texture3D<float4> source : register(t0);
 

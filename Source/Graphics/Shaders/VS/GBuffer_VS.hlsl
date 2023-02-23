@@ -1,5 +1,5 @@
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\GBuffer_HF.hlsli"
-#include "C:\Users\StRaToX\Documents\Visual Studio 2019\Projects\UWPVoxelConeTracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
+#include "GBuffer_HF.hlsli"
+#include "ShaderStructures_HF.hlsli"
 
 ConstantBuffer<ShaderStructureGPUCameraData> camera_data : register(b0);
 ConstantBuffer<ShaderStructureGPUModelData> model_data : register(b1);

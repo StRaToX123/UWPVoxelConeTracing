@@ -77,8 +77,8 @@ class UWPVoxelConeTracingMain
 
 		// ImGui variables
 		bool show_imGui;
-		bool imgui_render_dynamic_objects = false;
-		bool imgui_dont_update_dynamic_objects = false;
+		bool imgui_render_dynamic_objects = true;
+		bool imgui_dont_update_dynamic_objects = true;
 		bool imgui_update_directional_light_buffers = false;
 		bool imgui_update_scene_renderer_illumination_flags_buffer = false;
 		bool imgui_update_scene_renderer_vct_main_buffer = false;

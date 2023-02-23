@@ -1,5 +1,5 @@
-#include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\HF\ShaderStructures_HF.hlsli"
-#include "c:\users\stratox\documents\visual studio 2019\projects\uwpvoxelconetracing\Source\Graphics\Shaders\ShaderGlobalsCPUGPU.hlsli"
+#include "ShaderStructures_HF.hlsli"
+#include "ShaderGlobalsCPUGPU.hlsli"
 
 SamplerState bilinear_sampler : register(s0);
 ConstantBuffer<ShaderStructureGPUVoxelizationData> voxelization_data : register(b0);
