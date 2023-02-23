@@ -2,12 +2,12 @@
 
 DX12RenderTarget::DX12RenderTarget(ID3D12Device* device, 
 	DX12DescriptorHeapManager* descriptorManager, 
-	int width, 
-	int height, 
+	float width,
+	float height,
 	DXGI_FORMAT aFormat, 
 	D3D12_RESOURCE_FLAGS flags, 
 	LPCWSTR name, 
-	int depth, 
+	float depth,
 	int mips, 
 	D3D12_RESOURCE_STATES defaultState)
 {
@@ -106,7 +106,7 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 		if (depth > 0)
 		{
 			rtvDesc.Texture3D.MipSlice = mipLevel;
-			rtvDesc.Texture3D.WSize = (depth >> mipLevel);
+			rtvDesc.Texture3D.WSize = ((int)depth >> mipLevel);
 		}
 		else
 		{
@@ -157,7 +157,7 @@ DX12RenderTarget::DX12RenderTarget(ID3D12Device* device,
 			if (depth > 0)
 			{
 				uavDesc.Texture3D.MipSlice = mipLevel;
-				uavDesc.Texture3D.WSize = (depth >> mipLevel);
+				uavDesc.Texture3D.WSize = ((int)depth >> mipLevel);
 			}
 			else
 			{

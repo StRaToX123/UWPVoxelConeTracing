@@ -223,6 +223,11 @@ UWPVoxelConeTracingMain::UWPVoxelConeTracingMain(Windows::UI::Core::CoreWindow^ 
 	// WaitForGPU function which is inside the CreateWindowResources function. We need to wait for the GPU here
 	// since we just submited some work to it during this Initialization
 	OnWindowSizeChanged(); 
+
+	// When running on the xbox, the controller is connected from the start, thus the OnGamepadAdded event fires before the app event loads.
+	// That means we are notified only once about a gamepads existance, and that's before this class initialized (the App loads).
+	// And so we will have to check for the gamepad outselves, in case it was present from the get-go.
+	OnGamepadConnectedDisconnectedCallback();
 }
 
 UWPVoxelConeTracingMain::~UWPVoxelConeTracingMain()
@@ -591,7 +596,7 @@ void UWPVoxelConeTracingMain::Update()
 			{
 				if (model->GetIsDynamic())
 				{
-					model->position_world_space = DirectX::XMVectorSetY(model->position_world_space, DirectX::XMVectorGetY(model->position_world_space) + sin(timer.GetTotalSeconds() * model->GetAmplitude()) * model->GetSpeed());
+					model->position_world_space = DirectX::XMVectorSetY(model->position_world_space, DirectX::XMVectorGetY(model->position_world_space) + (sin(timer.GetTotalSeconds() * model->GetAmplitude()) * 15.0f * timer.GetElapsedSeconds()));
 				}
 			}
 		}
@@ -648,6 +653,7 @@ void UWPVoxelConeTracingMain::Update()
 	imgui_update_scene_renderer_illumination_flags_buffer = false;
 	imgui_update_scene_renderer_vct_main_buffer = false;
 	imgui_update_voxelizer_data_buffer = false;
+	imgui_voxel_cone_tracing_main_pass_render_scale_changed = false;
 }
 
 // Renders the current frame according to the current application state.
@@ -727,6 +733,7 @@ bool UWPVoxelConeTracingMain::Render()
 		{
 			imgui_update_voxelizer_data_buffer |= ImGui::Combo("Voxel Grid Resolution", &imgui_selected_index_voxel_grid_resolutions, imgui_combo_box_string_voxel_grid_resolutions);
 			imgui_update_voxelizer_data_buffer |= ImGui::SliderFloat("Voxel Grid Extent", &scene_renderer.shader_structure_cpu_voxelization_data.voxel_grid_extent_world_space, 1.0f, 400.0f);
+			imgui_voxel_cone_tracing_main_pass_render_scale_changed |= ImGui::SliderFloat("VCT Main Pass Render Scale", &scene_renderer.render_target_vct_main_render_scale, 0.1f, 1.0f);
 			imgui_update_scene_renderer_illumination_flags_buffer |= ImGui::SliderFloat("GI Intensity", &scene_renderer.shader_structure_cpu_illumination_flags_data.vct_gi_power, 0.0f, 15.0f);
 			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Diffuse Strength", &scene_renderer.shader_structure_cpu_vct_main_data.indirect_diffuse_strength, 0.0f, 1.0f);
 			imgui_update_scene_renderer_vct_main_buffer |= ImGui::SliderFloat("Specular Strength", &scene_renderer.shader_structure_cpu_vct_main_data.indirect_specular_strength, 0.0f, 1.0f);
@@ -763,6 +770,15 @@ bool UWPVoxelConeTracingMain::Render()
 		scene_renderer.UpdateVoxelConeTracingVoxelizationBuffers(_deviceResources->GetD3DDevice());
 		imgui_update_voxelizer_data_buffer = false;
 	}
+
+	if (imgui_voxel_cone_tracing_main_pass_render_scale_changed == true)
+	{
+		imgui_voxel_cone_tracing_main_pass_render_scale_changed = false;
+		imgui_update_scene_renderer_vct_main_buffer = true; // This way the constant buffer data will be appropriately updated next frame
+		_deviceResources->WaitForGPU();
+		scene_renderer.UpdateVoxelConeTracingBuffers(_deviceResources, _deviceResources->GetD3DDevice(), _deviceResources->GetOutputSize().right, _deviceResources->GetOutputSize().bottom);
+	}
+
 	return true;
 }
 
@@ -777,7 +793,7 @@ void UWPVoxelConeTracingMain::OnWindowSizeChanged()
 	}
 	
 	// Update the scene renderers
-	scene_renderer.OnWindowSizeChanged(_deviceResources->GetD3DDevice(), core_window->Bounds.Width, core_window->Bounds.Height);
+	scene_renderer.OnWindowSizeChanged(_deviceResources, _deviceResources->GetD3DDevice(), core_window->Bounds.Width, core_window->Bounds.Height);
 
 	// Update the camera
 	float aspectRatio = core_window->Bounds.Width / core_window->Bounds.Height;

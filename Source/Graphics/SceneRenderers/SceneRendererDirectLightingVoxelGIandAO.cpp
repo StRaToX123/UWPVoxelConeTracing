@@ -260,7 +260,6 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			memcpy(p_constant_buffer_illumination_flags->GetMappedData(shader_structure_cpu_illumination_flags_most_updated_index), &shader_structure_cpu_illumination_flags_data, sizeof(ShaderStructureCPUIlluminationFlagsData));
 			break;
 		}
-
 		case UpdatableBuffers::VCT_MAIN_DATA_BUFFER:
 		{
 			shader_structure_cpu_vct_main_data_most_updated_index++;
@@ -273,7 +272,6 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			memcpy(p_constant_buffer_vct_main->GetMappedData(shader_structure_cpu_vct_main_data_most_updated_index), &shader_structure_cpu_vct_main_data, sizeof(ShaderStructureCPUVCTMainData));
 			break;
 		}
-
 		case UpdatableBuffers::VOXELIZATION_DATA_BUFFER:
 		{
 			shader_structure_cpu_voxelization_data_most_updated_index++;
@@ -298,7 +296,6 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateBuffers(UpdatableBuffers whi
 			memcpy(p_constant_buffer_voxelization->GetMappedData(shader_structure_cpu_voxelization_data_most_updated_index), &shader_structure_cpu_voxelization_data, sizeof(ShaderStructureCPUVoxelizationData));
 			break;
 		}
-
 		case UpdatableBuffers::LIGHTING_DATA_BUFFER:
 		{
 			shader_structure_cpu_lighting_data_most_updated_index++;
@@ -384,7 +381,10 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingVoxelization
 	P_render_targets_vct_voxelization_anisotropic_mip_generation.push_back(new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, size, size, format, flags, L"Voxelization Scene Mip Prepare Z- 3D", size, shader_structure_cpu_voxelization_data.voxel_grid_anisotropic_mip_count, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingBuffers(DX12DeviceResourcesSingleton* _deviceResources,
+	ID3D12Device* _d3dDevice, 
+	float backBufferWidth, 
+	float backBufferHeight)
 {
 	if (p_render_target_vct_main != nullptr)
 	{
@@ -393,7 +393,7 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingBuffers(ID3D
 	
 	DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	p_render_target_vct_main = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth * mVCTRTRatio, backBufferHeight * mVCTRTRatio, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	p_render_target_vct_main = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth * render_target_vct_main_render_scale, backBufferHeight * render_target_vct_main_render_scale, format, flags, L"VCT Final Output", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	if (p_render_target_vct_main_upsample_and_blur != nullptr)
 	{
@@ -402,6 +402,19 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateVoxelConeTracingBuffers(ID3D
 	
 	p_render_target_vct_main_upsample_and_blur = new DX12RenderTarget(_d3dDevice, &descriptor_heap_manager, backBufferWidth, backBufferHeight,
 		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"VCT Main RT Upsampled & Blurred", -1, 1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	if (p_render_target_vct_debug != nullptr)
+	{
+		delete p_render_target_vct_debug;
+	}
+
+	p_render_target_vct_debug = new DX12RenderTarget(_d3dDevice,
+		&descriptor_heap_manager,
+		backBufferWidth,
+		backBufferHeight,
+		_deviceResources->GetBackBufferFormat(),
+		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+		L"RenderTarget vct debug");
 }
 
 void SceneRendererDirectLightingVoxelGIandAO::UpdateLightingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
@@ -415,11 +428,11 @@ void SceneRendererDirectLightingVoxelGIandAO::UpdateLightingBuffers(ID3D12Device
 		DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, L"Lighting");
 }
 
-void SceneRendererDirectLightingVoxelGIandAO::OnWindowSizeChanged(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
+void SceneRendererDirectLightingVoxelGIandAO::OnWindowSizeChanged(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight)
 {
 	UpdateGBuffer(_d3dDevice, backBufferWidth, backBufferHeight);
 	UpdateShadowMappingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
-	UpdateVoxelConeTracingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
+	UpdateVoxelConeTracingBuffers(_deviceResources, _d3dDevice, backBufferWidth, backBufferHeight);
 	UpdateLightingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
 }
 
@@ -800,6 +813,9 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 	float backBufferHeight,
 	ID3D12GraphicsCommandList* _commandList)
 {
+	UpdateVoxelConeTracingBuffers(_deviceResources, _d3dDevice, backBufferWidth, backBufferHeight);
+	UpdateVoxelConeTracingVoxelizationBuffers(_d3dDevice);
+
 	// Voxelization
 	{
 		viewport_vct_voxelization = CD3DX12_VIEWPORT(0.0f, 0.0f, shader_structure_cpu_voxelization_data.voxel_grid_res, shader_structure_cpu_voxelization_data.voxel_grid_res);
@@ -818,9 +834,6 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 		shadowSampler.BorderColor[1] = 1.0f;
 		shadowSampler.BorderColor[2] = 1.0f;
 		shadowSampler.BorderColor[3] = 1.0f;
-
-		UpdateVoxelConeTracingBuffers(_d3dDevice, backBufferWidth, backBufferHeight);
-		UpdateVoxelConeTracingVoxelizationBuffers(_d3dDevice);
 
 		//create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -983,14 +996,6 @@ void SceneRendererDirectLightingVoxelGIandAO::InitVoxelConeTracing(DX12DeviceRes
 
 	// Vct debug 
 	{
-		p_render_target_vct_debug = new DX12RenderTarget(_d3dDevice,
-			&descriptor_heap_manager,
-			backBufferWidth,
-			backBufferHeight, 
-			_deviceResources->GetBackBufferFormat(), 
-			D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, 
-			L"RenderTarget vct debug");
-
 		// Create root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -1450,15 +1455,16 @@ void SceneRendererDirectLightingVoxelGIandAO::RenderVoxelConeTracingDebug(DX12De
 		{
 			p_render_target_vct_debug->GetRTV()
 		};
-		_commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
-		_commandList->ClearRenderTargetView(_deviceResources->GetRenderTargetView(), Colors::CornflowerBlue, 0, nullptr);
-		_commandList->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		_deviceResources->ResourceBarriersBegin(barriers);
 		p_render_target_vct_debug->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		p_indirect_command_buffer_voxel_debug->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 		p_append_buffer_indirect_draw_voxel_debug_per_instance_data->TransitionTo(barriers, _commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		_deviceResources->ResourceBarriersEnd(barriers, _commandList);
+
+		_commandList->OMSetRenderTargets(_countof(rtvHandles), rtvHandles, FALSE, &_deviceResources->GetDepthStencilView());
+		_commandList->ClearRenderTargetView(p_render_target_vct_debug->GetRTV(), gs_clear_color_black, 0, nullptr);
+		_commandList->ClearDepthStencilView(_deviceResources->GetDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		DX12DescriptorHandleBlock cbvHandle = _gpuDescriptorHeap->GetHandleBlock(1);
 		cbvHandle.Add(p_constant_buffer_voxelization->GetCBV(shader_structure_cpu_voxelization_data_most_updated_index));

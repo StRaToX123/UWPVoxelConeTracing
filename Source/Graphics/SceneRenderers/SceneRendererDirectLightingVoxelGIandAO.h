@@ -46,9 +46,10 @@ class SceneRendererDirectLightingVoxelGIandAO
 			ID3D12GraphicsCommandList* _commandListDirect, 
 			ID3D12GraphicsCommandList* _commandListCompute,
 			ID3D12CommandAllocator* _commandAllocatorDirect);
-		void OnWindowSizeChanged(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
+		void OnWindowSizeChanged(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		// So that we can change the voxel grid from outside of the renderer
 		void UpdateVoxelConeTracingVoxelizationBuffers(ID3D12Device* _d3dDevice);
+		void UpdateVoxelConeTracingBuffers(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 
 		enum UpdatableBuffers
 		{
@@ -129,13 +130,13 @@ class SceneRendererDirectLightingVoxelGIandAO
 		static const UINT c_aligned_shader_structure_cpu_vct_main_data = (sizeof(ShaderStructureCPUVCTMainData) + 255) & ~255;
 
 		bool render_vct_debug = false;
+		float render_target_vct_main_render_scale = 0.5f; // Which is 50% of the backbuffer
 	private:
 		void InitGbuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateGBuffer(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitShadowMapping(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateShadowMappingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitVoxelConeTracing(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight, ID3D12GraphicsCommandList* _commandList);
-		void UpdateVoxelConeTracingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitLighting(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void UpdateLightingBuffers(ID3D12Device* _d3dDevice, float backBufferWidth, float backBufferHeight);
 		void InitComposite(DX12DeviceResourcesSingleton* _deviceResources, ID3D12Device* _d3dDevice);
@@ -258,7 +259,6 @@ class SceneRendererDirectLightingVoxelGIandAO
 		DX12Buffer* p_constant_buffer_lighting;
 		DX12Buffer* p_constant_buffer_illumination_flags;
 
-		float mVCTRTRatio = 0.5f; // from MAX_SCREEN_WIDTH/HEIGHT
 		bool use_vct_main_upsample_and_blur = true;
 
 		D3D12_DEPTH_STENCIL_DESC depth_state_read_write;

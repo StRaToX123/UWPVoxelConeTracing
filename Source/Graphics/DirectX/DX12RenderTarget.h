@@ -7,20 +7,20 @@ class DX12RenderTarget
 	public:
 		DX12RenderTarget(ID3D12Device* device,
 			DX12DescriptorHeapManager* descriptorManger, 
-			int width, 
-			int height, 
+			float width,
+			float height,
 			DXGI_FORMAT aFormat,
 			D3D12_RESOURCE_FLAGS flags,
 			LPCWSTR name, 
-			int depth = -1, 
+			float depth = -1,
 			int mips = 1, 
 			D3D12_RESOURCE_STATES defaultState = D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		ID3D12Resource* GetResource() { return render_target.Get(); }
 
-		int GetWidth() { return width; }
-		int GetHeight() { return height; }
-		int GetDepth() { return depth; }
+		float GetWidth() { return width; }
+		float GetHeight() { return height; }
+		float GetDepth() { return depth; }
 		void TransitionTo(std::vector<CD3DX12_RESOURCE_BARRIER>& barriers, 
 			ID3D12GraphicsCommandList* commandList,
 			D3D12_RESOURCE_STATES stateAfter,
@@ -32,7 +32,7 @@ class DX12RenderTarget
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetUAV(UINT mip = 0);
 
 	private:
-		int width, height, depth;
+		float width, height, depth;
 		DXGI_FORMAT format;
 		std::vector<D3D12_RESOURCE_STATES> resource_state_current_per_mip;
 

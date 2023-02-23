@@ -272,10 +272,22 @@ void App::OnKeyEvent(Windows::UI::Core::CoreDispatcher^ sender, Windows::UI::Cor
 
 void App::OnGamepadAdded(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
 {
-	m_main->OnGamepadConnectedDisconnectedCallback();
+	// When running on the xbox, the controller is connected from the start, thus this OnGamepadAdded event fires before the app event loads
+	// With this if, we will guard from calling imgui code before it imGui is event initialized, but because we skipped the 
+	// OnGamepadAdded event this way, there will not be another one fired. So we'll have to check for a gamepad once the app finished loading
+	if (m_main != nullptr)
+	{
+		m_main->OnGamepadConnectedDisconnectedCallback();
+	}
 }
 
 void App::OnGamepadRemoved(Platform::Object^ sender, Windows::Gaming::Input::Gamepad^ args)
 {
-	m_main->OnGamepadConnectedDisconnectedCallback();
+	// When running on the xbox, the controller is connected from the start, thus this OnGamepadAdded event fires before the app event loads
+	// With this if, we will guard from calling imgui code before it imGui is event initialized, but because we skipped the 
+	// OnGamepadAdded event this way, there will not be another one fired. So we'll have to check for a gamepad once the app finished loading
+	if (m_main != nullptr)
+	{
+		m_main->OnGamepadConnectedDisconnectedCallback();
+	}
 }
