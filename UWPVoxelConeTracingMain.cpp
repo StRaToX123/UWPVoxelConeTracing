@@ -702,8 +702,11 @@ bool UWPVoxelConeTracingMain::Render()
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplUWP_NewFrame();
 		ImGui::NewFrame();
+		ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver);
 		ImGui::Begin("UWPVoxelConeTracing");
 		ImGui::TextColored(ImVec4(0.95f, 0.5f, 0.0f, 1), "FPS: (%.1f FPS), %.3f ms/frame", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+		ImGui::Separator();
+		ImGui::Text("Controls:\n'q' - Toggle UI\n'wasd' - Move camera\n'space - Raise camera'\n'ctrl - Lower camera'\n'mouse move' - Rotate camera");
 		ImGui::Separator();
 		ImGui::Text("Scene controls:");
 		ImGui::Checkbox("Dynamic Light", &directional_light.is_dynamic);
