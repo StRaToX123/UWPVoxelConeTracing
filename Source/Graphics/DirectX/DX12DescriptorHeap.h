@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/DirectXTK12/Inc/DirectXHelpers.h"
+#include "DirectXHelpers.h"
 #include "Graphics/DirectX/DX12DeviceResourcesSingleton.h"
 
 #include <queue>
