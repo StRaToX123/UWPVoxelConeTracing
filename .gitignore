@@ -8,6 +8,11 @@
 !Source/Utility/Debug/*
 !Source/Utility/Debug/**/*
 
+## Dont ignore the packages folder
+!packages/
+!packages/*
+!packages/**/*
+
 # User-specific files
 *.rsuser
 *.suo
