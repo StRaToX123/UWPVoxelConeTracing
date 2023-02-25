@@ -4,7 +4,9 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 ## Dont ignore the Source\Utility\Debug fodler
+!Source/Utility/Debug/
 !Source/Utility/Debug/*
+!Source/Utility/Debug/**/*
 
 # User-specific files
 *.rsuser
