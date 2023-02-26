@@ -257,9 +257,6 @@
     <ClInclude Include="Source\Common.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Utility\Debug\DebugMessage.h">
-      <Filter>Source\Utility\Debug\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Utility\FileSystem\FilePath.h">
       <Filter>Source\Utility\FileSystem\Header Files</Filter>
     </ClInclude>
@@ -268,6 +265,9 @@
     </ClInclude>
     <ClInclude Include="Source\Scene\SceneObject.h">
       <Filter>Source\Scene\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utility\Debug\DebugMessage.h">
+      <Filter>Source\Utility\Debug\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
