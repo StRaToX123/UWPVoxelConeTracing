@@ -6,7 +6,7 @@
 # Running the prebuild version
 UWP apps are not like your typical .exe apps, there is no installer per se, <br />
 instead you get them from the windows store. Development builds of UWP apps can <br />
-still be shared but the way you deployed them on the user's machine is a bit unusual.
+still be shared but the way you deploy them on the user's machine is a bit unusual.
 
 The project comes with a prebuild x64 release version of the app. In order to run it,
 you will have to do the following:
