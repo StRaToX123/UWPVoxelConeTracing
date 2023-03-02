@@ -1,8 +1,7 @@
-# UWPVoxelConeTracing
-Prerequisites in order to run the app:<br />
+# Prerequisites in order to run the app:<br />
 <img src="https://i.imgur.com/QT0T20e.jpeg"/><br />
 <br />
-**Also you will need to enable developer mode on your window in order to work with UWP apps**<br />
+**Also you will need to enable developer mode on your windows in order to work with UWP apps**<br />
 <br />
 # Running the prebuild version
 UWP apps are not like your typical .exe apps, there is no installer per se, <br />
