@@ -10,7 +10,7 @@ still be shared but the way you deploy them on the user's machine is a bit unusu
 
 The project comes with a prebuild x64 release version of the app. In order to run it,
 you will have to do the following:
-1. Navigate to the the AppPackages\UWPVoxelConeTracing\UWPVoxelConeTracing_1.0.0.0_x64_Test\ folder
+1. Navigate to the the "AppPackages\UWPVoxelConeTracing\UWPVoxelConeTracing_1.0.0.0_x64_Test" folder
 2. Then right click on the "Add-AppDevPackage.ps1" file and click on "Run with Powershell"
 3. Next just follow the onscreen prompts. Powershell will ask you if you want to install
 the app's accompanying certificat, you will need to say 'yes'. UWP apps are strictly protected
