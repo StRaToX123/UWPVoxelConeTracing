@@ -336,6 +336,7 @@
     <None Include="Source\Graphics\Shaders\HF\VoxelConeTracingDebugIndirectDraw_HF.hlsli">
       <Filter>Source\Graphics\Shaders\HF</Filter>
     </None>
+    <None Include="UWPVoxelConeTracing_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Graphics\Shaders\CS\UpsampleBlur_CS.hlsl">
