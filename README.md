@@ -3,7 +3,7 @@
 <br />
 **Also you will need to enable developer mode on your windows in order to work with UWP apps**<br />
 <br />
-# Running the prebuild version
+# Running the prebuilt version
 UWP apps are not like your typical .exe apps, there is no installer per se, <br />
 instead you get them from the windows store. Development builds of UWP apps can <br />
 still be shared but the way you deploy them on the user's machine is a bit unusual.
