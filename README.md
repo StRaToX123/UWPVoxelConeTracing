@@ -1,3 +1,13 @@
+
+# Intro:
+This is a realtime indirect illumination simulation using the voxel cone tracing algorithm.
+The implementation was done using the DirectX12 graphics API and on the UWP(Universal Window Platform).
+This technique also simulates ambient occlusion and realtime reflection.
+
+# Screenshots:
+<img src="https://i.imgur.com/gyXedDH.jpg"/><br />
+<img src="https://i.imgur.com/UbtJzUx.jpg"/><br />
+
 # Prerequisites in order to run the app:<br />
 <img src="https://i.imgur.com/QT0T20e.jpeg"/><br />
 <br />
@@ -21,6 +31,4 @@ build one generated via visual studio when building the app.
 It may take a few seconds to appear after the install though, make sure the search for it again in case
 it doesn't show up immediately
 
-# Screenshots:
-<img src="https://i.imgur.com/gyXedDH.jpg"/><br />
-<img src="https://i.imgur.com/UbtJzUx.jpg"/><br />
+
